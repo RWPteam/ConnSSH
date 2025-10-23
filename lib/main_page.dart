@@ -11,8 +11,8 @@ class MainPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SSH工具'),
-        backgroundColor: Colors.blue,
+        title: const Text('Connecter'),
+        backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
       ),
       body: Center(
@@ -87,8 +87,8 @@ class MainPage extends StatelessWidget {
                 onPressed: () {
                   showAboutDialog(
                     context: context,
-                    applicationName: 'SSH工具',
-                    applicationVersion: '1.0.0',
+                    applicationName: 'connecter',
+                    applicationVersion: 'alpha0.0.1',
                   );
                 },
                 icon: const Icon(Icons.info),

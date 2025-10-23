@@ -22,11 +22,11 @@ class SshService {
       } else {
         // 处理带密码的私钥
         final privateKey = credential.privateKey!;
-        final passphrase = credential.passphrase;
+        final passPhrase = credential.passphrase;
         
         try {
           // 尝试解析私钥
-          final keyPairs = SSHKeyPair.fromPem(privateKey);
+          final keyPairs = SSHKeyPair.fromPem(privateKey,passPhrase);
           if (keyPairs.isEmpty) {
             throw Exception('无法解析私钥');
           }
@@ -56,7 +56,7 @@ class SshService {
 
     try {
       final result = await _client!.run(command);
-      return await result.join();
+      return result.join();
     } catch (e) {
       throw Exception('命令执行失败: $e');
     }

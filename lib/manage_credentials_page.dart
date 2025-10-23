@@ -359,7 +359,7 @@ class _CredentialDialogState extends State<CredentialDialog> {
               
               // 认证方式选择
               DropdownButtonFormField<AuthType>(
-                value: _authType,
+                initialValue: _authType,
                 decoration: const InputDecoration(
                   labelText: '认证方式 *',
                 ),
@@ -488,10 +488,8 @@ class _CredentialDialogState extends State<CredentialDialog> {
         ),
         ElevatedButton(
           onPressed: _saveCredential,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).primaryColor,
-          ),
-          child: Text('保存'),
+          child: const Text('保存'),
+          //style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor,),
         ),
       ],
     );
