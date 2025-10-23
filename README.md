@@ -1,5 +1,5 @@
 # connecter
 A lightweight SSH connection tool based on flutter
 # todo
-* terminalview无法输入
+* 编辑连接的启动按钮失效
 * harmonyos端迁移

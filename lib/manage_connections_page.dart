@@ -66,8 +66,7 @@ void _deleteConnection(ConnectionInfo connection) {
 }
 
   void _connectTo(ConnectionInfo connection) {
-    // 这里实现连接到指定服务器的逻辑
-    // 可以使用 SSHService 进行连接
+    // 应该暂时不需要了
   }
 
   @override
