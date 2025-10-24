@@ -42,6 +42,9 @@ dependencies:
   uuid: ^4.5.1
   path: ^1.9.0
 
+dependency_overrides:
+  meta: ^1.16.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
