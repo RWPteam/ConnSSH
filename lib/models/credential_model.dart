@@ -1,4 +1,3 @@
-// models/credential_model.dart
 class Credential {
   String id;
   String name;
