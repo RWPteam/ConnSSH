@@ -1,29 +1,20 @@
-# main.yml
+name: Flutter test
  
-# 工作流程的名字
-name: Test, Build and Release apk
- 
-# 工作流程触发的时机，这里是当一个版本标签推送到仓库时触发
 on:
   push:
     tags:
       - v*
  
-# 这个工作流程需要执行的任务
 jobs:
   process:
     name: all process
     runs-on: ubuntu-latest
-    # 这个任务的步骤
     steps:
-      # 拉取项目代码
       - uses: actions/checkout@v2
-      # 建立 java 环境
       - name: Setup Java JDK
-        uses: actions/setup-java@v1.3.0
+        uses: actions/setup-java@v5.0.0
         with:
-          java-version: "12.x"
-      # 建立 Flutter 环境
+          java-version: "17.x"
       - name: Flutter action
         uses: subosito/flutter-action@v2.21.0
         with:
