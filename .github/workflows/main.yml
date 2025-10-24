@@ -23,4 +23,4 @@ jobs:
           channel: "stable"
           flutter-version: "3.22.x"
       - run: flutter pub get
-      - run: flutter build
+      - run: flutter build linux
