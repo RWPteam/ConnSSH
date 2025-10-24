@@ -360,7 +360,7 @@ class _CredentialDialogState extends State<CredentialDialog> {
               
               // 认证方式选择
               DropdownButtonFormField<AuthType>(
-                initialValue: _authType,
+                value: _authType,
                 decoration: const InputDecoration(
                   labelText: '认证方式',
                 ),
