@@ -169,7 +169,7 @@ class _MainPageState extends State<MainPage> {
                           ),
                         )
                       : _connections.isEmpty
-                          ? Expanded(
+                          ? const Expanded(
                               child: Center(
                                 child: Text(
                                   '暂无保存的连接',
@@ -336,7 +336,7 @@ class _MainPageState extends State<MainPage> {
     double screenHeight,
   ) {
 
-    final double buttonHeight = 80;
+    const double buttonHeight = 80;
     
     Widget buildButton({
       required VoidCallback onPressed,

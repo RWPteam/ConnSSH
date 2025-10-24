@@ -40,11 +40,17 @@ dependencies:
     git:
       url: https://github.com/samu1oto/xterm.dart
       ref: master
-  shared_preferences: ^2.1.1
-  file_picker: ^8.0.0
-  provider: ^6.0.0
+  shared_preferences: 2.3.2
+  file_picker:
+    git:
+      url: "https://gitcode.com/openharmony-sig/fluttertpc_file_picker.git"
+  file_picker_ohos:
+    git:
+      url: "https://gitcode.com/openharmony-sig/fluttertpc_file_picker.git"
+      path: "ohos"
+  provider: 6.1.2
   uuid: ^4.0.0
-  path: ^1.1.1
+  path: ^1.8.3
 
 dev_dependencies:
   flutter_test:
