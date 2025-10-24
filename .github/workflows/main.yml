@@ -12,10 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Java JDK
-        uses: actions/setup-java@v5.0.0
+      - name: Setup JDK
+        uses: actions/setup-java@v5
         with:
-          java-version: "17.x"
+          distribution: 'zulu' # See 'Supported distributions' for available options
+          java-version: '21'
       - name: Flutter action
         uses: subosito/flutter-action@v2.21.0
         with:
