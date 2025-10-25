@@ -256,7 +256,7 @@ class _MainPageState extends State<MainPage> {
         vertical: 8,
       ),
       onTap: () {
-        _connectToServer(connection);
+        //_connectToServer(connection);
       },
     );
   }
@@ -424,7 +424,6 @@ class _MainPageState extends State<MainPage> {
       ),
       const SizedBox(height: 16),
       
-      // 管理认证凭证按钮
       buildButton(
         onPressed: () {
           Navigator.push(
@@ -444,8 +443,14 @@ class _MainPageState extends State<MainPage> {
           showAboutDialog(
             context: context,
             applicationName: 'connecter',
-            applicationVersion: '1.0 Beta',
-            
+            applicationVersion: '0.2 Beta',
+            children: const [
+              SizedBox(height: 8),
+              Text(
+                '尚在测试中~期待反馈喵',
+                style: TextStyle(fontSize: 13,color: Colors.grey),
+              )
+            ]
           );
         },
         title: '关于',

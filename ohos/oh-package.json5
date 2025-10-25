@@ -1,8 +1,8 @@
 {
   "modelVersion": "5.1.0",
-  "name": "t_samuioto_ssh",
+  "name": "Connecter",
   "version": "1.0.0",
-  "description": "Please describe the basic information.",
+  "description": "A lightweight SSH tool.",
   "main": "",
   "author": "",
   "license": "",

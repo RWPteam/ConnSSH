@@ -26,8 +26,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
-  Win32Window::Size size(1280, 720);
-  if (!window.Create(L"t_samuioto_ssh", origin, size)) {
+  Win32Window::Size size(850, 720);
+  if (!window.Create(L"Connecter", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

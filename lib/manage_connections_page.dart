@@ -124,9 +124,12 @@ void _connectTo(ConnectionInfo connection) async {
       appBar: AppBar(
         title: const Text('管理连接'),
         actions: [
-          IconButton(
-            onPressed: _showNewConnectionDialog,
-            icon: const Icon(Icons.add),
+          Container(
+            margin: const EdgeInsets.only(right: 10),
+            child: IconButton(
+              onPressed: _showNewConnectionDialog,
+              icon: const Icon(Icons.add),
+            ),
           ),
         ],
       ),
