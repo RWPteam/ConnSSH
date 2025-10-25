@@ -228,7 +228,9 @@ class _MainPageState extends State<MainPage> {
           fontWeight: FontWeight.bold,
           color: isConnectingThis ? Colors.grey : null,
         ),
+        
       ),
+
       subtitle: Text(
         '${connection.host}:${connection.port} - ${connection.type.displayName}',
         style: TextStyle(
