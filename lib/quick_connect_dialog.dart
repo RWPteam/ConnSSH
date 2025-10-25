@@ -7,11 +7,15 @@ import 'services/storage_service.dart';
 import 'services/ssh_service.dart';
 import 'terminal_page.dart';
 
-
 class QuickConnectDialog extends StatefulWidget {
-  final ConnectionInfo? connection; 
+  final ConnectionInfo? connection;
+  final bool isNewConnection; // 新增：标识是否为新建连接
 
-  const QuickConnectDialog({super.key, this.connection});
+  const QuickConnectDialog({
+    super.key, 
+    this.connection,
+    this.isNewConnection = false, // 默认为false
+  });
 
   @override
   State<QuickConnectDialog> createState() => _QuickConnectDialogState();
@@ -19,6 +23,7 @@ class QuickConnectDialog extends StatefulWidget {
 
 class _QuickConnectDialogState extends State<QuickConnectDialog> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _hostController = TextEditingController();
   final _portController = TextEditingController(text: '22');
   final _storageService = StorageService();
@@ -37,10 +42,15 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
     _isEditing = widget.connection != null;
     
     if (_isEditing) {
+      // 编辑模式：预填充所有字段
+      _nameController.text = widget.connection!.name;
       _hostController.text = widget.connection!.host;
       _portController.text = widget.connection!.port.toString();
       _selectedType = widget.connection!.type;
       _rememberConnection = widget.connection!.remember;
+    } else {
+      // 新建连接或快速连接模式：设置默认名称
+      _nameController.text = '新连接';
     }
     
     _loadCredentials();
@@ -61,6 +71,24 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
       setState(() {
         _selectedCredential = credential;
       });
+    } else if (_credentials.isNotEmpty) {
+      // 新建连接或快速连接模式：默认选择第一个凭证
+      setState(() {
+        _selectedCredential = _credentials.first;
+      });
+    }
+  }
+
+  // 自动生成连接名称
+  void _generateConnectionName() {
+    if (!_isEditing && (_hostController.text.isNotEmpty || _portController.text.isNotEmpty)) {
+      final host = _hostController.text;
+      final port = _portController.text;
+      if (host.isNotEmpty) {
+        setState(() {
+          _nameController.text = '$host:$port';
+        });
+      }
     }
   }
 
@@ -80,7 +108,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
     try {
       final connection = ConnectionInfo(
         id: widget.connection?.id ?? const Uuid().v4(),
-        name: '${_hostController.text}:${_portController.text}',
+        name: _nameController.text,
         host: _hostController.text,
         port: int.parse(_portController.text),
         credentialId: _selectedCredential!.id,
@@ -118,7 +146,6 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
     }
   }
 
-  // 新增：仅更新连接信息而不连接
   Future<void> _updateConnection() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCredential == null) {
@@ -134,21 +161,19 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
 
     try {
       final connection = ConnectionInfo(
-        id: widget.connection!.id, // 使用原有的ID
-        name: '${_hostController.text}:${_portController.text}',
+        id: widget.connection!.id,
+        name: _nameController.text,
         host: _hostController.text,
         port: int.parse(_portController.text),
         credentialId: _selectedCredential!.id,
         type: _selectedType,
-        remember: true, // 编辑模式下总是记住连接
+        remember: true,
       );
 
-      // 仅保存连接信息，不进行SSH连接
       await _storageService.saveConnection(connection);
 
       if (mounted) {
         Navigator.of(context).pop();
-        // 不跳转到终端页面
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('连接信息已更新')),
         );
@@ -157,6 +182,54 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('更新失败: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isConnecting = false;
+        });
+      }
+    }
+  }
+
+  // 新增：仅保存连接而不连接
+  Future<void> _saveConnectionOnly() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedCredential == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请选择认证凭证')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isConnecting = true;
+    });
+
+    try {
+      final connection = ConnectionInfo(
+        id: const Uuid().v4(),
+        name: _nameController.text,
+        host: _hostController.text,
+        port: int.parse(_portController.text),
+        credentialId: _selectedCredential!.id,
+        type: _selectedType,
+        remember: true, // 新建连接总是保存
+      );
+
+      await _storageService.saveConnection(connection);
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('连接已保存')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败: $e')),
         );
       }
     } finally {
@@ -200,16 +273,51 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
     ).then((_) => _loadCredentials());
   }
 
+  // 获取对话框标题
+  String _getDialogTitle() {
+    if (widget.isNewConnection) return '新建连接';
+    if (_isEditing) return '编辑连接';
+    return '快速连接';
+  }
+
+  // 获取操作按钮文本
+  String _getActionButtonText() {
+    if (widget.isNewConnection) return '保存';
+    if (_isEditing) return '更新';
+    return '连接';
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(_isEditing ? '编辑连接' : '快速连接'), 
+      title: Text(_getDialogTitle()),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // 连接名称字段
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: '连接名称',
+                  hintText: '请输入连接名称',
+                  suffixIcon: !_isEditing ? IconButton(
+                    icon: const Icon(Icons.autorenew),
+                    onPressed: _generateConnectionName,
+                    tooltip: '自动生成名称',
+                  ) : null,
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return '请输入连接名称';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              
               // 主机地址
               TextFormField(
                 controller: _hostController,
@@ -217,6 +325,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                   labelText: '主机地址',
                   hintText: '例如：192.168.1.1',
                 ),
+                onChanged: !_isEditing ? (value) => _generateConnectionName() : null,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return '请输入主机地址';
@@ -233,6 +342,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                   labelText: '端口号',
                 ),
                 keyboardType: TextInputType.number,
+                onChanged: !_isEditing ? (value) => _generateConnectionName() : null,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return '请输入端口号';
@@ -284,7 +394,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
               ),
               const SizedBox(height: 16),
               
-              // 连接类型 - 修复默认值问题
+              // 连接类型
               DropdownButtonFormField<ConnectionType>(
                 value: _selectedType,
                 decoration: const InputDecoration(
@@ -304,20 +414,18 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
               ),
               const SizedBox(height: 16),
               
-              
-              CheckboxListTile(
-                title: const Text('记住该连接'),
-                value: _isEditing ? true : _rememberConnection, 
-                onChanged: _isEditing 
-                    ? null 
-                    : (value) {
-                        setState(() {
-                          _rememberConnection = value!;
-                        });
-                      },
-                controlAffinity: ListTileControlAffinity.leading,
-              ),
-              
+              // 记住连接复选框 - 只在快速连接模式显示
+              if (!widget.isNewConnection && !_isEditing)
+                CheckboxListTile(
+                  title: const Text('记住该连接'),
+                  value: _rememberConnection,
+                  onChanged: (value) {
+                    setState(() {
+                      _rememberConnection = value!;
+                    });
+                  },
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
             ],
           ),
         ),
@@ -329,10 +437,12 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
         ),
         ElevatedButton(
           onPressed: _isConnecting ? null : () {
-            if (_isEditing) {
-              _updateConnection();
+            if (widget.isNewConnection) {
+              _saveConnectionOnly(); // 新建连接：仅保存
+            } else if (_isEditing) {
+              _updateConnection(); // 编辑连接：更新
             } else {
-              _connectToServer(); 
+              _connectToServer(); // 快速连接：连接
             }
           },
           child: _isConnecting
@@ -341,7 +451,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : Text(_isEditing ? '更新' : '连接'),
+              : Text(_getActionButtonText()),
         ),
       ],
     );

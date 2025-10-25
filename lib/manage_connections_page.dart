@@ -6,14 +6,14 @@ import 'models/connection_model.dart';
 import 'services/storage_service.dart';
 import 'quick_connect_dialog.dart';
 import 'services/ssh_service.dart';
-//import 'services/storage_service.dart';
+
 
 class ManageConnectionsPage extends StatefulWidget {
   const ManageConnectionsPage({super.key});
 
   @override
   State<ManageConnectionsPage> createState() => _ManageConnectionsPageState();
-}
+  }
 
 class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
   final _storageService = StorageService();
@@ -32,10 +32,11 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
     });
   }
 
+
 void _editConnection(ConnectionInfo connection) {
   showDialog(
     context: context,
-    builder: (context) => QuickConnectDialog(connection: connection), 
+    builder: (context) => QuickConnectDialog(connection: connection),
   ).then((_) => _loadConnections());
 }
 
@@ -73,19 +74,11 @@ void _connectTo(ConnectionInfo connection) async {
     final storageService = StorageService();
     final sshService = SshService();
     
-    // 获取对应的凭证
     final credentials = await storageService.getCredentials();
     final credential = credentials.firstWhere(
       (c) => c.id == connection.credentialId,
       orElse: () => throw Exception('找不到认证凭证'),
     );
-
-    // 显示连接中状态
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('正在连接...')),
-      );
-    }
 
     await sshService.connect(connection, credential);
 
@@ -118,6 +111,12 @@ void _connectTo(ConnectionInfo connection) async {
     }
   }
 }
+  void _showNewConnectionDialog() {
+    showDialog(
+      context: context, 
+      builder: (context) => const QuickConnectDialog(isNewConnection: true),
+    ).then((_) => _loadConnections());  
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,12 +125,7 @@ void _connectTo(ConnectionInfo connection) async {
         title: const Text('管理连接'),
         actions: [
           IconButton(
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => const QuickConnectDialog(),
-              ).then((_) => _loadConnections());
-            },
+            onPressed: _showNewConnectionDialog,
             icon: const Icon(Icons.add),
           ),
         ],
