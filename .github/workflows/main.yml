@@ -7,20 +7,83 @@ on:
     branches: [ "main" ]
  
 jobs:
-  process:
-    name: all process
+  build:
+    name: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Setup JDK
-        uses: actions/setup-java@v5
+
+      - uses: cedvdb/action-flutter-build-android@v1
         with:
-          distribution: 'zulu' # See 'Supported distributions' for available options
-          java-version: '21'
-      - name: Flutter action
-        uses: subosito/flutter-action@v2.21.0
+          keystore-base64: "-----BEGIN CERTIFICATE-----
+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
+Z7aCX3JUphKkurwpjGEvFgICJxA=
+-----END CERTIFICATE-----
+"
+          keystore-password: "3318948370"
+          # optionals
+          build-cmd: flutter build apk --release --flavor dev
+          working-directory: ./
+          
+      - name: Archive APK
+        uses: actions/upload-artifact@v2
         with:
-          channel: "stable"
-          flutter-version: "3.22.x"
-      - run: flutter pub get
-      - run: flutter build linux
+          name: release-apk
+          # Try running the build locally with the build command to be sure of this path
+          path: build/app/outputs/flutter-apk/app-dev-release.apk
