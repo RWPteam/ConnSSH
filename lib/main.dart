@@ -19,13 +19,16 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: '',
       theme: ThemeData(
+        fontFamily: 'hmossans',
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blueAccent,
           brightness: Brightness.light,
+
         ),
         useMaterial3: true,
       ),
       darkTheme: ThemeData(
+        fontFamily: 'hmossans',
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.blueAccent,
           brightness: Brightness.dark,

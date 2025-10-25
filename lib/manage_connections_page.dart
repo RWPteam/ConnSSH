@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:t_samuioto_ssh/terminal_page.dart';
+import 'terminal_page.dart';
 // ignore: unused_import
 import 'package:uuid/uuid.dart';
 import 'models/connection_model.dart';

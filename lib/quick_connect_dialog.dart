@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:t_samuioto_ssh/manage_credentials_page.dart';
+import 'manage_credentials_page.dart';
 import 'package:uuid/uuid.dart';
 import 'models/connection_model.dart';
 import 'models/credential_model.dart';
@@ -304,9 +304,9 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                   labelText: '连接名称',
                   hintText: '请输入连接名称',
                   suffixIcon: !_isEditing ? IconButton(
-                    icon: const Icon(Icons.autorenew),
+                    icon: const Icon(Icons.refresh),
                     onPressed: _generateConnectionName,
-                    tooltip: '自动生成名称',
+                    tooltip: '还原默认',
                   ) : null,
                 ),
                 validator: (value) {
