@@ -345,7 +345,6 @@ class _SftpPageState extends State<SftpPage> {
               children: [
                 Icon(
                   _isConnected ? Icons.circle : Icons.circle_outlined,
-                  color: _isConnected ? Colors.green : Colors.red,
                   size: 10,
                 ),
                 const SizedBox(width: 6),
@@ -357,6 +356,7 @@ class _SftpPageState extends State<SftpPage> {
             ),
           ],
         ),
+        backgroundColor:  _isConnected ? Colors.green : Colors.red,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
