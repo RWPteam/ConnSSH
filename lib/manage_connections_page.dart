@@ -6,6 +6,7 @@ import 'models/connection_model.dart';
 import 'services/storage_service.dart';
 import 'quick_connect_dialog.dart';
 import 'services/ssh_service.dart';
+import 'sftp_page.dart';
 
 
 class ManageConnectionsPage extends StatefulWidget {
@@ -84,14 +85,25 @@ void _connectTo(ConnectionInfo connection) async {
     await storageService.addRecentConnection(connection);
 
     if (mounted) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => TerminalPage(
-            connection: connection,
-            credential: credential,
+      if (connection.type == ConnectionType.sftp) {
+          Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => SftpPage(
+              connection: connection,
+              credential: credential,
+            ),
           ),
-        ),
-      );
+        );
+      } else {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => TerminalPage(
+              connection: connection,
+              credential: credential,
+            ),
+          ),
+        );
+      }
     }
 
   } catch (e) {

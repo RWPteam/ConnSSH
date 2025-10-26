@@ -6,6 +6,7 @@ import 'models/credential_model.dart';
 import 'services/storage_service.dart';
 import 'services/ssh_service.dart';
 import 'terminal_page.dart';
+import 'sftp_page.dart';
 
 class QuickConnectDialog extends StatefulWidget {
   final ConnectionInfo? connection;
@@ -145,14 +146,25 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => TerminalPage(
-              connection: connection,
-              credential: _selectedCredential!,
+        if (_selectedType == ConnectionType.sftp) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => SftpPage(
+                connection: connection,
+                credential: _selectedCredential!,
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => TerminalPage(
+                connection: connection,
+                credential: _selectedCredential!,
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

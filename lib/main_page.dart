@@ -6,6 +6,7 @@ import 'models/connection_model.dart';
 import 'services/storage_service.dart';
 import 'services/ssh_service.dart';
 import 'terminal_page.dart';
+import 'sftp_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -389,12 +390,21 @@ class _MainPageState extends State<MainPage> {
       await _addToRecentConnections(connection);
 
       if (mounted) {
-        Navigator.of(context).push(MaterialPageRoute(
-          builder:(context) => TerminalPage(
-            connection: connection, 
-            credential: credential
-          )
-        ));
+        if (connection.type == ConnectionType.sftp) {
+            Navigator.of(context).push(MaterialPageRoute(
+            builder:(context) => SftpPage(
+              connection: connection, 
+              credential: credential
+            )
+          ));
+        } else {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder:(context) => TerminalPage(
+              connection: connection, 
+              credential: credential
+            )
+          ));
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -546,7 +556,7 @@ class _MainPageState extends State<MainPage> {
             ),
           );
         },
-        
+
         title: '管理认证凭证',
         subtitle: '管理密码和证书凭证',
       ),
