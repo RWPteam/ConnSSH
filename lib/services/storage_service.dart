@@ -6,6 +6,47 @@ import '../models/credential_model.dart';
 class StorageService {
   static const String _connectionsKey = 'saved_connections';
   static const String _credentialsKey = 'saved_credentials';
+  static const String _recentConnectionsKey = 'recent_connections';
+
+  Future<List<ConnectionInfo>> getRecentConnections() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_recentConnectionsKey);
+
+    if (jsonString == null) return [];
+    try {
+      final List<dynamic> jsonList = json.decode(jsonString);
+      final connections = jsonList.map((json) => ConnectionInfo.fromJson(json)).toList();
+      final uniqueConnections = <String, ConnectionInfo> {};
+      for (final connection in connections) {
+        uniqueConnections[connection.id] = connection;
+      }
+      return uniqueConnections.values.take(5).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> addRecentConnection(ConnectionInfo connection) async {
+    final prefs = await SharedPreferences.getInstance();
+    final recentConnections = await getRecentConnections();
+    recentConnections.removeWhere((c) => c.id == connection.id);
+    recentConnections.insert(0, connection);
+
+    final limitConnections = recentConnections.take(5).toList();
+
+    final jsonList = limitConnections.map((c) => c.toJson()).toList();
+    await prefs.setString(_recentConnectionsKey, json.encode(jsonList));
+  }
+
+  Future<void> deleteRecentConnection(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final recentConnections = await getRecentConnections();
+
+    recentConnections.removeWhere((c) => c.id == id);
+
+    final jsonList = recentConnections.map((c) => c.toJson()).toList();
+    await prefs.setString(_recentConnectionsKey, json.encode(jsonList));
+  }
 
   Future<void> saveConnection(ConnectionInfo connection) async {
     final prefs = await SharedPreferences.getInstance();

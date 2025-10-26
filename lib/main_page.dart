@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'manage_connections_page.dart';
 import 'manage_credentials_page.dart';
@@ -16,7 +17,8 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  List<ConnectionInfo> _connections = []; 
+  //List<ConnectionInfo> _connections = []; 
+  List<ConnectionInfo> _recentConnections = [];
   bool _isLoading = true; 
   final StorageService _storageService = StorageService();
   final SshService _sshService = SshService();
@@ -26,28 +28,69 @@ class _MainPageState extends State<MainPage> {
   @override
   void initState() {
     super.initState();
-    _loadConnections();
+    _loadRecentConnections();
   }
 
-  Future<void> _loadConnections() async {
+  Future<void> _loadRecentConnections() async {
     try {
-      final connections = await _storageService.getConnections();
+      final RecentConnections = await _storageService.getRecentConnections();
       setState(() {
-        _connections = connections;
+        _recentConnections = RecentConnections;
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('读取最近连接失败: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('读取最近连接失败：$e'),
+          backgroundColor: Colors.red 
+        ),
+      );
     }
   }
+
+  Future<void> _addToRecentConnections(ConnectionInfo connection) async {
+    try {
+      await _storageService.addRecentConnection(connection);
+      _loadRecentConnections();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('加载最近连接失败：$e'),backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> _delRecentConnection(ConnectionInfo connection) async {
+    try {
+      await _storageService.deleteRecentConnection(connection.id);
+      _loadRecentConnections();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('删除最近连接失败：$e'),backgroundColor: Colors.red,),
+      );
+    }
+  }
+//  Future<void> _loadConnections() async {
+//    try {
+//      final connections = await _storageService.getConnections();
+//      setState(() {
+//        _connections = connections;
+//        _isLoading = false;
+//      });
+//    } catch (e) {
+//      setState(() {
+//        _isLoading = false;
+//      });
+//        ScaffoldMessenger.of(context).showSnackBar(
+//          SnackBar(
+//            content: Text('读取最近连接失败: $e'),
+//            backgroundColor: Colors.red,
+//          ),
+//        );
+//    }
+//  }
 
   @override
   Widget build(BuildContext context) {
@@ -168,11 +211,11 @@ class _MainPageState extends State<MainPage> {
                             child: CircularProgressIndicator(),
                           ),
                         )
-                      : _connections.isEmpty
+                      : _recentConnections.isEmpty
                           ? const Expanded(
                               child: Center(
                                 child: Text(
-                                  '暂无保存的连接',
+                                  '无最近连接',
                                   style: TextStyle(
                                     color: Colors.grey,
                                     
@@ -187,9 +230,9 @@ class _MainPageState extends State<MainPage> {
                             
                           : Expanded(
                               child: ListView.builder(
-                                itemCount: _connections.length,
+                                itemCount: _recentConnections.length,
                                 itemBuilder: (context, index) {
-                                  final connection = _connections[index];
+                                  final connection = _recentConnections[index];
                                   return Container(
                                     height: 80, 
                                     margin: const EdgeInsets.only(bottom: 16), 
@@ -258,7 +301,10 @@ class _MainPageState extends State<MainPage> {
         vertical: 8,
       ),
       onTap: () {
-        //_connectToServer(connection);
+        _connectToServer(connection);
+      },
+      onLongPress: () {
+        _showDelRecentConnectionDialog(connection);
       },
     );
   }
@@ -272,6 +318,20 @@ class _MainPageState extends State<MainPage> {
       }
   }
 
+  void _showDelRecentConnectionDialog(ConnectionInfo connection) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('要从最近连接中删除 "$connection.name" 吗？'),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: '删除',
+          onPressed: () {
+            _delRecentConnection(connection);
+          },
+        ),
+        )
+    );
+  }
   Future<void> _connectToServer(ConnectionInfo connection) async {
     setState(() {
       _isConnecting = true;
@@ -284,7 +344,10 @@ class _MainPageState extends State<MainPage> {
         (c) => c.id == connection.credentialId,
         orElse:() => throw Exception('未找到认证凭证'),
       );
+      
       await _sshService.connect(connection, credential);
+      await _addToRecentConnections(connection);
+
       if (mounted) {
         Navigator.of(context).push(MaterialPageRoute(builder:(context) => TerminalPage(connection: connection, credential: credential)));
       }
@@ -402,7 +465,7 @@ class _MainPageState extends State<MainPage> {
             context: context,
             builder: (context) => const QuickConnectDialog(),
           ).then((_) {
-            _loadConnections();
+            _loadRecentConnections();
           });
         },
         title: '快速连接',
@@ -418,7 +481,7 @@ class _MainPageState extends State<MainPage> {
               builder: (context) => const ManageConnectionsPage(),
             ),
           ).then((_) {
-            _loadConnections();
+            _loadRecentConnections();
           });
         },
         title: '管理已保存的连接',

@@ -81,6 +81,7 @@ void _connectTo(ConnectionInfo connection) async {
     );
 
     await sshService.connect(connection, credential);
+    await storageService.addRecentConnection(connection);
 
     if (mounted) {
       Navigator.of(context).push(

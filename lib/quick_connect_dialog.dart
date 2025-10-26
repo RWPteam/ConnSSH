@@ -117,6 +117,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
       );
 
       await _sshService.connect(connection, _selectedCredential!);
+      await _storageService.addRecentConnection(connection);
 
       if (_rememberConnection || _isEditing) {
         await _storageService.saveConnection(connection);
