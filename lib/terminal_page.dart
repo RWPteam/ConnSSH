@@ -28,7 +28,7 @@ class _TerminalPageState extends State<TerminalPage> {
   SSHClient? _sshClient;
   SSHSession? _session;
   bool _isConnected = false;
-  bool _isConnecting = true; // 新增：标记是否正在连接
+  bool _isConnecting = true;
   String _status = '连接中...';
   StreamSubscription<List<int>>? _stdoutSubscription;
   StreamSubscription<List<int>>? _stderrSubscription;
@@ -38,6 +38,11 @@ class _TerminalPageState extends State<TerminalPage> {
   final FocusNode _rawKeyboardFocusNode = FocusNode();
 
   String _prevImeText = '';
+
+  // ✅ 字体大小状态
+  double _fontSize = 14.0;
+  OverlayEntry? _fontSliderOverlay;
+  Timer? _hideSliderTimer;
 
   @override
   void initState() {
@@ -51,9 +56,7 @@ class _TerminalPageState extends State<TerminalPage> {
       if (_session != null && _isConnected) {
         try {
           _session!.write(utf8.encode(data));
-        } catch (e) {
-          // 忽略
-        }
+        } catch (_) {}
       }
     };
 
@@ -97,9 +100,7 @@ class _TerminalPageState extends State<TerminalPage> {
         if (mounted) {
           try {
             terminal.write(utf8.decode(data));
-          } catch (e) {
-            //ignore
-          }
+          } catch (_) {}
         }
       });
 
@@ -107,7 +108,7 @@ class _TerminalPageState extends State<TerminalPage> {
         if (mounted) {
           try {
             terminal.write('错误: ${utf8.decode(data)}');
-          } catch (e) {
+          } catch (_) {
             terminal.write('错误: <stderr 解码失败>');
           }
         }
@@ -123,8 +124,9 @@ class _TerminalPageState extends State<TerminalPage> {
           terminal.write('\r\n连接已断开\r\n');
         }
       });
+
       terminal.write('\x1B[2J\x1B[1;1H');
-      terminal.buffer.clear(); 
+      terminal.buffer.clear();
       terminal.write('连接到 ${widget.connection.host} 成功\r\n');
     } catch (e) {
       if (mounted) {
@@ -141,19 +143,15 @@ class _TerminalPageState extends State<TerminalPage> {
   void _onImeChanged() {
     final cur = _imeController.text;
     final prev = _prevImeText;
-
     if (cur == prev) return;
 
     int prefix = 0;
     final minLen = cur.length < prev.length ? cur.length : prev.length;
-    while (prefix < minLen && cur.codeUnitAt(prefix) == prev.codeUnitAt(prefix)) {
-      prefix++;
-    }
+    while (prefix < minLen && cur.codeUnitAt(prefix) == prev.codeUnitAt(prefix)) prefix++;
 
     int suffixPrev = prev.length;
     int suffixCur = cur.length;
-    while (suffixPrev > prefix && suffixCur > prefix &&
-        prev.codeUnitAt(suffixPrev - 1) == cur.codeUnitAt(suffixCur - 1)) {
+    while (suffixPrev > prefix && suffixCur > prefix && prev.codeUnitAt(suffixPrev - 1) == cur.codeUnitAt(suffixCur - 1)) {
       suffixPrev--;
       suffixCur--;
     }
@@ -162,9 +160,7 @@ class _TerminalPageState extends State<TerminalPage> {
     final inserted = cur.substring(prefix, suffixCur);
 
     if (deleted.isNotEmpty) {
-      for (int i = 0; i < deleted.runes.length; i++) {
-        _sendText('\x08'); // backspace
-      }
+      for (int i = 0; i < deleted.runes.length; i++) _sendText('\x08');
     }
 
     if (inserted.isNotEmpty) {
@@ -179,42 +175,30 @@ class _TerminalPageState extends State<TerminalPage> {
     if (_session != null && _isConnected) {
       try {
         _session!.write(utf8.encode(text));
-      } catch (e) {
-        // 忽略
-      }
+      } catch (_) {}
     } else {
       terminal.write(text);
     }
   }
 
-  // 处理剪贴板粘贴（把整个文本发送）
   Future<void> _pasteFromClipboard() async {
     try {
       final data = await Clipboard.getData('text/plain');
       final text = data?.text;
-      if (text != null && text.isNotEmpty) {
-        _sendText(text);
-      }
-    } catch (e) {
-      // 忽略
-    }
+      if (text != null && text.isNotEmpty) _sendText(text);
+    } catch (_) {}
   }
 
   void _clearTerminal() {
     terminal.write('\x1B[2J\x1B[1;1H');
-    terminal.buffer.clear();      // 清空 scrollback buffer
-
+    terminal.buffer.clear();
     if (_session != null && _isConnected) {
       try {
         _sendText('\x15');
         _sendText('\x0C');
         _sendText('\x1B[2J\x1B[H');
         _sendText('clear\r');
-      } catch (e) {
-        // 忽略
-      }
-    } else {
-      // 未连接时，仅本地清屏
+      } catch (_) {}
     }
   }
 
@@ -227,11 +211,12 @@ class _TerminalPageState extends State<TerminalPage> {
     _stderrSubscription?.cancel();
     _session?.close();
     _sshClient?.close();
-
     _imeController.removeListener(_onImeChanged);
     _imeController.dispose();
     _imeFocusNode.dispose();
     _rawKeyboardFocusNode.dispose();
+    _hideSliderTimer?.cancel();
+    _fontSliderOverlay?.remove();
     super.dispose();
   }
 
@@ -243,41 +228,85 @@ class _TerminalPageState extends State<TerminalPage> {
     }
   }
 
-  // 获取AppBar背景色
   Color _getAppBarColor() {
-    if (_isConnecting) {
-      return Colors.transparent; 
-    } else if (_isConnected) {
-      return Colors.green; 
-    } else {
-      return Colors.red;
-    }
+    if (_isConnecting) return Colors.transparent;
+    if (_isConnected) return Colors.green;
+    return Colors.red;
   }
 
-  List<PopupMenuItem<String>> _buildMenuItems() {
-    final items = <PopupMenuItem<String>>[];
-
-    // 其他菜单项
-    items.addAll([
+  List<PopupMenuEntry<String>> _buildMenuItems() {
+    return [
+      const PopupMenuItem<String>(value: 'fontsize', child: Text('字体大小')),
       const PopupMenuItem<String>(value: 'reconnect', child: Text('重新连接')),
-      const PopupMenuItem<String>(value: 'enter', child: Text('发送 Enter')),
-      const PopupMenuItem<String>(value: 'tab', child: Text('发送 Tab')),
-      const PopupMenuItem<String>(value: 'backspace', child: Text('发送 Backspace')),
-      const PopupMenuItem<String>(value: 'ctrlc', child: Text('发送 Ctrl+C')),
-      const PopupMenuItem<String>(value: 'ctrld', child: Text('发送 Ctrl+D')),
+      // 二级菜单：发送命令
+      const PopupMenuItem<String>(
+        value: 'commands',
+        child: Row(
+          children: [
+            Text('发送命令'),
+            SizedBox(width: 8),
+            Icon(Icons.arrow_right, size: 16, color: Colors.grey),
+          ],
+        ),
+      ),
       const PopupMenuItem<String>(value: 'clear', child: Text('清屏')),
+      const PopupMenuDivider(),
       const PopupMenuItem<String>(value: 'disconnect', child: Text('断开连接并返回')),
-    ]);
-
-    return items;
+    ];
   }
 
-  // 处理菜单选择
   void _onMenuSelected(String value) {
     switch (value) {
+      case 'fontsize':
+        _showFontSlider();
+        break;
       case 'reconnect':
         _connectToHost();
         break;
+      case 'commands':
+        // 显示二级菜单
+        _showCommandsSubMenu();
+        break;
+      case 'clear':
+        _clearTerminal();
+        break;
+      case 'disconnect':
+        Navigator.of(context).pop();
+        break;
+    }
+  }
+
+  // 显示发送命令的二级菜单
+  void _showCommandsSubMenu() {
+    final RenderBox button = context.findRenderObject() as RenderBox;
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        button.localToGlobal(button.size.topRight(Offset.zero), ancestor: overlay),
+        button.localToGlobal(button.size.bottomRight(Offset.zero), ancestor: overlay),
+      ),
+      Offset.zero & overlay.size,
+    );
+
+    showMenu<String>(
+      context: context,
+      position: position,
+      items: [
+        const PopupMenuItem<String>(value: 'enter', child: Text('发送 Enter')),
+        const PopupMenuItem<String>(value: 'tab', child: Text('发送 Tab')),
+        const PopupMenuItem<String>(value: 'backspace', child: Text('发送 Backspace')),
+        const PopupMenuItem<String>(value: 'ctrlc', child: Text('发送 Ctrl+C')),
+        const PopupMenuItem<String>(value: 'ctrld', child: Text('发送 Ctrl+D')),
+      ],
+    ).then((value) {
+      if (value != null) {
+        _handleCommand(value);
+      }
+    });
+  }
+
+  void _handleCommand(String command) {
+    switch (command) {
       case 'enter':
         _sendText('\r');
         break;
@@ -293,13 +322,108 @@ class _TerminalPageState extends State<TerminalPage> {
       case 'ctrld':
         _sendCtrlD();
         break;
-      case 'clear':
-        _clearTerminal();
-        break;
-      case 'disconnect':
-        Navigator.of(context).pop();
-        break;
     }
+  }
+
+  void _showFontSlider() {
+    _hideSliderTimer?.cancel();
+
+    _fontSliderOverlay ??= OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          left: 16,
+          right: 16,
+          bottom: 24,
+          child: Material(
+            elevation: 8,
+            borderRadius: BorderRadius.circular(16),
+            color: Colors.grey[900]!.withOpacity(0.95),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        '字体大小',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          //color: Colors.blueAccent,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${_fontSize.toInt()}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SliderTheme(
+                    data: SliderThemeData(
+                      trackHeight: 6,
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 12,
+                        disabledThumbRadius: 12,
+                        elevation: 2,
+                      ),
+                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                      activeTrackColor: Colors.blueAccent,
+                      inactiveTrackColor: Colors.grey[600],
+                      thumbColor: Colors.white,
+                      overlayColor: Colors.blueAccent.withOpacity(0.2),
+                    ),
+                    child: Slider(
+                      value: _fontSize,
+                      min: 8,
+                      max: 40,
+                      divisions: 32,
+                      onChanged: (v) {
+                        setState(() => _fontSize = v);
+                        _resetHideSliderTimer();
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('8px', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+                      Text('40px', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    Overlay.of(context).insert(_fontSliderOverlay!);
+    _resetHideSliderTimer();
+  }
+
+  void _resetHideSliderTimer() {
+    _hideSliderTimer?.cancel();
+    _hideSliderTimer = Timer(const Duration(seconds: 3), () {
+      _fontSliderOverlay?.remove();
+      _fontSliderOverlay = null;
+    });
   }
 
   @override
@@ -307,35 +431,21 @@ class _TerminalPageState extends State<TerminalPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: _getAppBarColor(),
-        foregroundColor: Colors.white, 
+        foregroundColor: Colors.white,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '${widget.connection.host}:${widget.connection.port}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white, 
-              ),
+            Text('${widget.connection.host}:${widget.connection.port}',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             const SizedBox(height: 2),
             Row(
               children: [
-                Icon(
-                  _isConnected ? Icons.circle : Icons.circle_outlined,
-                  color: _isConnecting ? Colors.grey : Colors.white,
-                  size: 10,
+                Icon(_isConnected ? Icons.circle : Icons.circle_outlined,
+                  color: _isConnecting ? Colors.grey : Colors.white, size: 10,
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  _status,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color:  Colors.white70,
-                  ),
-                ),
-                const SizedBox(width: 10),
+                Text(_status, style: const TextStyle(fontSize: 12, color: Colors.white70)),
               ],
             ),
           ],
@@ -350,42 +460,37 @@ class _TerminalPageState extends State<TerminalPage> {
       body: Column(
         children: [
           Expanded(
-            // ignore: deprecated_member_use
             child: RawKeyboardListener(
               focusNode: _rawKeyboardFocusNode,
+              onKey: (event) {
+                if (event.isControlPressed && event is RawKeyDownEvent) {
+                  if (event.logicalKey.keyLabel == '=') {
+                    setState(() => _fontSize = (_fontSize + 1).clamp(8, 40));
+                  } else if (event.logicalKey.keyLabel == '-') {
+                    setState(() => _fontSize = (_fontSize - 1).clamp(8, 40));
+                  }
+                }
+              },
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: _onTerminalTap,
-                onLongPress: () async {
+                onLongPress: () {
                   final messenger = ScaffoldMessenger.of(context);
                   messenger.clearSnackBars();
                   messenger.showSnackBar(
                     SnackBar(
                       content: const Text('确认是否粘贴剪贴板内容？'),
-                      duration: const Duration(seconds: 4),
-                      behavior: SnackBarBehavior.floating,
-                      action: SnackBarAction(
-                        label: '粘贴',
-                        onPressed: () async {
-                          await _pasteFromClipboard();
-                        },
-                      ),
+                      action: SnackBarAction(label: '粘贴', onPressed: () => _pasteFromClipboard()),
                     ),
                   );
                 },
-                onSecondaryTapDown: (details) async {
-                  // 右键（桌面） -> 粘贴
-                  await _pasteFromClipboard();
-                },
+                onSecondaryTapDown: (_) => _pasteFromClipboard(),
                 child: Stack(
                   children: [
                     TerminalView(
                       terminal,
                       backgroundOpacity: 1.0,
-                      textStyle: const TerminalStyle(
-                        fontSize: 14,
-                        fontFamily: 'Monospace',
-                      ),
+                      textStyle: TerminalStyle(fontSize: _fontSize, fontFamily: 'Monospace'),
                       autoResize: true,
                       readOnly: false,
                       hardwareKeyboardOnly: true,
@@ -397,23 +502,20 @@ class _TerminalPageState extends State<TerminalPage> {
                       height: 1,
                       child: Opacity(
                         opacity: 0.0,
-                        child: IgnorePointer(
-                          ignoring: false,
-                          child: EditableText(
-                            controller: _imeController,
-                            focusNode: _imeFocusNode,
-                            style: const TextStyle(color: Colors.transparent, fontSize: 14),
-                            cursorColor: Colors.transparent,
-                            backgroundCursorColor: Colors.transparent,
-                            keyboardType: TextInputType.text,
-                            textInputAction: TextInputAction.done,
-                            autofocus: false,
-                            onSubmitted: (v) {                              
-                              _sendText('\r\n');                          
-                              _imeController.value = const TextEditingValue(text: '');
-                              _prevImeText = '';
-                            },
-                          ),
+                        child: EditableText(
+                          controller: _imeController,
+                          focusNode: _imeFocusNode,
+                          style: const TextStyle(color: Colors.transparent, fontSize: 14),
+                          cursorColor: Colors.transparent,
+                          backgroundCursorColor: Colors.transparent,
+                          keyboardType: TextInputType.text,
+                          textInputAction: TextInputAction.done,
+                          autofocus: false,
+                          onSubmitted: (v) {
+                            _sendText('\r\n');
+                            _imeController.value = const TextEditingValue(text: '');
+                            _prevImeText = '';
+                          },
                         ),
                       ),
                     ),
