@@ -9,12 +9,12 @@ import 'terminal_page.dart';
 
 class QuickConnectDialog extends StatefulWidget {
   final ConnectionInfo? connection;
-  final bool isNewConnection; // 新增：标识是否为新建连接
+  final bool isNewConnection; 
 
   const QuickConnectDialog({
     super.key, 
     this.connection,
-    this.isNewConnection = false, // 默认为false
+    this.isNewConnection = false, 
   });
 
   @override
@@ -49,7 +49,6 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
       _selectedType = widget.connection!.type;
       _rememberConnection = widget.connection!.remember;
     } else {
-      // 新建连接或快速连接模式：设置默认名称
       _nameController.text = '新连接';
       _isNameChanged = false;
     }
@@ -73,14 +72,12 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
         _selectedCredential = credential;
       });
     } else if (_credentials.isNotEmpty) {
-      // 新建连接或快速连接模式：默认选择第一个凭证
       setState(() {
         _selectedCredential = _credentials.first;
       });
     }
   }
 
-  // 自动生成连接名称
   void _generateConnectionName() {
     if (_isNameChanged) return;
     if (!_isEditing && (_hostController.text.isNotEmpty || _portController.text.isNotEmpty)) {
@@ -239,7 +236,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
         port: int.parse(_portController.text),
         credentialId: _selectedCredential!.id,
         type: _selectedType,
-        remember: true, // 新建连接总是保存
+        remember: true,
       );
 
       await _storageService.saveConnection(connection);
@@ -310,7 +307,6 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 连接名称字段
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
@@ -338,7 +334,6 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
               ),
               const SizedBox(height: 16),
               
-              // 主机地址
               TextFormField(
                 controller: _hostController,
                 decoration: const InputDecoration(
@@ -355,7 +350,6 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
               ),
               const SizedBox(height: 16),
               
-              // 端口号
               TextFormField(
                 controller: _portController,
                 decoration: const InputDecoration(
@@ -376,7 +370,6 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
               ),
               const SizedBox(height: 16),
               
-              // 认证凭证选择
               Row(
                 children: [
                   Expanded(
@@ -414,7 +407,6 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
               ),
               const SizedBox(height: 16),
               
-              // 连接类型
               DropdownButtonFormField<ConnectionType>(
                 value: _selectedType,
                 decoration: const InputDecoration(
@@ -434,7 +426,6 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
               ),
               const SizedBox(height: 16),
               
-              // 记住连接复选框 - 只在快速连接模式显示
               if (!widget.isNewConnection && !_isEditing)
                 CheckboxListTile(
                   title: const Text('记住该连接'),
@@ -458,11 +449,11 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
         ElevatedButton(
           onPressed: _isConnecting ? null : () {
             if (widget.isNewConnection) {
-              _saveConnectionOnly(); // 新建连接：仅保存
+              _saveConnectionOnly();
             } else if (_isEditing) {
-              _updateConnection(); // 编辑连接：更新
+              _updateConnection();
             } else {
-              _connectToServer(); // 快速连接：连接
+              _connectToServer(); 
             }
           },
           child: _isConnecting
