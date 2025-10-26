@@ -328,7 +328,7 @@ appBar: AppBar(
       onSelected: (value) {
         switch (value) {
           case 'enter':
-            _sendText('\r\n');
+            _sendText('\r');
             break;
           case 'tab':
             _sendText('\t');
