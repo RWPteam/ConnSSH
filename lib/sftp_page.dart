@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:file_picker/file_picker.dart';
+// ignore: unused_import
 import 'package:path/path.dart' as path;
 
 import 'models/connection_model.dart';
@@ -32,6 +33,7 @@ class _SftpPageState extends State<SftpPage> {
   bool _isLoading = true;
   bool _isConnected = false;
   String _status = '连接中...';
+  Color _appBarColor = Colors.transparent;
 
   @override
   void initState() {
@@ -44,6 +46,7 @@ class _SftpPageState extends State<SftpPage> {
       setState(() {
         _isLoading = true;
         _status = '连接中...';
+        _appBarColor = Colors.transparent;
       });
 
       _sshClient = await _sshService.connect(widget.connection, widget.credential);
@@ -52,6 +55,7 @@ class _SftpPageState extends State<SftpPage> {
       setState(() {
         _isConnected = true;
         _status = '已连接';
+        _appBarColor = Colors.green;
       });
 
       await _loadDirectory(_currentPath);
@@ -60,6 +64,7 @@ class _SftpPageState extends State<SftpPage> {
         _isConnected = false;
         _isLoading = false;
         _status = '连接失败: $e';
+        _appBarColor = Colors.red;
       });
       _showErrorDialog('SFTP连接失败', e.toString());
     }
@@ -71,37 +76,77 @@ class _SftpPageState extends State<SftpPage> {
         _isLoading = true;
       });
 
-      final list = await _sftpClient.listdir(dirPath);
+      String normalizedPath = _normalizePath(dirPath);
       
-      list.sort((a, b) {
+      final list = await _sftpClient.listdir(normalizedPath);
+      
+      final filteredList = list.where((item) {
+        final filename = item.filename.toString();
+        return filename != '.' && filename != '..';
+      }).toList();
+      
+      filteredList.sort((a, b) {
         try {
-          final aIsDir = a.attr.isDirectory;
-          final bIsDir = b.attr.isDirectory;
+          final aIsDir = a.attr?.isDirectory ?? false;
+          final bIsDir = b.attr?.isDirectory ?? false;
+          
           if (aIsDir && !bIsDir) return -1;
           if (!aIsDir && bIsDir) return 1;
-          return a.filename.toString().compareTo(b.filename.toString());
+          
+          final aFilename = a.filename?.toString() ?? '';
+          final bFilename = b.filename?.toString() ?? '';
+          return aFilename.compareTo(bFilename);
         } catch (e) {
-          return 0; 
+          return 0;
         }
       });
 
       setState(() {
-        _fileList = list;
-        _currentPath = dirPath;
+        _fileList = filteredList; 
+        _currentPath = normalizedPath;
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
-      _showErrorDialog('读取目录失败', e.toString());
+      _showErrorDialog('读取目录失败', '路径: $dirPath\n错误: $e');
     }
+  }
+
+  String _normalizePath(String rawPath) {
+    String normalized = rawPath;
+    
+    if (!normalized.startsWith('/')) {
+      normalized = '/$normalized';
+    }
+    
+    normalized = normalized.replaceAll(RegExp(r'/+'), '/');
+    
+    if (normalized != '/' && normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+    
+    normalized = normalized.replaceAll(r'\', '/');
+    
+    return normalized;
+  }
+
+  String _joinPath(String part1, String part2) {
+    if (part1.endsWith('/')) {
+      part1 = part1.substring(0, part1.length - 1);
+    }
+    if (part2.startsWith('/')) {
+      part2 = part2.substring(1);
+    }
+    return '$part1/$part2';
   }
 
   Future<void> _downloadFile(dynamic file) async {
     try {
-      if (file.attr.isDirectory) {
-        _loadDirectory(path.join(_currentPath, file.filename));
+      if (file.attr?.isDirectory == true) {
+        String newPath = _joinPath(_currentPath, file.filename.toString());
+        await _loadDirectory(newPath);
         return;
       }
 
@@ -113,18 +158,26 @@ class _SftpPageState extends State<SftpPage> {
       if (savePath != null && mounted) {
         _showProgressDialog('下载中...');
         
-        final remotePath = path.join(_currentPath, file.filename.toString());
+        final remotePath = _joinPath(_currentPath, file.filename.toString());
         final localFile = File(savePath);
         
-        final remoteFile = await _sftpClient.open(remotePath);
-        final content = await remoteFile.readBytes();
-        await localFile.writeAsBytes(content);
-        
-        if (mounted) {
-          Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('文件已下载: $savePath')),
-          );
+        try {
+          final remoteFile = await _sftpClient.open(remotePath);
+          final content = await remoteFile.readBytes();
+          await localFile.writeAsBytes(content);
+          await remoteFile.close();
+          
+          if (mounted) {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('文件已下载: $savePath')),
+            );
+          }
+        } catch (e) {
+          if (await localFile.exists()) {
+            await localFile.delete();
+          }
+          rethrow;
         }
       }
     } catch (e) {
@@ -144,26 +197,51 @@ class _SftpPageState extends State<SftpPage> {
       if (result != null && result.files.isNotEmpty && mounted) {
         _showProgressDialog('上传中...');
 
+        bool hasError = false;
+        String errorMessage = '';
+
         for (var platformFile in result.files) {
           if (platformFile.path != null) {
-            final localFile = File(platformFile.path!);
-            final remotePath = path.join(_currentPath, platformFile.name);
-            final data = await localFile.readAsBytes();
-            
-            final remoteFile = await _sftpClient.open(
-              remotePath, 
-              mode: SftpFileOpenMode.create | SftpFileOpenMode.write
-            );
-            await remoteFile.writeBytes(data);
+            try {
+              final localFile = File(platformFile.path!);
+              final remotePath = _joinPath(_currentPath, platformFile.name);
+              
+              if (!await localFile.exists()) {
+                hasError = true;
+                errorMessage = '本地文件不存在: ${platformFile.path}';
+                continue;
+              }
+
+              final remoteFile = await _sftpClient.open(
+                remotePath, 
+                mode: SftpFileOpenMode.create | SftpFileOpenMode.write | SftpFileOpenMode.truncate
+              );
+              
+              final data = await localFile.readAsBytes();
+              await remoteFile.writeBytes(data);
+              await remoteFile.close();
+              
+              await Future.delayed(const Duration(milliseconds: 100));
+              
+            } catch (e) {
+              hasError = true;
+              errorMessage = '上传文件 ${platformFile.name} 时出错: $e';
+              break;
+            }
           }
         }
 
         if (mounted) {
           Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('文件上传成功')),
-          );
-          await _loadDirectory(_currentPath);
+          
+          if (hasError) {
+            _showErrorDialog('上传失败', errorMessage);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('文件上传成功')),
+            );
+            await _loadDirectory(_currentPath);
+          }
         }
       }
     } catch (e) {
@@ -210,7 +288,7 @@ class _SftpPageState extends State<SftpPage> {
 
   Future<void> _createDirectoryAction(String dirName) async {
     try {
-      final newDirPath = path.join(_currentPath, dirName);
+      final newDirPath = _joinPath(_currentPath, dirName);
       await _sftpClient.mkdir(newDirPath);
       
       if (mounted) {
@@ -225,7 +303,7 @@ class _SftpPageState extends State<SftpPage> {
   }
 
   Future<void> _deleteItem(dynamic item) async {
-    final isDirectory = item.attr.isDirectory;
+    final isDirectory = item.attr?.isDirectory == true;
     final filename = item.filename.toString();
     
     await showDialog(
@@ -255,9 +333,9 @@ class _SftpPageState extends State<SftpPage> {
 
   Future<void> _deleteItemAction(dynamic item) async {
     try {
-      final itemPath = path.join(_currentPath, item.filename.toString());
+      final itemPath = _joinPath(_currentPath, item.filename.toString());
       
-      if (item.attr.isDirectory) {
+      if (item.attr?.isDirectory == true) {
         await _sftpClient.rmdir(itemPath);
       } else {
         await _sftpClient.remove(itemPath);
@@ -297,7 +375,9 @@ class _SftpPageState extends State<SftpPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),
-        content: Text(message),
+        content: SingleChildScrollView(
+          child: Text(message),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -314,16 +394,23 @@ class _SftpPageState extends State<SftpPage> {
     return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
-
-  void _goToParentDirectory() {
-    if (_currentPath != '/') {
-      final parentPath = path.dirname(_currentPath);
-      _loadDirectory(parentPath);
+void _goToParentDirectory() {
+  if (_currentPath != '/') {
+    String parentPath = _normalizePath(_currentPath);
+    if (parentPath.endsWith('/') && parentPath != '/') {
+      parentPath = parentPath.substring(0, parentPath.length - 1);
     }
+    final lastSlashIndex = parentPath.lastIndexOf('/');
+    if (lastSlashIndex > 0) {
+      parentPath = parentPath.substring(0, lastSlashIndex);
+    } else {
+      parentPath = '/';
+    }
+    parentPath = _normalizePath(parentPath);
+    
+    _loadDirectory(parentPath);
   }
+}
 
   @override
   void dispose() {
@@ -339,24 +426,22 @@ class _SftpPageState extends State<SftpPage> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('SFTP - ${widget.connection.host}'),
+            Text('SFTP ${widget.connection.name}',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
             const SizedBox(height: 2),
             Row(
               children: [
-                Icon(
-                  _isConnected ? Icons.circle : Icons.circle_outlined,
-                  size: 10,
+                Icon(_isConnected ? Icons.circle : Icons.circle_outlined,
+                  color: Colors.white, size: 10,
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  _status,
-                  style: const TextStyle(fontSize: 12),
-                ),
+                Text(_status, style: const TextStyle(fontSize: 12, color: Colors.white70)),
               ],
             ),
           ],
         ),
-        backgroundColor:  _isConnected ? Colors.green : Colors.red,
+        backgroundColor: _appBarColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -415,7 +500,7 @@ class _SftpPageState extends State<SftpPage> {
       ),
       body: Column(
         children: [
-          // 路径导航
+
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: Colors.transparent,
@@ -452,20 +537,20 @@ class _SftpPageState extends State<SftpPage> {
                         itemCount: _fileList.length,
                         itemBuilder: (context, index) {
                           final item = _fileList[index];
-                          final isDirectory = item.attr.isDirectory;
+                          final isDirectory = item.attr?.isDirectory == true;
                           final filename = item.filename.toString();
-                          final size = item.attr.size ?? 0;
+                          final size = item.attr?.size ?? 0;
                           
                           return ListTile(
                             leading: Icon(
                               isDirectory ? Icons.folder : Icons.insert_drive_file,
-                              color: isDirectory ? Colors.blue : Colors.grey,
+                              color: isDirectory ? Colors.blueAccent : Colors.grey,
                             ),
                             title: Text(filename),
                             subtitle: Text(
                               isDirectory
                                   ? '文件夹'
-                                  : '${_formatFileSize(size)} - ${_formatDate(DateTime.now())}',
+                                  : _formatFileSize(size),
                             ),
                             trailing: !isDirectory
                                 ? IconButton(
