@@ -2,7 +2,7 @@
 A lightweight SSH connection tool based on flutter
 # todo
 * SFTP bug
-> * 权限
+> * 权限始终显示为未知
 * 极端情况下的overflow
 > * Problem: flutter3.22.1-ohos不兼容window_manager，无法限制窗口大小
 > * Plan: 独立ohos分支
