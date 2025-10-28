@@ -315,183 +315,232 @@ class _CredentialDialogState extends State<CredentialDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(_isEditing ? '编辑凭证' : '添加凭证'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
+    return Dialog(
+      // 固定对话框宽度
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: 500, // 设置最大宽度
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 凭证名称
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: '凭证名称',
-                  hintText: '输入凭证的显示名称',
-                ),
-                textInputAction: TextInputAction.next,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '请输入凭证名称';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // 用户名
-              TextFormField(
-                controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: '用户名',
-                  hintText: '输入登录用户名',
-                ),
-                textInputAction: TextInputAction.next,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '请输入用户名';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // 认证方式选择
-              DropdownButtonFormField<AuthType>(
-                value: _authType,
-                decoration: const InputDecoration(
-                  labelText: '认证方式',
-                ),
-                items: const [
-                  DropdownMenuItem(
-                    value: AuthType.password,
-                    child: Text('密码认证'),
+              // 标题
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _isEditing ? '编辑凭证' : '添加凭证',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
                   ),
-                  DropdownMenuItem(
-                    value: AuthType.privateKey,
-                    child: Text('私钥认证'),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
-                onChanged: (AuthType? value) {
-                  if (value != null) {
-                    setState(() {
-                      _authType = value;
-                    });
-                  }
-                },
-                validator: (value) {
-                  if (value == null) {
-                    return '请选择认证方式';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 16),
               
-              // 密码输入或私钥输入
-              if (_authType == AuthType.password)
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: '密码',
-                    hintText: '输入登录密码',
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    ),
-                  ),
-                  obscureText: _obscurePassword,
-                  textInputAction: TextInputAction.done,
-                  validator: (value) {
-                    if (_authType == AuthType.password && 
-                        (value == null || value.isEmpty)) {
-                      return '请输入密码';
-                    }
-                    return null;
-                  },
-                )
-              else
-                Column(
-                  children: [
-                    // 私钥内容输入
-                    TextFormField(
-                      controller: _privateKeyController,
-                      decoration: const InputDecoration(
-                        labelText: '私钥内容',
-                        hintText: '粘贴私钥内容或从文件读取',
-                      ),
-                      maxLines: 6,
-                      textInputAction: TextInputAction.next,
-                      validator: _validatePrivateKey,
-                    ),
-                    const SizedBox(height: 8),
-                    
-                    // 私钥文件操作按钮
-                    Row(
+              // 表单内容
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _pickPrivateKeyFile,
-                            icon: const Icon(Icons.file_open, size: 18),
-                            label: const Text('从文件读取'),
+                        // 凭证名称
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(
+                            labelText: '凭证名称',
+                            hintText: '输入凭证的显示名称',
+
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _clearPrivateKey,
-                            icon: const Icon(Icons.clear, size: 18),
-                            label: const Text('清空内容'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // 私钥密码（可选）
-                    TextFormField(
-                      controller: _passphraseController,
-                      decoration: InputDecoration(
-                        labelText: '私钥密码 (可选)',
-                        hintText: '如果私钥有密码保护，请在此输入',
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassphrase ? Icons.visibility : Icons.visibility_off,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassphrase = !_obscurePassphrase;
-                            });
+                          textInputAction: TextInputAction.next,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return '请输入凭证名称';
+                            }
+                            return null;
                           },
                         ),
-                      ),
-                      obscureText: _obscurePassphrase,
-                      textInputAction: TextInputAction.done,
+                        const SizedBox(height: 16),
+                        
+                        // 用户名
+                        TextFormField(
+                          controller: _usernameController,
+                          decoration: const InputDecoration(
+                            labelText: '用户名',
+                            hintText: '输入登录用户名',
+
+                          ),
+                          textInputAction: TextInputAction.next,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return '请输入用户名';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // 认证方式选择
+                        DropdownButtonFormField<AuthType>(
+                          value: _authType,
+                          decoration: const InputDecoration(
+                            labelText: '认证方式',
+
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: AuthType.password,
+                              child: Text('密码认证'),
+                            ),
+                            DropdownMenuItem(
+                              value: AuthType.privateKey,
+                              child: Text('私钥认证'),
+                            ),
+                          ],
+                          onChanged: (AuthType? value) {
+                            if (value != null) {
+                              setState(() {
+                                _authType = value;
+                              });
+                            }
+                          },
+                          validator: (value) {
+                            if (value == null) {
+                              return '请选择认证方式';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // 密码输入或私钥输入
+                        if (_authType == AuthType.password)
+                          TextFormField(
+                            controller: _passwordController,
+                            decoration: InputDecoration(
+                              labelText: '密码',
+                              hintText: '输入登录密码',
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                },
+                              ),
+                            ),
+                            obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.done,
+                            validator: (value) {
+                              if (_authType == AuthType.password && 
+                                  (value == null || value.isEmpty)) {
+                                return '请输入密码';
+                              }
+                              return null;
+                            },
+                          )
+                        else
+                          Column(
+                            children: [
+                              // 私钥内容输入
+                              TextFormField(
+                                controller: _privateKeyController,
+                                decoration: const InputDecoration(
+                                  labelText: '私钥内容',
+                                  hintText: '粘贴私钥内容或从文件读取',
+      
+                                  alignLabelWithHint: true,
+                                ),
+                                maxLines: 6,
+                                minLines: 4,
+                                textInputAction: TextInputAction.next,
+                                validator: _validatePrivateKey,
+                              ),
+                              const SizedBox(height: 12),
+                              
+                              // 私钥文件操作按钮
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _pickPrivateKeyFile,
+                                      icon: const Icon(Icons.file_open, size: 18),
+                                      label: const Text('从文件读取'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: _clearPrivateKey,
+                                      icon: const Icon(Icons.clear, size: 18),
+                                      label: const Text('清空内容'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              
+                              // 私钥密码（可选）
+                              TextFormField(
+                                controller: _passphraseController,
+                                decoration: InputDecoration(
+                                  labelText: '私钥密码 (可选)',
+                                  hintText: '如果私钥有密码保护，请在此输入',
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassphrase ? Icons.visibility : Icons.visibility_off,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _obscurePassphrase = !_obscurePassphrase;
+                                      });
+                                    },
+                                  ),
+                                ),
+                                obscureText: _obscurePassphrase,
+                                textInputAction: TextInputAction.done,
+                              ),
+                            ],
+                          ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('取消'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _saveCredential,
+                      child: const Text('保存'),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
-        ElevatedButton(
-          onPressed: _saveCredential,
-          child: const Text('保存'),
-          //style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor,),
-        ),
-      ],
     );
   }
 }
