@@ -567,14 +567,19 @@ class _MainPageState extends State<MainPage> {
           showAboutDialog(
             context: context,
             applicationName: 'connecter',
-            applicationVersion: '0.2 Beta',
+            applicationVersion: '0.3 Beta',
             children: const [
-              SizedBox(height: 8),
-              Text(
-                '尚在测试中~期待反馈喵',
-                style: TextStyle(fontSize: 13,color: Colors.grey),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+              ),
+              Padding(
+                padding: EdgeInsets.only(left: 20, bottom: 20,right: 20),
+                child: Text(
+                  '尚在测试中~期待反馈喵 本次更新了SFTP功能，由于改动较大可能存在问题，请勿在生产环境中使用',
+                  style: TextStyle(fontSize: 15, color: Colors.grey),
+                ),
               )
-            ]
+            ],
           );
         },
         title: '关于',

@@ -28,6 +28,9 @@ class FlutterWindow : public Win32Window {
 
   // The Flutter instance hosted by this window.
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;
+  //define minium window size.
+  const int MIN_WIDTH = 1050;
+  const int MIN_HEIGHT = 1200;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

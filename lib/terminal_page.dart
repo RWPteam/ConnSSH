@@ -147,7 +147,9 @@ class _TerminalPageState extends State<TerminalPage> {
 
     int prefix = 0;
     final minLen = cur.length < prev.length ? cur.length : prev.length;
-    while (prefix < minLen && cur.codeUnitAt(prefix) == prev.codeUnitAt(prefix)) prefix++;
+    while (prefix < minLen && cur.codeUnitAt(prefix) == prev.codeUnitAt(prefix)) {
+      prefix++;
+    }
 
     int suffixPrev = prev.length;
     int suffixCur = cur.length;

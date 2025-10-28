@@ -51,6 +51,16 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+//handle window size message fisrt
+  switch (message) {
+    case WM_GETMINMAXINFO:
+    {
+      MINMAXINFO* minMaxInfo = (MINMAXINFO*)lparam;
+      minMaxInfo->ptMinTrackSize.x = MIN_WIDTH;   
+      minMaxInfo->ptMinTrackSize.y = MIN_HEIGHT;  
+      return 0;
+    }
+  }
   // Give Flutter, including plugins, an opportunity to handle window messages.
   if (flutter_controller_) {
     std::optional<LRESULT> result =
