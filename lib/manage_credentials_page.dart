@@ -344,7 +344,6 @@ class _CredentialDialogState extends State<CredentialDialog> {
               ),
               const SizedBox(height: 16),
               
-              // 表单内容
               Expanded(
                 child: SingleChildScrollView(
                   child: Form(
@@ -352,7 +351,6 @@ class _CredentialDialogState extends State<CredentialDialog> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // 凭证名称
                         TextFormField(
                           controller: _nameController,
                           decoration: const InputDecoration(
@@ -370,7 +368,6 @@ class _CredentialDialogState extends State<CredentialDialog> {
                         ),
                         const SizedBox(height: 16),
                         
-                        // 用户名
                         TextFormField(
                           controller: _usernameController,
                           decoration: const InputDecoration(
@@ -387,8 +384,7 @@ class _CredentialDialogState extends State<CredentialDialog> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        
-                        // 认证方式选择
+                      
                         DropdownButtonFormField<AuthType>(
                           value: _authType,
                           decoration: const InputDecoration(
@@ -421,7 +417,6 @@ class _CredentialDialogState extends State<CredentialDialog> {
                         ),
                         const SizedBox(height: 16),
                         
-                        // 密码输入或私钥输入
                         if (_authType == AuthType.password)
                           TextFormField(
                             controller: _passwordController,
@@ -452,7 +447,6 @@ class _CredentialDialogState extends State<CredentialDialog> {
                         else
                           Column(
                             children: [
-                              // 私钥内容输入
                               TextFormField(
                                 controller: _privateKeyController,
                                 decoration: const InputDecoration(
@@ -468,7 +462,6 @@ class _CredentialDialogState extends State<CredentialDialog> {
                               ),
                               const SizedBox(height: 12),
                               
-                              // 私钥文件操作按钮
                               Row(
                                 children: [
                                   Expanded(
@@ -490,7 +483,6 @@ class _CredentialDialogState extends State<CredentialDialog> {
                               ),
                               const SizedBox(height: 16),
                               
-                              // 私钥密码（可选）
                               TextFormField(
                                 controller: _passphraseController,
                                 decoration: InputDecoration(

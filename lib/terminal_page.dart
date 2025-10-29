@@ -326,12 +326,13 @@ class _TerminalPageState extends State<TerminalPage> {
     }
   }
 
-  void _showFontSlider() {
-    _hideSliderTimer?.cancel();
+void _showFontSlider() {
+  _hideSliderTimer?.cancel();
 
-    _fontSliderOverlay ??= OverlayEntry(
-      builder: (context) {
-        return Positioned(
+  _fontSliderOverlay ??= OverlayEntry(
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setStateOverlay) => Positioned(
           left: 16,
           right: 16,
           bottom: 24,
@@ -348,76 +349,41 @@ class _TerminalPageState extends State<TerminalPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        '字体大小',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      const Text('字体大小',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          //color: Colors.blueAccent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${_fontSize.toInt()}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      Text(
+                        '${_fontSize.toInt()}',
+                        style: const TextStyle(color: Colors.white),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  SliderTheme(
-                    data: SliderThemeData(
-                      trackHeight: 6,
-                      thumbShape: const RoundSliderThumbShape(
-                        enabledThumbRadius: 12,
-                        disabledThumbRadius: 12,
-                        elevation: 2,
-                      ),
-                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-                      activeTrackColor: Colors.blueAccent,
-                      inactiveTrackColor: Colors.grey[600],
-                      thumbColor: Colors.white,
-                      overlayColor: Colors.blueAccent.withOpacity(0.2),
-                    ),
-                    child: Slider(
-                      value: _fontSize,
-                      min: 8,
-                      max: 40,
-                      divisions: 32,
-                      onChanged: (v) {
-                        setState(() => _fontSize = v);
-                        _resetHideSliderTimer();
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('8px', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
-                      Text('40px', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
-                    ],
+                  Slider(
+                    value: _fontSize,
+                    min: 8,
+                    max: 40,
+                    divisions: 32,
+                    onChanged: (v) {
+                      // ✅ 更新 Terminal 字体大小
+                      setState(() => _fontSize = v);
+                      // ✅ 更新 Slider 自身 UI
+                      setStateOverlay(() {});
+                      // ✅ 保持 3s 后隐藏
+                      _resetHideSliderTimer();
+                    },
                   ),
                 ],
               ),
             ),
           ),
-        );
-      },
-    );
+        ),
+      );
+    },
+  );
 
-    Overlay.of(context).insert(_fontSliderOverlay!);
-    _resetHideSliderTimer();
-  }
+  Overlay.of(context).insert(_fontSliderOverlay!);
+  _resetHideSliderTimer();
+}
 
   void _resetHideSliderTimer() {
     _hideSliderTimer?.cancel();
