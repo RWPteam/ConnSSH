@@ -79,7 +79,12 @@ class _SftpPageState extends State<SftpPage> {
         setState(() {
           _isConnected = true;
           _status = '已连接';
-          _appBarColor = Colors.green;
+          if (Theme.of(context).brightness == Brightness.dark )
+          {
+            _appBarColor = Colors.green.shade800;
+          } else {
+            _appBarColor = Colors.green;
+          }
         });
       }
 
@@ -541,7 +546,7 @@ class _SftpPageState extends State<SftpPage> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text('文件详情 - $filename'),
+            title: Text('属性 - $filename'),
             content: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -567,7 +572,7 @@ class _SftpPageState extends State<SftpPage> {
         );
       }
     } catch (e) {
-      _showErrorDialog('获取文件详情失败', e.toString());
+      _showErrorDialog('获取属性失败', e.toString());
     }
   }
 
@@ -1082,23 +1087,17 @@ class _SftpPageState extends State<SftpPage> {
           throw Exception('剪切操作失败：权限不足或目标已存在');
         }
       } else {
-        // 复制操作
         final cmd = _clipboardIsDirectory
             ? 'cp -r "${_clipboardFilePath!}" "$newPath"'
             : 'cp "${_clipboardFilePath!}" "$newPath"';
 
-        // 等待 SSH 会话建立
         final session = await _sshClient!.execute(cmd);
 
-        // 等待命令执行完成
         await session.done;
 
-        // 获取命令退出码
-        final exitCode = await session.exitCode;
+        final exitCode = session.exitCode;
 
-        // 检查命令是否成功执行 (退出码 0 表示成功)
         if (exitCode == 0) {
-          // 命令执行成功，现在检查目标文件是否存在
           bool targetExists = false;
           try {
             await _sftpClient.stat(newPath);
@@ -1377,10 +1376,10 @@ class _SftpPageState extends State<SftpPage> {
                         const SizedBox(width: 8),
                         IconButton(
                           icon: Icon(
-                            _isMultiSelectMode ? Icons.check_box : Icons.check_box_outline_blank,
+                            _isMultiSelectMode ? Icons.check_box_outline_blank : Icons.check_box,
                           ),
                           onPressed: _selectAllFiles,
-                          tooltip: _isMultiSelectMode ? '退出多选' : '全选',
+                          tooltip: _isMultiSelectMode ? '取消选择' : '全选',
                           color: iconColor,
                         ),
                         IconButton(
@@ -1418,14 +1417,14 @@ class _SftpPageState extends State<SftpPage> {
                       if (isWideScreen)
                         TextButton.icon(
                           icon: Icon(Icons.info, color: singleSelection ? iconColor : disabledIconColor),
-                          label: Text('文件详情', style: TextStyle(color: singleSelection ? iconColor : disabledIconColor)),
+                          label: Text('属性', style: TextStyle(color: singleSelection ? iconColor : disabledIconColor)),
                           onPressed: singleSelection ? _showFileDetails : null,
                         )
                       else
                         IconButton(
                           icon: const Icon(Icons.info),
                           onPressed: singleSelection ? _showFileDetails : null,
-                          tooltip: '文件详情',
+                          tooltip: '属性',
                           color: singleSelection ? iconColor : disabledIconColor,
                         ),
                       

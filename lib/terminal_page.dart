@@ -233,8 +233,8 @@ class _TerminalPageState extends State<TerminalPage> {
   }
 
   Color _getAppBarColor() {
-    if (_isConnecting) return Colors.transparent;
-    if (_isConnected) return Colors.green;
+    if (_isConnecting) return Colors.grey.shade700;
+    if (_isConnected) return Colors.green.shade800;
     return Colors.red;
   }
 
@@ -331,62 +331,67 @@ class _TerminalPageState extends State<TerminalPage> {
 
     _fontSliderOverlay ??= OverlayEntry(
       builder: (context) {
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _hideFontSlider,
-                child: Container(
-                  color: Colors.transparent,
+        return StatefulBuilder(
+          builder: (context, setStateOverlay) {
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _hideFontSlider,
+                    child: Container(color: Colors.transparent),
+                  ),
                 ),
-              ),
-            ),
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 24,
-              child: GestureDetector(
-                onTap: () {}, 
-                child: Material(
-                  elevation: 8,
-                  borderRadius: BorderRadius.circular(16),
-                  color: Colors.grey[900]!.withOpacity(0.95),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 24,
+                  child: GestureDetector(
+                    onTap: () {}, 
+                    child: Material(
+                      elevation: 8,
+                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.grey[900]!.withOpacity(0.95),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('字体大小',
-                              style: TextStyle(color: Colors.white, fontSize: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('字体大小',
+                                  style: TextStyle(color: Colors.white, fontSize: 16),
+                                ),
+                                Text(
+                                  '${_fontSize.toInt()}',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ],
                             ),
-                            Text(
-                              '${_fontSize.toInt()}',
-                              style: const TextStyle(color: Colors.white),
+                            Slider(
+                              value: _fontSize,
+                              min: 8,
+                              max: 40,
+                              divisions: 32,
+                              onChanged: (v) {
+                                setStateOverlay(() {
+                                  _fontSize = v;
+                                });
+                                setState(() {});
+                                _resetHideSliderTimer();
+                              },
                             ),
                           ],
                         ),
-                        Slider(
-                          value: _fontSize,
-                          min: 8,
-                          max: 40,
-                          divisions: 32,
-                          onChanged: (v) {
-                            setState(() => _fontSize = v);
-                            _resetHideSliderTimer();
-                          },
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );

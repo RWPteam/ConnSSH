@@ -19,7 +19,6 @@ class _MainPageState extends State<MainPage> {
   List<ConnectionInfo> _recentConnections = [];
   bool _isLoading = true; 
   final StorageService _storageService = StorageService();
-  final SshService _sshService = SshService();
   bool _isConnecting = false;
   ConnectionInfo? _connectingConnection;
 
@@ -319,7 +318,7 @@ class _MainPageState extends State<MainPage> {
         vertical: 8,
       ),
       onTap: () {
-        _connectToServer(connection);
+        _connectTo(connection);
       },
     );
   }
@@ -327,7 +326,7 @@ class _MainPageState extends State<MainPage> {
   void _handleMenuAction(String action, ConnectionInfo connection) {
     switch (action) {
       case 'connect':
-        _connectToServer(connection);
+        _connectTo(connection);
         break;
       case 'pin':
         _togglePinConnection(connection);
@@ -373,48 +372,96 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
-  Future<void> _connectToServer(ConnectionInfo connection) async {
+  void _connectTo(ConnectionInfo connection) async {
+    if (_isConnecting) return;
+    
     setState(() {
       _isConnecting = true;
-      _connectingConnection = connection;
     });
 
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+    
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          backgroundColor: Colors.transparent,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('正在连接...'),
+            ],
+          ),
+        );
+      },
+    );
+
     try {
-      final credentials = await _storageService.getCredentials();
+      final storageService = StorageService();
+      final sshService = SshService();
+      
+      final credentials = await storageService.getCredentials();
       final credential = credentials.firstWhere(
         (c) => c.id == connection.credentialId,
-        orElse:() => throw Exception('未找到认证凭证'),
+        orElse: () => throw Exception('找不到认证凭证'),
       );
-      
-      await _sshService.connect(connection, credential);
-      await _addToRecentConnections(connection);
+
+      await sshService.connect(connection, credential);
+      await storageService.addRecentConnection(connection);
+
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
 
       if (mounted) {
         if (connection.type == ConnectionType.sftp) {
-            Navigator.of(context).push(MaterialPageRoute(
-            builder:(context) => SftpPage(
-              connection: connection, 
-              credential: credential
-            )
-          ));
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => SftpPage(
+                connection: connection,
+                credential: credential,
+              ),
+            ),
+          );
         } else {
-          Navigator.of(context).push(MaterialPageRoute(
-            builder:(context) => TerminalPage(
-              connection: connection, 
-              credential: credential
-            )
-          ));
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => TerminalPage(
+                connection: connection,
+                credential: credential,
+              ),
+            ),
+          );
         }
       }
+
     } catch (e) {
+      // 关闭加载对话框
       if (mounted) {
-        _showConnectionError(connection, e.toString());
+        Navigator.of(context).pop(); // 关闭加载对话框
+      }
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('连接失败'),
+            content: Text(e.toString()),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('确定'),
+              ),
+            ],
+          ),
+        );
       }
     } finally {
       if (mounted) {
         setState(() {
           _isConnecting = false;
-          _connectingConnection = null;
         });
       }
     }
@@ -445,7 +492,7 @@ class _MainPageState extends State<MainPage> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              _connectToServer(connection);
+              _connectTo(connection);
             },
             child: const Text('重试'),
           ),

@@ -70,14 +70,12 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
   }
 
   void _connectTo(ConnectionInfo connection) async {
-    // 防止重复点击
     if (_isConnecting) return;
     
     setState(() {
       _isConnecting = true;
     });
 
-    // 显示加载对话框
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -190,7 +188,19 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
       ),
       body: _connections.isEmpty
           ? const Center(
-              child: Text('暂无保存的连接'),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.no_encryption_outlined, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text('暂无保存的连接', style: TextStyle(fontSize: 16)),
+                  SizedBox(height: 8),
+                  Text(
+                    '点击右上角 + 按钮添加新的连接',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
             )
           : ListView.builder(
               itemCount: _connections.length,
