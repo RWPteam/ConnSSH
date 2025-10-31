@@ -13,15 +13,17 @@ if (localPropertiesFile.exists()) {
     }
 }
 
-def flutterVersionCode = localProperties.getProperty("flutter.versionCode")
-if (flutterVersionCode == null) {
-    flutterVersionCode = "1"
-}
+def flutterVersionCode = "23"
+//def flutterVersionCode = localProperties.getProperty("flutter.versionCode")
+//if (flutterVersionCode == null) {
+    //flutterVersionCode = "17"
+//}
 
-def flutterVersionName = localProperties.getProperty("flutter.versionName")
-if (flutterVersionName == null) {
-    flutterVersionName = "1.0"
-}
+def flutterVersionName = "1.0Beta3"
+//def flutterVersionName = localProperties.getProperty("flutter.versionName")
+//if (flutterVersionName == null) {
+//    flutterVersionName = "1.0Beta3"
+//}
 
 android {
     namespace = "com.samuioto.connecter"

@@ -74,6 +74,39 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
+  Future<void> _saveConnection(ConnectionInfo connection) async {
+  try {
+    // 检查连接是否已存在
+    final savedConnections = await _storageService.getConnections();
+    final bool connectionExists = savedConnections.any((c) => c.id == connection.id);
+    
+    if (connectionExists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('连接已存在'),
+        ),
+      );
+      return;
+    }
+
+    // 保存连接
+    await _storageService.saveConnection(connection);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('保存连接${connection.name}成功'),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('保存连接失败：$e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Future<void> _togglePinConnection(ConnectionInfo connection) async {
     try {
       await _storageService.togglePinConnection(connection.id);
@@ -107,6 +140,7 @@ class _MainPageState extends State<MainPage> {
             showRecentConnections,
             showButtonSubtitle,
             constraints.maxHeight,
+            constraints.maxWidth,
           );
         },
       ),
@@ -118,6 +152,7 @@ class _MainPageState extends State<MainPage> {
     bool showRecentConnections,
     bool showButtonSubtitle,
     double screenHeight,
+    double screenWidth,
   ) {
     final buttons = _buildButtons(
       context, 
@@ -125,33 +160,61 @@ class _MainPageState extends State<MainPage> {
       screenHeight,
     );
     
-    if (!showRecentConnections) {
-      return Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 24.0),
-              child: Text(
-                '连接管理',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+    // 在窄屏模式下，在快速连接按钮下方显示两个最近连接
+  if (!showRecentConnections) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 24.0),
+            child: Text(
+              '连接管理',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
             ),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: buttons,
-                ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 快速连接按钮
+                  buttons[0],
+                  const SizedBox(height: 16),
+                  
+                  // 在窄屏模式下显示两个最近连接（居中显示）
+                  if (_recentConnections.isNotEmpty) ...[
+                    Column(
+                      children: [
+                        for (int i = 0; i < _recentConnections.take(2).length; i++)
+                          Container(
+                            height: 50, // 高度减半
+                            margin: EdgeInsets.only(bottom: i < _recentConnections.take(2).length - 1 ? 12 : 0),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: Colors.grey,
+                                width: 1,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: _buildSmallConnectionTile(context, _recentConnections[i]),
+                          ),
+                      ],
+                    ),
+                  ],
+                  ...buttons.sublist(1),
+                ],
               ),
             ),
-          ],
-        ),
-      );
-    } else {
+          ),
+        ],
+      ),
+    );
+  }else {
+      // 宽屏模式保持不变
       return Row(
         children: [
           Expanded(
@@ -245,6 +308,109 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
+// 窄屏模式下的小型连接项（居中显示）
+  Widget _buildSmallConnectionTile(BuildContext context, ConnectionInfo connection) {
+    final isConnectingThis = _isConnecting && _connectingConnection?.id == connection.id;
+    
+    return Container(
+      height: 50,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            _connectTo(connection);
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: Colors.grey,
+                width: 1,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    // 左侧图标
+                    SizedBox(
+                      width: 24,
+                      child: Icon(
+                        connection.isPinned ? Icons.vertical_align_top : _getConnectionIcon(connection.type),
+                        color: Colors.grey,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    
+                    // 连接名称
+                    Expanded(
+                      child: Text(
+                        connection.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: isConnectingThis ? Colors.grey : null,
+                        ),
+                      ),
+                    ),
+                    
+                    // 右侧菜单按钮
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, color: Colors.grey, size: 20),
+                      onSelected: (value) {
+                        _handleMenuAction(value, connection);
+                      },
+                      itemBuilder: (BuildContext context) => [
+                        const PopupMenuItem<String>(
+                          value: 'connect',
+                          child: Row(
+                            children: [
+                              SizedBox(width: 8),
+                              Text('连接'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'pin',
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 8),
+                              Text(connection.isPinned ? '取消置顶' : '置顶'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'save',
+                          child: Row(
+                            children: [
+                              SizedBox(width: 8),
+                              Text('保存该连接'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              SizedBox(width: 8),
+                              Text('删除', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
   Widget _buildConnectionTile(BuildContext context, ConnectionInfo connection) {
     final isConnectingThis = _isConnecting && _connectingConnection?.id == connection.id;
     
@@ -300,6 +466,15 @@ class _MainPageState extends State<MainPage> {
             ],
           ),
         ),
+        const PopupMenuItem<String>(
+          value: 'save',
+          child: Row(
+            children: [
+              SizedBox(width: 8),
+              Text('保存该连接'),
+            ],
+          ),
+        ),
           const PopupMenuItem<String>(
             value: 'delete',
             child: Row(
@@ -329,6 +504,9 @@ class _MainPageState extends State<MainPage> {
       case 'pin':
         _togglePinConnection(connection);
         break;
+      case 'save':
+        _saveConnection(connection);
+      break;
       case 'delete':
         _showDeleteDialog(connection);
         break;
@@ -615,6 +793,3 @@ void _handleConnectionError(ConnectionInfo connection, String error) {
     ];
   }
 }
-
-
-

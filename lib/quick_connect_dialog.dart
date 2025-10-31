@@ -454,7 +454,6 @@ void _generateConnectionName() {
                       decoration: const InputDecoration(
                         labelText: 'SFTP默认访问目录',
                         hintText: '例如：/home/username',
-                        prefixIcon: Icon(Icons.folder),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {

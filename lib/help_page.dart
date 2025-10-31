@@ -62,22 +62,10 @@ class HelpPage extends StatelessWidget {
                     showAboutDialog(
                       context: context,
                       applicationName: 'connecter',
-                      applicationVersion: '1.0 Beta 2',
-                      children: const [
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.only(left: 20, bottom: 20, right: 20),
-                          child: Text(
-                            '尚在测试中~本次着重修复了SSH的多端体验，欢迎反馈',
-                            style: TextStyle(fontSize: 15, color: Colors.grey),
-                          ),
-                        ),
-                      ],
+                      applicationVersion: '1.0 Beta 3',
                     );
                   },
-                  child: const Text('查看关于信息'),
+                  child: const Text('关于'),
                 ),
               ),
             ],
@@ -95,7 +83,6 @@ class HelpPage extends StatelessWidget {
           title,
           style: const TextStyle(
             fontSize: 18,
-            color: Colors.lightBlue,
           ),
         ),
         const SizedBox(height: 8),
