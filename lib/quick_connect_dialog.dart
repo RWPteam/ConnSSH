@@ -82,19 +82,21 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
     }
   }
 
-  void _generateConnectionName() {
-    if (_isNameChanged) return;
-    if (!_isEditing && (_hostController.text.isNotEmpty || _portController.text.isNotEmpty)) {
-      final host = _hostController.text;
-      final port = _portController.text;
-      if (host.isNotEmpty) {
-        setState(() {
-          _nameController.text = '$host:$port';
-        });
-      }
+
+void _generateConnectionName() {
+  // 编辑模式下不允许自动生成名称，除非用户明确点击重置
+  if (_isNameChanged) return;
+  
+  if (_hostController.text.isNotEmpty || _portController.text.isNotEmpty) {
+    final host = _hostController.text;
+    final port = _portController.text;
+    if (host.isNotEmpty) {
+      setState(() {
+        _nameController.text = '$host:$port';
+      });
     }
   }
-
+}
   void _reserToDefaultName() {
     setState(() {
       _isNameChanged = false;
@@ -338,11 +340,9 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                     ),
                 ),
                 onChanged: (value) {
-                  if(!_isEditing) {
                     setState(() {
                       _isNameChanged = true;
                     });
-                  }
                 },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
