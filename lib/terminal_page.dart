@@ -713,7 +713,7 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
                       enableSuggestions: false,
                       style: const TextStyle(
                         color: Colors.transparent,
-                        fontSize: 1,
+                        fontSize: 0.1,
                       ),
                       cursorColor: Colors.transparent,
                       decoration: const InputDecoration(

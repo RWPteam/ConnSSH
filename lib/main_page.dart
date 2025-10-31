@@ -105,8 +105,7 @@ class HelpPage extends StatelessWidget {
           title,
           style: const TextStyle(
             fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.blueAccent,
+            color: Colors.lightBlue,
           ),
         ),
         const SizedBox(height: 8),

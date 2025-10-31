@@ -34,7 +34,7 @@ class _MyAppState extends State<MyApp> {
       // 添加 builder 来确保正确的上下文
       builder: (context, child) {
         return MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+          data: MediaQuery.of(context).copyWith(),
           child: child!,
         );
       },

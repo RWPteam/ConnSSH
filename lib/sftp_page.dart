@@ -350,33 +350,76 @@ class _SftpPageState extends State<SftpPage> {
 
   Future<String?> _getDownloadPath(String fileName) async {
     try {
-      final result = await FilePicker.platform.saveFile(
-        dialogTitle: '选择保存位置',
-        fileName: fileName,
-      );
-
-      // 添加空值检查和多平台兼容性处理
-      if (result == null || result.isEmpty) {
-        return null;
+      if (Platform.isAndroid) {
+        // Android 专用处理
+        return await _getAndroidDownloadPath(fileName);
+      } else {
+        // 其他平台使用原有逻辑
+        final result = await FilePicker.platform.saveFile(
+          dialogTitle: '选择保存位置',
+          fileName: fileName,
+        );
+        return result;
       }
-
-      return result;
     } catch (e) {
       debugPrint('获取下载路径失败: $e');
+      return await _getFallbackDownloadPath(fileName);
+    }
+  }
+
+  Future<String?> _getAndroidDownloadPath(String fileName) async {
+    try {
+      // 首先尝试使用 Downloads 目录
+      final directory = await getDownloadsDirectory();
+      if (directory != null) {
+        final file = File('${directory.path}/$fileName');
+        return file.path;
+      }
       
-      // 多平台兼容性处理
+      // 如果 Downloads 目录不可用，尝试外部存储目录
+      final externalDir = await getExternalStorageDirectory();
+      if (externalDir != null) {
+        // 在外部存储目录下创建 Connecter 文件夹
+        final connecterDir = Directory('${externalDir.path}/Connecter');
+        if (!await connecterDir.exists()) {
+          await connecterDir.create(recursive: true);
+        }
+        final file = File('${connecterDir.path}/$fileName');
+        return file.path;
+      }
+      
+      // 最后尝试应用文档目录
+      final documentsDir = await getApplicationDocumentsDirectory();
+      final file = File('${documentsDir.path}/$fileName');
+      return file.path;
+      
+    } catch (e) {
+      debugPrint('Android 下载路径获取失败: $e');
+      return null;
+    }
+  }
+
+  Future<String?> _getFallbackDownloadPath(String fileName) async {
+    try {
       if (Platform.isAndroid) {
-        // Android 备用方案：使用外部存储目录
         final directory = await getExternalStorageDirectory();
         if (directory != null) {
-          return '${directory.path}/$fileName';
+          final downloadDir = Directory('${directory.path}/Download');
+          if (!await downloadDir.exists()) {
+            await downloadDir.create(recursive: true);
+          }
+          return '${downloadDir.path}/$fileName';
         }
       } else if (Platform.isIOS) {
-        // iOS 备用方案：使用文档目录
         final directory = await getApplicationDocumentsDirectory();
         return '${directory.path}/$fileName';
       }
       
+      // 最后的备用方案
+      final directory = await getTemporaryDirectory();
+      return '${directory.path}/$fileName';
+    } catch (e) {
+      debugPrint('备用下载路径获取失败: $e');
       return null;
     }
   }
@@ -389,36 +432,44 @@ class _SftpPageState extends State<SftpPage> {
 
     if (_selectedFiles.isNotEmpty) {
       firstFileName = _selectedFiles.first;
-      final firstSavePath = await _getDownloadPath(firstFileName);
       
-      // 增强空值检查
-      if (firstSavePath == null || firstSavePath.isEmpty) {
-        if (mounted) {
-          _showErrorDialog('下载失败', '无法获取有效的保存路径');
+      // 对于 Android，我们直接生成路径，不通过 FilePicker
+      if (Platform.isAndroid) {
+        saveDir = await _getAndroidDownloadDirectory();
+      } else {
+        final firstSavePath = await _getDownloadPath(firstFileName);
+        if (firstSavePath != null && firstSavePath.isNotEmpty) {
+          try {
+            final file = File(firstSavePath);
+            final parentDir = file.parent;
+            if (!await parentDir.exists()) {
+              await parentDir.create(recursive: true);
+            }
+            saveDir = parentDir.path;
+          } catch (e) {
+            debugPrint('创建保存目录失败: $e');
+          }
         }
-        return;
-      }
-      
-      try {
-        final file = File(firstSavePath);
-        final parentDir = file.parent;
-        
-        // 检查父目录是否存在且可写
-        if (!await parentDir.exists()) {
-          await parentDir.create(recursive: true);
-        }
-        
-        saveDir = parentDir.path;
-      } catch (e) {
-        if (mounted) {
-          _showErrorDialog('下载失败', '无法创建保存目录: $e');
-        }
-        return;
       }
     }
 
+    saveDir ??= await _selectDownloadDirectory();
+
     if (saveDir == null || !mounted) {
       _showErrorDialog('下载失败', '无法获取可写目录');
+      return;
+    }
+
+    // 确保目录存在
+    try {
+      final dir = Directory(saveDir);
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorDialog('下载失败', '无法创建保存目录: $e');
+      }
       return;
     }
 
@@ -433,99 +484,21 @@ class _SftpPageState extends State<SftpPage> {
 
       final filename = _selectedFiles.elementAt(i);
       final remotePath = _joinPath(_currentPath, filename);
-      
-      // 生成安全的本地文件名
       final safeFilename = _getSafeFileName(filename);
-      final localFile = File('$saveDir/$safeFilename');
+      final localFilePath = '$saveDir/$safeFilename';
 
       setState(() {
         _currentOperation = '正在下载: $filename (${i + 1} / $total)';
         _downloadProgress = 0.0;
       });
 
-      IOSink? sink;
-      dynamic remote;
-
-      try {
-        // 检查远程文件是否存在
-        final stat = await _sftpClient.stat(remotePath);
-        final int fileSize = (stat.size ?? 0).toInt();
-        
-        // 检查文件大小是否有效
-        if (fileSize <= 0) {
-          debugPrint('文件大小为0或无效: $filename');
-          continue;
-        }
-
-        remote = await _sftpClient.open(remotePath);
-        _currentDownloadFile = remote;
-
-        sink = localFile.openWrite();
-
-        num offset = 0;
-        const int chunkSize = 32 * 1024;
-        
-        while (offset < fileSize && !_cancelOperation) {
-          final bytesToRead = fileSize - offset > chunkSize ? chunkSize : fileSize - offset;
-          final chunk = await remote.readBytes(offset: offset, length: bytesToRead);
-          
-          // 检查读取的数据是否为空
-          if (chunk.isEmpty) {
-            debugPrint('读取到空数据块，文件可能已损坏: $filename');
-            break;
-          }
-          
-          sink.add(chunk);
-          offset += chunk.length;
-
-          if (mounted) {
-            setState(() {
-              _downloadProgress = fileSize > 0 ? (offset / fileSize) : 0.0;
-            });
-          }
-        }
-
-        await sink.flush();
-        await sink.close();
-        sink = null;
-
-        await remote.close();
-        remote = null;
-        _currentDownloadFile = null;
-
-        // 验证下载的文件大小
-        final downloadedFile = File('$saveDir/$safeFilename');
-        if (await downloadedFile.exists()) {
-          final downloadedSize = await downloadedFile.length();
-          if (downloadedSize == fileSize) {
-            if (!_cancelOperation) successCount++;
-          } else {
-            debugPrint('文件大小不匹配: $filename (期望: $fileSize, 实际: $downloadedSize)');
-            await downloadedFile.delete(); // 删除不完整的文件
-          }
-        }
-
-      } catch (e) {
-        debugPrint('下载失败: $e');
-        
-        // 清理资源
-        try {
-          await sink?.close();
-        } catch (_) {}
-        
-        try {
-          await remote?.close();
-        } catch (_) {}
-        
-        _currentDownloadFile = null;
-
-        // 删除可能已创建的不完整文件
+      await _downloadSingleFile(remotePath, localFilePath, filename, i, total);
+      
+      if (!_cancelOperation) {
+        // 检查文件是否成功下载
+        final localFile = File(localFilePath);
         if (await localFile.exists()) {
-          try {
-            await localFile.delete();
-          } catch (deleteError) {
-            debugPrint('删除本地不完整文件失败: $deleteError');
-          }
+          successCount++;
         }
       }
     }
@@ -540,13 +513,135 @@ class _SftpPageState extends State<SftpPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('下载完成: $successCount / $total 个文件')),
       );
-      
       _clearSelectionAndExitMultiSelect();
     }
 
     _downloadProgress = 0;
     _currentDownloadFile = null;
     _currentOperation = '';
+  }
+
+  Future<String?> _getAndroidDownloadDirectory() async {
+    try {
+      // 优先使用 Downloads 目录
+      final downloadsDir = await getDownloadsDirectory();
+      if (downloadsDir != null) {
+        return downloadsDir.path;
+      }
+      
+      // 备用方案：外部存储目录下的 Download 文件夹
+      final externalDir = await getExternalStorageDirectory();
+      if (externalDir != null) {
+        final downloadDir = Directory('${externalDir.path}/Download');
+        if (!await downloadDir.exists()) {
+          await downloadDir.create(recursive: true);
+        }
+        return downloadDir.path;
+      }
+      
+      return null;
+    } catch (e) {
+      debugPrint('获取 Android 下载目录失败: $e');
+      return null;
+    }
+  }
+
+  Future<String?> _selectDownloadDirectory() async {
+    try {
+      if (Platform.isAndroid) {
+        // Android 使用固定的下载目录
+        return await _getAndroidDownloadDirectory();
+      } else {
+        // 其他平台使用目录选择器
+        final String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+          dialogTitle: '选择保存目录',
+        );
+        return selectedDirectory;
+      }
+    } catch (e) {
+      debugPrint('选择下载目录失败: $e');
+      return null;
+    }
+  }
+
+  Future<void> _downloadSingleFile(String remotePath, String localFilePath, String filename, int index, int total) async {
+    IOSink? sink;
+    dynamic remote;
+
+    try {
+      // 检查远程文件是否存在
+      final stat = await _sftpClient.stat(remotePath);
+      final int fileSize = (stat.size ?? 0).toInt();
+      
+      if (fileSize <= 0) {
+        debugPrint('文件大小为0或无效: $filename');
+        return;
+      }
+
+      remote = await _sftpClient.open(remotePath);
+      _currentDownloadFile = remote;
+
+      // 创建本地文件
+      final localFile = File(localFilePath);
+      sink = localFile.openWrite();
+
+      num offset = 0;
+      const int chunkSize = 32 * 1024;
+      
+      while (offset < fileSize && !_cancelOperation) {
+        final bytesToRead = fileSize - offset > chunkSize ? chunkSize : fileSize - offset;
+        final chunk = await remote.readBytes(offset: offset, length: bytesToRead);
+        
+        if (chunk.isEmpty) {
+          debugPrint('读取到空数据块，文件可能已损坏: $filename');
+          break;
+        }
+        
+        sink.add(chunk);
+        offset += chunk.length;
+
+        if (mounted) {
+          setState(() {
+            _downloadProgress = fileSize > 0 ? (offset / fileSize) : 0.0;
+          });
+        }
+      }
+
+      await sink.flush();
+      await sink.close();
+      sink = null;
+
+      await remote.close();
+      remote = null;
+      _currentDownloadFile = null;
+
+    } catch (e) {
+      debugPrint('下载文件 $filename 失败: $e');
+      
+      // 清理资源
+      try {
+        await sink?.close();
+      } catch (_) {}
+      
+      try {
+        await remote?.close();
+      } catch (_) {}
+      
+      _currentDownloadFile = null;
+
+      // 删除可能已创建的不完整文件
+      try {
+        final incompleteFile = File(localFilePath);
+        if (await incompleteFile.exists()) {
+          await incompleteFile.delete();
+        }
+      } catch (deleteError) {
+        debugPrint('删除不完整文件失败: $deleteError');
+      }
+      
+      // 重新抛出异常以便上层处理
+      rethrow;
+    }
   }
 
   String _getSafeFileName(String filename) {

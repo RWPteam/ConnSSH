@@ -324,7 +324,12 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                 decoration: InputDecoration(
                   labelText: '连接名称',
                   hintText: '请输入连接名称',
-                  suffixIcon: !_isEditing ? null: null,
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.refresh_outlined),
+                    onPressed: () {
+                        _reserToDefaultName();
+                      },
+                    ),
                 ),
                 onChanged: (value) {
                   if(!_isEditing) {
