@@ -1350,7 +1350,7 @@ class _SftpPageState extends State<SftpPage> {
                     scrollDirection: Axis.horizontal,
                     child: Row(children: [
                       if (isWideScreen)
-                        OutlinedButton.icon(
+                        TextButton.icon(
                           icon: Icon(Icons.info, color: singleSelection ? iconColor : disabledIconColor),
                           label: Text('属性', style: TextStyle(color: singleSelection ? iconColor : disabledIconColor)),
                           onPressed: singleSelection ? _showFileDetails : null,
@@ -1361,7 +1361,7 @@ class _SftpPageState extends State<SftpPage> {
                             singleSelection ? iconColor : disabledIconColor),
                       const SizedBox(width: 3),
                       if (isWideScreen)
-                        OutlinedButton.icon(
+                        TextButton.icon(
                           icon: Icon(Icons.view_module, color: disabledIconColor),
                           label: Text('切换视图', style: TextStyle(color: disabledIconColor)),
                           onPressed: () => setState(() => _viewMode = _viewMode == ViewMode.list ? ViewMode.icon : ViewMode.list),

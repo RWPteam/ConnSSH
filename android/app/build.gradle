@@ -1,3 +1,7 @@
+
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id "com.android.application"
     id "kotlin-android"
@@ -13,13 +17,17 @@ if (localPropertiesFile.exists()) {
     }
 }
 
-def flutterVersionCode = "23"
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("app/key.properties")
+keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
+def flutterVersionCode = "42"
 //def flutterVersionCode = localProperties.getProperty("flutter.versionCode")
 //if (flutterVersionCode == null) {
     //flutterVersionCode = "17"
 //}
 
-def flutterVersionName = "1.0Beta3"
+def flutterVersionName = "1.0Beta4"
 //def flutterVersionName = localProperties.getProperty("flutter.versionName")
 //if (flutterVersionName == null) {
 //    flutterVersionName = "1.0Beta3"
@@ -34,6 +42,18 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+    signingConfigs {
+        create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+            }
+        }
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
@@ -50,11 +70,10 @@ android {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
+            signingConfig = signingConfigs.release
         }
     }
 }
-
 flutter {
     source = "../.."
 }

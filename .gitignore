@@ -10,6 +10,8 @@
 .history
 .svn/
 .swiftpm/
+*.pem
+*.jks
 migrate_working_dir/
 
 # IntelliJ related

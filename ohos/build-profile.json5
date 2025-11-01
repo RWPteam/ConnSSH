@@ -2,7 +2,7 @@
   "app": {
     "signingConfigs": [
       {
-        "name": "default",
+        "name": "co",
         "type": "HarmonyOS",
         "material": {
           "certpath": "C:\\Users\\samuioto\\.ohos\\config\\default_ohos_rpRxKB2YehPUzNCDkdw81SON7GPeeJ9g0bbeOg1xnwA=.cer",
@@ -12,6 +12,19 @@
           "signAlg": "SHA256withECDSA",
           "storeFile": "C:\\Users\\samuioto\\.ohos\\config\\default_ohos_rpRxKB2YehPUzNCDkdw81SON7GPeeJ9g0bbeOg1xnwA=.p12",
           "storePassword": "0000001BAAB906799B2B92E9F75FE0A29163D803981BF4926ADD4C990912EC1F48111B00D1B51C37C76A74"
+        }
+      },
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\samuioto\\.ohos\\config\\connecter_ohos_srS1tgMaG4LUhmG5-0bEkIs7KXu2myQh4uHQoVyA20w=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B11B3F1DF6FBD11B6409D472726DC3188C0ED2CE1FC86D7C65656D6AB21FB5115F41B1034F35595",
+          "profile": "C:\\Users\\samuioto\\.ohos\\config\\connecter_ohos_srS1tgMaG4LUhmG5-0bEkIs7KXu2myQh4uHQoVyA20w=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\samuioto\\.ohos\\config\\connecter_ohos_srS1tgMaG4LUhmG5-0bEkIs7KXu2myQh4uHQoVyA20w=.p12",
+          "storePassword": "0000001B9FD3D92FFB54C153FAF78C936872FF3011C7D9AA5950DF9FE2C3FC88A7CE2718B84A024688FCCA"
         }
       }
     ],

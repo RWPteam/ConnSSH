@@ -265,7 +265,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: _saveSettings,
-                          child: const Text('保存设置'),
+                          child: const Text('保存'),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -275,7 +275,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             _sftpPathController.text = '/';
                             _downloadPathController.text = '';
                           },
-                          child: const Text('恢复默认'),
+                          child: const Text('默认'),
                         ),
                       ),
                     ],

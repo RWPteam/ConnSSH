@@ -65,7 +65,7 @@ class _MainPageState extends State<MainPage> {
                 onPressed: () {
                   Navigator.of(context).pop(false); 
                 },
-                child: const Text('取消', style: TextStyle(color: Colors.red)),
+                child: const Text('取消'),
               ),
               TextButton(
                 onPressed: () {

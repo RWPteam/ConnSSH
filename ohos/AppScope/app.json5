@@ -1,7 +1,7 @@
 {
   "app": {
-    "bundleName": "com.example.t_samuioto_ssh",
-    "vendor": "example",
+    "bundleName": "com.samuioto.connecter",
+    "vendor": "samuioto",
     "versionCode": 1000000,
     "versionName": "1.0.0",
     "icon": "$media:app_icon",
