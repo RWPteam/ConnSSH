@@ -18,7 +18,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  // 使用唯一的 GlobalKey
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
@@ -31,7 +30,6 @@ class _MyAppState extends State<MyApp> {
       themeMode: ThemeMode.system,
       home: const MainPage(),
       debugShowCheckedModeBanner: false,
-      // 添加 builder 来确保正确的上下文
       builder: (context, child) {
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(),

@@ -289,11 +289,11 @@ void _generateConnectionName() {
         title: const Text('连接失败'),
         content: Text(error),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('取消'),
           ),
-          TextButton(
+          OutlinedButton(
             onPressed: () {
               Navigator.of(context).pop();
               _connectToServer();
@@ -490,11 +490,11 @@ void _generateConnectionName() {
         ),
       ),
       actions: [
-        TextButton(
+        OutlinedButton(
           onPressed: _isConnecting ? null : () => Navigator.of(context).pop(),
           child: const Text('取消'),
         ),
-        ElevatedButton(
+        OutlinedButton(
           onPressed: _isConnecting ? null : () {
             if (widget.isNewConnection) {
               _saveConnectionOnly();

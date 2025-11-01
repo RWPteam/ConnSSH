@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:async';
+import 'dart:io';
 import 'package:connecter/setting_page.dart';
 import 'package:flutter/material.dart';
 import 'manage_connections_page.dart';
@@ -27,20 +28,99 @@ class _MainPageState extends State<MainPage> {
   final StorageService _storageService = StorageService();
   bool _isConnecting = false;
   ConnectionInfo? _connectingConnection;
+  bool _permissionsGranted = false;
 
   @override
   void initState() {
     super.initState();
-    _requestPermissions();
-    _loadRecentConnections();
+    _checkAndRequestPermissions();
   }
-  
-  
+
+  Future<void> _checkAndRequestPermissions() async {
+    final storageStatus = await Permission.storage.status;
+    final storageStatusHigh = await Permission.manageExternalStorage.status;
+
+    if (storageStatus.isGranted || storageStatusHigh.isGranted) {
+      setState(() {
+        _permissionsGranted = true;
+      });
+      _loadRecentConnections();
+      return;
+    } else {
+      _showPermissionDialog();
+      }
+  }
+
+  void _showPermissionDialog() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final shouldRequest = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('权限申请'),
+            content: const Text('请授予存储权限，用于凭据存储和SFTP文件上传、下载功能'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(false); 
+                },
+                child: const Text('取消', style: TextStyle(color: Colors.red)),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                },
+                child: const Text('确定授权'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (shouldRequest == true) {
+        _requestPermissions();
+      } else {
+        _exitApp();
+      }
+    });
+  }
 
   Future<void> _requestPermissions() async {
-    await Permission.storage.request();
-//    await Permission.manageExternalStorage.request();
-    await Permission.backgroundRefresh.request();
+    final storageStatus = await Permission.storage.request();
+    final storageStatusHigh = await Permission.manageExternalStorage.request();
+    // 检查权限是否都已授予
+    if (storageStatus.isGranted || storageStatusHigh.isGranted) {
+      setState(() {
+        _permissionsGranted = true;
+      });
+      _loadRecentConnections();
+    } else {
+      _showPermissionDeniedDialog();
+    }
+  }
+
+  void _showPermissionDeniedDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('权限未授予'),
+          content: const Text('应用需要存储和后台运行权限才能正常工作'),
+          actions: [
+            TextButton(
+              onPressed: _exitApp,
+              child: const Text('退出应用'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _exitApp() {
+    exit(0);
   }
     
   Future<void> _loadRecentConnections() async {
@@ -126,6 +206,19 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_permissionsGranted) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Connecter'),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Connecter'),
@@ -163,7 +256,6 @@ class _MainPageState extends State<MainPage> {
       screenHeight,
     );
     
-    // 在窄屏模式下，在快速连接按钮下方显示两个最近连接
   if (!showRecentConnections) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -189,7 +281,7 @@ class _MainPageState extends State<MainPage> {
                   const SizedBox(height: 16),
                   
                   // 在窄屏模式下显示两个最近连接（居中显示）
-                  if (_recentConnections.isNotEmpty) ...[
+                  if (_recentConnections.isNotEmpty)
                     Column(
                       children: [
                         for (int i = 0; i < _recentConnections.take(2).length; i++)
@@ -199,15 +291,37 @@ class _MainPageState extends State<MainPage> {
                             decoration: BoxDecoration(
                               border: Border.all(
                                 color: Colors.grey,
-                                width: 1,
+                                width: 0.2,
                               ),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: _buildSmallConnectionTile(context, _recentConnections[i]),
                           ),
                       ],
+                    )
+                  else Container(
+                    height: 50,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.grey,
+                        width: 0.2,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
+                    child: const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          '无最近连接',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                   ...buttons.sublist(1),
                 ],
               ),
@@ -523,11 +637,11 @@ class _MainPageState extends State<MainPage> {
         title: const Text('删除连接'),
         content: Text('确定要从最近连接中删除 "${connection.name}" 吗？'),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('取消'),
           ),
-          TextButton(
+          OutlinedButton(
             onPressed: () {
               Navigator.of(context).pop();
               _deleteRecentConnection(connection);
@@ -560,7 +674,7 @@ void _connectTo(ConnectionInfo connection) async {
   });
 
   // 使用延迟来确保UI先更新
-  await Future.delayed(const Duration(milliseconds: 50));
+  await Future.delayed(const Duration(milliseconds: 500));
 
   try {
     // 在后台执行连接操作
@@ -590,8 +704,6 @@ Future<void> _performConnection(ConnectionInfo connection) async {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
               Text('正在测试连接...'),
             ],
           ),
@@ -660,7 +772,7 @@ void _handleConnectionError(ConnectionInfo connection, String error) {
       title: const Text('连接失败'),
       content: Text(error),
       actions: [
-        TextButton(
+        OutlinedButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('确定'),
         ),

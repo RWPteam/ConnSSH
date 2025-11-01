@@ -57,11 +57,11 @@ class _ManageCredentialsPageState extends State<ManageCredentialsPage> {
         title: const Text('删除凭证'),
         content: Text('确定要删除凭证 "${credential.name}" 吗？'),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('取消'),
           ),
-          TextButton(
+          OutlinedButton(
             onPressed: () async {
               await _storageService.deleteCredential(credential.id);
               if (mounted) {
@@ -465,7 +465,7 @@ class _CredentialDialogState extends State<CredentialDialog> {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: ElevatedButton.icon(
+                                    child: OutlinedButton.icon(
                                       onPressed: _pickPrivateKeyFile,
                                       icon: const Icon(Icons.file_open, size: 18),
                                       label: const Text('从文件读取'),
@@ -522,7 +522,7 @@ class _CredentialDialogState extends State<CredentialDialog> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: ElevatedButton(
+                    child: OutlinedButton(
                       onPressed: _saveCredential,
                       child: const Text('保存'),
                     ),

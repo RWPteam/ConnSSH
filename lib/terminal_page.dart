@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:xterm/xterm.dart';
 import 'package:dartssh2/dartssh2.dart';
-
 import 'models/connection_model.dart';
 import 'models/credential_model.dart';
 import 'services/ssh_service.dart';
+
 
 class TerminalPage extends StatefulWidget {
   final ConnectionInfo connection;
@@ -54,14 +54,21 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
   String? _lastSentChunk;
 
   bool _isSliderVisible = false;
+  bool _menuIsOpen = false;
+  bool _ismobile = defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.ohos || defaultTargetPlatform == TargetPlatform.iOS ? true : false;
 
-  // 修改：添加修饰键状态管理
-  bool _isCtrlPressed = false;
-  bool _isAltPressed = false;
-  Timer? _modifierReleaseTimer;
+  bool _isThemeSelectorVisible = false;
+  OverlayEntry? _themeSelectorOverlay;
+  Timer? _hideThemeSelectorTimer;
+  TerminalTheme _currentTheme = TerminalThemes.defaultTheme; 
+
+  bool _connectionEstablished = false;
+  bool _focusRequested = false;
+
+  bool get _shouldBeReadOnly {
+    return !_isConnected || _menuIsOpen || _isSliderVisible || _isThemeSelectorVisible;
+  }
   
-  // 修改：添加标志来跟踪是否应该应用修饰键
-
   @override
   void initState() {
     super.initState();
@@ -79,28 +86,34 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
       } else if (_fontSize == 10.0 && isWideScreen) {
         _fontSize = 14.0;
       }
-      Future.delayed(const Duration(milliseconds: 120), () {
-        if (mounted) FocusScope.of(context).requestFocus(_keyboardFocusNode);
-      });
+      
       _connectToHost();
     });
 
     _inputFocusNode.addListener(() {
       if (_inputFocusNode.hasFocus && !_isSliderVisible) {
         _attachTextInput();
+      } else if (!_inputFocusNode.hasFocus) {
+        _detachTextInput();
       }
     });
   }
 
   Future<void> _connectToHost() async {
+    // 新增：防止重复连接
+    if (_connectionEstablished) return;
+    
     try {
       if (mounted) {
         setState(() {
+          _menuIsOpen = false;
+          _isSliderVisible = false;
+          _isThemeSelectorVisible = false;
           _isConnecting = true;
           _status = '连接中...';
         });
       }
-
+      _manageFocus();
       final sshService = SshService();
       _sshClient = await sshService.connect(widget.connection, widget.credential);
 
@@ -133,6 +146,7 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
           _isConnected = false;
           _isConnecting = false;
           _status = '连接已断开';
+          _connectionEstablished = false;
         });
         terminal.write('\r\n连接已断开\r\n');
         _detachTextInput();
@@ -143,7 +157,9 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
           _isConnected = true;
           _isConnecting = false;
           _status = '已连接';
+          _connectionEstablished = true;
         });
+        _manageFocus();
       }
 
       terminal.write('\x1B[2J\x1B[1;1H');
@@ -155,14 +171,51 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
           _isConnected = false;
           _isConnecting = false;
           _status = '连接失败: $e';
+          _connectionEstablished = false;
         });
         terminal.write('连接失败: $e\r\n');
       }
     }
   }
 
+  // 优化的焦点请求方法
+  void _requestFocusWithDelay() {
+    if (_focusRequested || _shouldBeReadOnly) return;
+    
+    _focusRequested = true;
+    
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted || _shouldBeReadOnly) {
+        _focusRequested = false;
+        return;
+      }
+      
+      // 首先请求键盘焦点
+      FocusScope.of(context).requestFocus(_keyboardFocusNode);
+      
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (!mounted || _shouldBeReadOnly) {
+          _focusRequested = false;
+          return;
+        }
+        
+        // 然后请求输入焦点
+        FocusScope.of(context).requestFocus(_inputFocusNode);
+        
+        // 最后确保文本输入连接已附加
+        Future.delayed(const Duration(milliseconds: 50), () {
+          if (!mounted || _shouldBeReadOnly) {
+            _focusRequested = false;
+            return;
+          }
+          _attachTextInput();
+        });
+      });
+    });
+  }
+
   void _bufferWrite(String text) {
-    if (text.isEmpty) return;
+    if (text.isEmpty || _shouldBeReadOnly) return;
 
     if (text.length == 1) {
       final now = DateTime.now();
@@ -203,75 +256,7 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
 
   @override
   void updateEditingValue(TextEditingValue value) {
-    final prev = _currentEditingValue.text;
-    final cur = value.text;
     _currentEditingValue = value;
-
-    if (cur == prev) return;
-
-    // === 截获修饰键输入并阻止其进入输入框 ===
-    if (_isCtrlPressed || _isAltPressed) {
-      String inserted = cur.replaceFirst(prev, '');
-      if (inserted.isNotEmpty) {
-        String out = inserted;
-        if (_isCtrlPressed) out = _applyCtrlModifier(out);
-        if (_isAltPressed) out = _applyAltModifier(out);
-
-        _bufferWrite(out);
-
-        // 清空输入框避免字符回显到 Terminal
-        _currentEditingValue = const TextEditingValue(text: '');
-        _textInputConnection?.setEditingState(_currentEditingValue);
-
-        _releaseModifiers();
-        return;
-      }
-    }
-  }
-  String _applyCtrlModifier(String text) {
-    if (text.isEmpty) return text;
-    final upper = text.toUpperCase();
-    final code = upper.codeUnitAt(0);
-
-    if (code >= 65 && code <= 90) {
-      return String.fromCharCode(code - 64); // Ctrl+A = 1 … Ctrl+Z = 26
-    }
-
-    return text;
-  }
-
-  // 修改：改进的 Alt 修饰符应用
-  String _applyAltModifier(String text) {
-    if (text.isEmpty) return text;
-    // Alt + 字符：发送 ESC 前缀
-    return '\x1B$text';
-  }
-
-  // 修改：改进的修饰键按下处理
-  void _pressModifier(String type) {
-    setState(() {
-      if (type == 'ctrl') {
-        _isCtrlPressed = !_isCtrlPressed;
-        _isAltPressed = false;
-      } else {
-        _isAltPressed = !_isAltPressed;
-        _isCtrlPressed = false;
-      }
-    });
-
-    if (_isCtrlPressed || _isAltPressed) {
-    } else {
-    }
-  }
-
-  void _releaseModifiers() {
-    if (!_isCtrlPressed && !_isAltPressed) return;
-
-    setState(() {
-      _isCtrlPressed = false;
-      _isAltPressed = false;
-    });
-    _modifierReleaseTimer?.cancel();
   }
 
   @override
@@ -359,15 +344,8 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
     _currentEditingValue = const TextEditingValue(text: '');
   }
 
-  Future<void> _pasteFromClipboard() async {
-    try {
-      final data = await Clipboard.getData('text/plain');
-      final text = data?.text;
-      if (text != null && text.isNotEmpty) _bufferWrite(text);
-    } catch (_) {}
-  }
-
   void _clearTerminal() {
+    _menuIsOpen = false;
     terminal.write('\x1B[2J\x1B[1;1H');
     terminal.buffer.clear();
     if (_session != null && _isConnected) {
@@ -381,12 +359,6 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
   void _sendCtrlC() => _bufferWrite('\x03');
   void _sendCtrlD() => _bufferWrite('\x04');
   void _sendTab() => terminal.keyInput(TerminalKey.tab);
-  void _sendEscape() => _bufferWrite('\x1B');
-  void _sendDelete() => _bufferWrite('\x7F');
-  void _sendUpArrow() => _bufferWrite('\x1B[A');
-  void _sendDownArrow() => _bufferWrite('\x1B[B');
-  void _sendLeftArrow() => _bufferWrite('\x1B[D');
-  void _sendRightArrow() => _bufferWrite('\x1B[C');
 
   @override
   void dispose() {
@@ -398,18 +370,12 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
     _keyboardFocusNode.dispose();
     _inputFocusNode.dispose();
     _hideSliderTimer?.cancel();
+    _hideThemeSelectorTimer?.cancel(); 
     _flushTimer?.cancel();
-    _modifierReleaseTimer?.cancel();
+    try { _fontSliderOverlay?.remove(); } catch (_) {}
+    try { _themeSelectorOverlay?.remove(); } catch (_) {}
     try { _fontSliderOverlay?.remove(); } catch (_) {}
     super.dispose();
-  }
-
-  void _onTerminalTap() {
-    if (!_isSliderVisible) {
-      FocusScope.of(context).requestFocus(_keyboardFocusNode);
-      SystemChannels.textInput.invokeMethod('TextInput.show');
-    }
-    _hideFontSlider();
   }
 
   Color _getAppBarColor() {
@@ -419,7 +385,7 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
   }
 
   List<PopupMenuEntry<String>> _buildMenuItems() {
-    return const [
+    return [
       PopupMenuItem<String>(value: 'reconnect', child: Text('重新连接')),
       PopupMenuItem<String>(
         value: 'commands',
@@ -433,6 +399,8 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
       ),
       PopupMenuItem<String>(value: 'clear', child: Text('清屏')),
       PopupMenuItem<String>(value: 'fontsize', child: Text('字体大小')),
+      // 新增：主题菜单项
+      PopupMenuItem<String>(value: 'theme', child: Text('主题')),
       PopupMenuDivider(),
       PopupMenuItem<String>(value: 'disconnect', child: Text('断开连接并返回')),
     ];
@@ -444,7 +412,7 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
         _showFontSlider();
         break;
       case 'reconnect':
-        _connectToHost();
+        _reconnect();
         break;
       case 'commands':
         _showCommandsSubMenu();
@@ -452,13 +420,154 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
       case 'clear':
         _clearTerminal();
         break;
+      // 新增：主题选择
+      case 'theme':
+        _showThemeSelector();
+        break;
       case 'disconnect':
         Navigator.of(context).pop();
         break;
     }
-    if (_inputFocusNode.hasFocus) {
-      FocusScope.of(context).requestFocus(_keyboardFocusNode);
-    }
+    _manageFocus();
+  }
+
+  void _showThemeSelector() {
+    if (_isThemeSelectorVisible) return;
+
+    _isThemeSelectorVisible = true;
+    _manageFocus();
+    _hideThemeSelectorTimer?.cancel();
+
+    _themeSelectorOverlay ??= OverlayEntry(
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateOverlay) {
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: _hideThemeSelector,
+                    onPanDown: (_) => _hideThemeSelector(),
+                    child: Container(color: Colors.transparent),
+                  ),
+                ),
+                Positioned.fill(
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: () {}, // 空操作，阻止事件冒泡
+                      onPanDown: (_) {},
+                      child: Material(
+                        elevation: 8,
+                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.grey[900]!.withOpacity(0.7),
+                        child: Container(
+                          width: MediaQuery.of(context).size.width * 0.7,
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '选择主题',
+                                style: TextStyle(
+                                  color: Colors.white, 
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              _buildThemeOption(
+                                '默认',
+                                TerminalThemes.defaultTheme,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildThemeOption(
+                                '纯黑',
+                                TerminalThemes.whiteOnBlack,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    Overlay.of(context).insert(_themeSelectorOverlay!);
+    _resetHideThemeSelectorTimer();
+  }
+
+  Widget _buildThemeOption(String title, TerminalTheme theme) {
+    final bool isSelected = _currentTheme == theme;
+    
+    return Material(
+      color: isSelected ? Colors.blueAccent.withOpacity(0.1) : Colors.transparent,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: () => _switchTheme(theme),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color:  Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 新增：切换主题
+  void _switchTheme(TerminalTheme newTheme) {
+    setState(() {
+      _currentTheme = newTheme;
+    });
+    _hideThemeSelector();
+  }
+
+  // 新增：隐藏主题选择器
+  void _hideThemeSelector() {
+    setState(() {
+      _menuIsOpen = false;
+      _isThemeSelectorVisible = false;
+    });
+    _manageFocus();
+    _hideThemeSelectorTimer?.cancel();
+    try { _themeSelectorOverlay?.remove(); } catch (_) {}
+    _themeSelectorOverlay = null;
+    
+  }
+
+  // 新增：重置主题选择器隐藏计时器
+  void _resetHideThemeSelectorTimer() {
+    _hideThemeSelectorTimer?.cancel();
+    _hideThemeSelectorTimer = Timer(const Duration(seconds: 5), _hideThemeSelector);
+  }
+
+  void _reconnect() {
+    setState(() {
+      _connectionEstablished = false;
+      _focusRequested = false;
+    });
+    _connectToHost();
   }
 
   void _showCommandsSubMenu() {
@@ -484,9 +593,9 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
       ],
     ).then((value) {
       if (value != null) _handleCommand(value);
-      if (_inputFocusNode.hasFocus) {
-        FocusScope.of(context).requestFocus(_keyboardFocusNode);
-      }
+      setState(() {
+        _menuIsOpen = false;
+      });
     });
   }
 
@@ -494,26 +603,31 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
     switch (command) {
       case 'enter':
         _bufferWrite('\r');
+        _menuIsOpen = false;
         break;
       case 'tab':
         _sendTab();
+        _menuIsOpen = false;
         break;
       case 'backspace':
         _bufferWrite('\x08');
+        _menuIsOpen = false;
         break;
       case 'ctrlc':
         _sendCtrlC();
+        _menuIsOpen = false;
         break;
       case 'ctrld':
         _sendCtrlD();
+        _menuIsOpen = false;
         break;
     }
   }
 
   void _showFontSlider() {
     if (_isSliderVisible) return;
-    
     _isSliderVisible = true;
+    _manageFocus();
     _hideSliderTimer?.cancel();
 
     _fontSliderOverlay ??= OverlayEntry(
@@ -561,14 +675,17 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
                               Slider(
                                 value: _fontSize,
                                 min: 8,
-                                max: 40,
-                                divisions: 32,
+                                max: 16,
+                                divisions: 8,
                                 onChanged: (v) {
                                   setStateOverlay(() {
                                     _fontSize = v;
                                   });
-                                  if (mounted) setState(() {});
-                                  _resetHideSliderTimer();
+                                  if (mounted) setState(() {
+                                    _fontSize = v;
+                                  });
+                                    _applyFontSize();
+                                    _resetHideSliderTimer();
                                 },
                               ),
                             ],
@@ -587,20 +704,18 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
 
     Overlay.of(context).insert(_fontSliderOverlay!);
     _resetHideSliderTimer();
-    
-    if (_inputFocusNode.hasFocus) {
-      FocusScope.of(context).requestFocus(_keyboardFocusNode);
-    }
   }
 
   void _hideFontSlider() {
-    _isSliderVisible = false;
+    setState(() {
+        _menuIsOpen = false;
+        _isSliderVisible = false;
+      });
+    _manageFocus();
     _hideSliderTimer?.cancel();
     try { _fontSliderOverlay?.remove(); } catch (_) {}
     _fontSliderOverlay = null;
-    if (_inputFocusNode.hasFocus == false && mounted) {
-      FocusScope.of(context).requestFocus(_inputFocusNode);
-    }
+    
   }
 
   void _resetHideSliderTimer() {
@@ -608,155 +723,44 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
     _hideSliderTimer = Timer(const Duration(seconds: 3), _hideFontSlider);
   }
 
-  Widget _buildQuickMenuBar() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isWideScreen = screenWidth >= 400;
-    
-    return Container(
-      height: 44,
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        border: Border(
-          top: BorderSide(color: Colors.grey[700]!, width: 0.5),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildQuickButton('Tab', _sendTab, isWideScreen, false, false),
-          _buildDivider(),
-          _buildQuickButton('Alt', () => _pressModifier('alt'), isWideScreen, false, _isAltPressed),
-          _buildDivider(),
-          _buildQuickButton('Ctrl', () => _pressModifier('ctrl'), isWideScreen, false, _isCtrlPressed),
-          _buildDivider(),
-          _buildQuickButton('ESC', _sendEscape, isWideScreen, false, false),
-          _buildDivider(),
-          _buildQuickButton('Del', _sendDelete, isWideScreen, false, false),
-          _buildDivider(),
-          _buildQuickButton('←', _sendLeftArrow, isWideScreen, false, false),
-          _buildDivider(),
-          _buildVerticalArrowButton(isWideScreen),
-          _buildDivider(),
-          _buildQuickButton('→', _sendRightArrow, isWideScreen, false, false),
-        ],
-      ),
-    );
-  }
+    void _manageFocus() {
+      if (_isThemeSelectorVisible || _isSliderVisible || _menuIsOpen) {
+        // 如果有任何菜单或选择器显示，移除焦点
+        _removeFocus();
+      } else if (_isConnected && !_shouldBeReadOnly) {
+        // 否则，如果已连接且不应该只读，请求焦点
+        _requestFocusWithDelay();
+      }
+    }
 
-  Widget _buildDivider() {
-    return Container(
-      width: 0.5,
-      height: 20,
-      color: Colors.grey[600],
-    );
-  }
+    // 新增：移除焦点的方法
+    void _removeFocus() {
+      _focusRequested = false;
+      _detachTextInput();
+      // 移除所有焦点
+      _keyboardFocusNode.unfocus();
+      _inputFocusNode.unfocus();
+      FocusScope.of(context).unfocus();
+    }
 
-  Widget _buildVerticalArrowButton(bool isWideScreen) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 0),
-        height: 36,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Expanded(
-              child: SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: _sendUpArrow,
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.all(2),
-                    minimumSize: const Size(0, 0),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(0),
-                        topRight: Radius.circular(0),
-                      ),
-                    ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    '↑',
-                    style: TextStyle(
-                      fontSize: isWideScreen ? 12 : 10,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            ),
-            Container(
-              width: double.infinity,
-              height: 0.5,
-              color: Colors.grey[600],
-            ),
-            Expanded(
-              child: SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: _sendDownArrow,
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.all(2),
-                    minimumSize: const Size(0, 0),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(0),
-                        bottomRight: Radius.circular(0),
-                      ),
-                    ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    '↓',
-                    style: TextStyle(
-                      fontSize: isWideScreen ? 12 : 10,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  void _applyFontSize() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cols = terminal.viewWidth;
+      final rows = terminal.viewHeight;
 
-  Widget _buildQuickButton(String label, VoidCallback onPressed, bool isWideScreen, bool isVertical, bool isActive) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 0),
-        child: TextButton(
-          onPressed: onPressed,
-          style: TextButton.styleFrom(
-            backgroundColor: isActive ? Colors.blue.withOpacity(0.3) : Colors.transparent,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-            minimumSize: const Size(0, 0),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(0),
-            ),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: isWideScreen ? 12 : 10,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ),
-    );
+      if (cols <= 0 || rows <= 0) return;
+
+      try {
+        _session?.resizeTerminal(
+          cols,
+          rows,
+          0,
+          0,
+        );
+      } catch (e) {
+        debugPrint('resizeTerminal error: $e');
+      }
+    });
   }
 
   @override
@@ -791,103 +795,28 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
           PopupMenuButton<String>(
             itemBuilder: (context) => _buildMenuItems(),
             onSelected: _onMenuSelected,
+            onOpened: () {
+              setState(() {
+                _menuIsOpen = true;
+              });
+            },
+            onCanceled: () {
+              setState(() {
+                _menuIsOpen = false;
+              });
+            },
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                KeyboardListener(
-                  focusNode: _keyboardFocusNode,
-                  onKeyEvent: (KeyEvent event) {
-                    if (event is KeyDownEvent || event is KeyRepeatEvent) {
-                      // 处理特殊功能键
-                      if (event.logicalKey == LogicalKeyboardKey.tab) {
-                        terminal.keyInput(TerminalKey.tab);
-                        return;
-                      } else if (event.logicalKey == LogicalKeyboardKey.escape) {
-                        _sendEscape();
-                        return;
-                      } else if (event.logicalKey == LogicalKeyboardKey.delete) {
-                        _sendDelete();
-                        return;
-                      } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                        _sendUpArrow();
-                        return;
-                      } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                        _sendDownArrow();
-                        return;
-                      } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-                        _sendLeftArrow();
-                        return;
-                      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                        _sendRightArrow();
-                        return;
-                      }
-
-                      // 处理 Ctrl 组合键
-                      if (HardwareKeyboard.instance.isControlPressed) {
-                        final label = event.logicalKey.keyLabel;
-                        if (label == '=') {
-                          setState(() => _fontSize = (_fontSize + 1).clamp(8, 40));
-                          return;
-                        } else if (label == '-') {
-                          setState(() => _fontSize = (_fontSize - 1).clamp(8, 40));
-                          return;
-                        }
-                        return;
-                      }
-
-                      // 处理其他特殊按键
-                      if (event.logicalKey == LogicalKeyboardKey.enter) {
-                        _bufferWrite('\r');
-                        return;
-                      } else if (event.logicalKey == LogicalKeyboardKey.backspace) {
-                        _bufferWrite('\x08');
-                        return;
-                      }
-                    }
-
-                    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
-                      _hideFontSlider();
-                    }
-                  },
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _onTerminalTap,
-                    onLongPress: () {
-                      final messenger = ScaffoldMessenger.of(context);
-                      messenger.clearSnackBars();
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: const Text('确认是否粘贴剪贴板内容？'),
-                          action: SnackBarAction(label: '粘贴', onPressed: () => _pasteFromClipboard()),
-                        ),
-                      );
-                    },
-                    onSecondaryTapDown: (_) => _pasteFromClipboard(),
-                    child: TerminalView(
-                      terminal,
-                      backgroundOpacity: 1.0,
-                      textStyle: TerminalStyle(fontSize: _fontSize, fontFamily: 'Monospace'),
-                      autoResize: true,
-                      readOnly: false,
-                      autofocus: true,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            height: 44,
-            child: _buildQuickMenuBar(),
-          ),
-        ],
+      body: TerminalView(
+        terminal,
+        backgroundOpacity: 1.0,
+        textStyle: TerminalStyle(fontSize: _fontSize, fontFamily: 'Monospace'),
+        theme: _currentTheme,
+        autoResize: true,
+        readOnly: _shouldBeReadOnly,
+        autofocus: false,
+        showToolbar: _ismobile,
       ),
     );
   }

@@ -49,11 +49,11 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
         title: const Text('删除连接'),
         content: Text('要删除连接 "${connection.name}" 吗？'),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('取消'),
           ),
-          TextButton(
+          OutlinedButton(
             onPressed: () async {
               await _storageService.deleteConnection(connection.id);
               if (mounted) {
@@ -87,8 +87,6 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
               Text('正在测试连接...'),
             ],
           ),
@@ -150,7 +148,7 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
             title: const Text('连接失败'),
             content: Text(e.message ?? '连接超时'),
             actions: [
-              TextButton(
+              OutlinedButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('确定'),
               ),
@@ -171,7 +169,7 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
             title: const Text('连接失败'),
             content: Text(e.toString()),
             actions: [
-              TextButton(
+              OutlinedButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('确定'),
               ),

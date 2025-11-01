@@ -62,7 +62,7 @@ class _SettingsPageState extends State<SettingsPage> {
             title: const Text('保存失败'),
             content: Text(e.toString()),
             actions: [
-              TextButton(
+              OutlinedButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('确定'),
               ),
@@ -83,7 +83,7 @@ class _SettingsPageState extends State<SettingsPage> {
             title: const Text('功能受限'),
             content: const Text('windows平台无法直接选择目录，下载文件时会提示。'),
             actions: [
-              TextButton(
+              OutlinedButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('确定'),
               ),
@@ -113,7 +113,7 @@ class _SettingsPageState extends State<SettingsPage> {
             title: const Text('选择目录失败'),
             content: Text('当前平台不支持目录选择，请手动输入路径或使用默认设置。\n\n错误: $e'),
             actions: [
-              TextButton(
+              OutlinedButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('确定'),
               ),
@@ -232,7 +232,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           const SizedBox(height: 8),
                           if (_downloadPathController.text.isEmpty)
                             if (!Platform.isWindows)
-                                ElevatedButton(
+                                OutlinedButton(
                                 onPressed: () {
                                   setState(() {
                                     _downloadPathController.text = '';

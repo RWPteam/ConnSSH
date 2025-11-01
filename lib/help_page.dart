@@ -35,22 +35,22 @@ class HelpPage extends StatelessWidget {
                 title: '快速连接',
                 content: '使用快速连接来进行SSH/SFTP的连接操作。您连接过的主机也会自动添加到最近连接中',
               ),
-              const SizedBox(height: 16),
               _buildHelpSection(
                 title: '管理连接和凭证',
                 content: '在"管理认证凭证"和"管理连接"页面，可以管理您的连接和凭证信息',
               ),
-              const SizedBox(height: 16),
               _buildHelpSection(
                 title: 'SSH页面',
-                content: '安卓设备点击空白处可唤起输入法，Windows可直接进行输入，快捷键暂未开发，敬请期待',
+                content: '安卓设备点击空白处可唤起输入法，Windows可直接进行输入',
               ),
-              const SizedBox(height: 16),
+              _buildHelpSection(
+                title: 'SSH快捷键',
+                content: '目前已经支持Windows平台 Ctrl+Shift+A全选 Ctrl+Shift+C复制 Ctrl+Shift+V粘贴，安卓端复制粘贴逻辑尚在开发中',
+              ),
               _buildHelpSection(
                 title: 'SFTP页面',
-                content: '在顶部进行文件操作，请注意，目前的上传、下载逻辑存在较大问题，请尽量不要应用于生产环境',
+                content: '在顶部进行文件操作，安卓端可以使用侧滑返回',
               ),
-              const SizedBox(height: 16),
               _buildHelpSection(
                 title: '反馈',
                 content: '如有问题或建议，请在github页面发布issue',
@@ -62,7 +62,7 @@ class HelpPage extends StatelessWidget {
                     showAboutDialog(
                       context: context,
                       applicationName: 'connecter',
-                      applicationVersion: '1.0 Beta 3',
+                      applicationVersion: '1.0 Beta 4',
                     );
                   },
                   child: const Text('关于'),
