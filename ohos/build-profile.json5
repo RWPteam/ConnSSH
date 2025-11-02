@@ -18,13 +18,13 @@
         "name": "connecter",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\samuioto\\.ohos\\config\\connecter_ohos_srS1tgMaG4LUhmG5-0bEkIs7KXu2myQh4uHQoVyA20w=.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001BB833A237789F23CB968C3FD5E65753B5B114723C00A87A6F376D0D8FF7F972DB2B2AA79E5AA67A",
-          "profile": "C:\\Users\\samuioto\\.ohos\\config\\connecter_ohos_srS1tgMaG4LUhmG5-0bEkIs7KXu2myQh4uHQoVyA20w=.p7b",
+          "storeFile": "C:/Users/samuioto/Desktop/tssh/connecter-ohos/samuioto.p12",
+          "storePassword": "0000001B2C85B6C3AAC9927D8B67C5BDA205CEF8D324F180147445D12701F6FB7D351EFC94687162F45EC2",
+          "keyAlias": "connecter",
+          "keyPassword": "0000001B0E4BEE6AFAB6BF46E17D26AC686841A8F0781E409CE144A8D5F9BCF91CA5C727C18B8EF41A3632",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\samuioto\\.ohos\\config\\connecter_ohos_srS1tgMaG4LUhmG5-0bEkIs7KXu2myQh4uHQoVyA20w=.p12",
-          "storePassword": "0000001B85D991CFD96D41B7BE30F5FD7B45443D599EEAA30D8107E5E6A4DDE95B76F7FDFFFEBE4EAEF248"
+          "profile": "C:/Users/samuioto/Desktop/tssh/connecter-ohos/connecterRelease.p7b",
+          "certpath": "C:/Users/samuioto/Desktop/tssh/connecter-ohos/connecter.cer"
         }
       }
     ],

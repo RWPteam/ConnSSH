@@ -707,9 +707,9 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: master
-      resolved-ref: "034cb223cda22ab52ae7ee031b3bb417b3392434"
-      url: "https://github.com/samu1oto/xterm.dart"
+      ref: HEAD
+      resolved-ref: e61b0157eb8cd28fec582eba49eddb456b6aa2d5
+      url: "https://github.com/samu1oto/xterm.dart.git"
     source: git
     version: "4.0.0"
   zmodem:

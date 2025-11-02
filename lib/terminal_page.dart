@@ -200,6 +200,7 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
         
         // 然后请求输入焦点
         FocusScope.of(context).requestFocus(_inputFocusNode);
+        _attachTextInput();
         
         // 最后确保文本输入连接已附加
         Future.delayed(const Duration(milliseconds: 50), () {
@@ -798,16 +799,24 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
           ),
         ],
       ),
-      body: TerminalView(
-        terminal,
-        backgroundOpacity: 1.0,
-        textStyle: TerminalStyle(fontSize: _fontSize, fontFamily: 'Monospace'),
-        theme: _currentTheme,
-        autoResize: true,
-        readOnly: _shouldBeReadOnly,
-        autofocus: false,
-        showToolbar: _ismobile,
-      ),
+    body: LayoutBuilder(
+      builder: (context, constraints) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _applyFontSize();
+        });
+        
+        return TerminalView(
+          terminal,
+          backgroundOpacity: 1.0,
+          textStyle: TerminalStyle(fontSize: _fontSize, fontFamily: 'Monospace'),
+          theme: _currentTheme,
+          autoResize: true,
+          readOnly: _shouldBeReadOnly,
+          autofocus: false,
+          showToolbar: _ismobile,
+        );
+      },
+    ),
     );
   }
 }
