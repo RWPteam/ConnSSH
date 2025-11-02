@@ -41,11 +41,7 @@ class HelpPage extends StatelessWidget {
               ),
               _buildHelpSection(
                 title: 'SSH页面',
-                content: '安卓设备点击空白处可唤起输入法，Windows可直接进行输入',
-              ),
-              _buildHelpSection(
-                title: 'SSH快捷键',
-                content: '目前已经支持Windows平台 Ctrl+Shift+A全选 Ctrl+Shift+C复制 Ctrl+Shift+V粘贴，安卓端复制粘贴逻辑尚在开发中',
+                content: '安卓设备点击空白处可唤起输入法，Windows可直接进行输入.目前已经支持快捷键Ctrl+Shift+A全选 Ctrl+Shift+C复制 Ctrl+Shift+V粘贴',
               ),
               _buildHelpSection(
                 title: 'SFTP页面',
@@ -62,7 +58,7 @@ class HelpPage extends StatelessWidget {
                     showAboutDialog(
                       context: context,
                       applicationName: 'connecter',
-                      applicationVersion: '1.0 Beta 5',
+                      applicationVersion: '1.0 Beta 5 - HarmonyOS',
                     );
                   },
                   child: const Text('关于'),

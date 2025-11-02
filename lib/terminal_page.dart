@@ -801,7 +801,7 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
       body: TerminalView(
         terminal,
         backgroundOpacity: 1.0,
-        textStyle: TerminalStyle(fontSize: _fontSize, fontFamily: 'Monospace'),
+        textStyle: TerminalStyle(fontSize: _fontSize, fontFamily: 'hmossans'),
         theme: _currentTheme,
         autoResize: true,
         readOnly: _shouldBeReadOnly,

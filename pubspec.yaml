@@ -38,9 +38,11 @@ dependencies:
   #xterm: ^4.0.0
   xterm:
     git:
-      url: https://github.com/samu1oto/xterm.dart
-      ref: master
-  shared_preferences: 2.3.2
+      url: https://github.com/samu1oto/xterm.dart.git
+  shared_preferences:
+    git:
+      url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
+      path: "packages/shared_preferences/shared_preferences"
   file_picker:
     git:
       url: "https://gitcode.com/openharmony-sig/fluttertpc_file_picker.git"
@@ -48,12 +50,22 @@ dependencies:
     git:
       url: "https://gitcode.com/openharmony-sig/fluttertpc_file_picker.git"
       path: "ohos"
+  file_selector:
+    git: 
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      path: packages/file_selector/file_selector
   provider: 6.1.2
   uuid: ^4.0.0
   path: ^1.8.3
-  path_provider: ^2.1.4
-  permission_handler: ^11.3.1
-  fluttertoast: ^8.2.8
+  path_provider:
+    git: 
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      path: packages/path_provider/path_provider
+  permission_handler:
+    git:
+      url: "https://gitcode.com/openharmony-sig/flutter_permission_handler.git"
+      path: permission_handler
+  path_provider_platform_interface: ^2.1.2
 
 dev_dependencies:
   flutter_test:
@@ -71,6 +83,33 @@ dependency_overrides:
   quiver: 3.2.2
   file: 6.1.4
   platform: 3.1.3
+  permission_handler:
+    git:
+      url: "https://gitcode.com/openharmony-sig/flutter_permission_handler.git"
+      path: permission_handler
+  xterm:
+    git:
+      url: https://github.com/samu1oto/xterm.dart.git
+  shared_preferences:
+    git:
+      url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
+      path: "packages/shared_preferences/shared_preferences"
+  file_picker:
+    git:
+      url: "https://gitcode.com/openharmony-sig/fluttertpc_file_picker.git"
+  file_picker_ohos:
+    git:
+      url: "https://gitcode.com/openharmony-sig/fluttertpc_file_picker.git"
+      path: "ohos"
+  file_selector:
+    git: 
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      path: packages/file_selector/file_selector
+  path_provider:
+    git: 
+      url: https://gitcode.com/openharmony-tpc/flutter_packages.git
+      path: packages/path_provider/path_provider
+      
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

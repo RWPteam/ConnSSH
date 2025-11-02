@@ -32,7 +32,14 @@ class _MainPageState extends State<MainPage> {
   @override
   void initState() {
     super.initState();
-    _checkAndRequestPermissions();
+    if (Platform.isAndroid) {
+      _checkAndRequestPermissions();
+    } else {
+      setState(() {
+        _permissionsGranted = true;
+      });
+      _loadRecentConnections();
+    }
   }
 
   Future<void> _checkAndRequestPermissions() async {
@@ -710,9 +717,9 @@ Future<void> _performConnection(ConnectionInfo connection) async {
     );
 
     await sshService.connect(connection, credential)
-        .timeout(const Duration(seconds: 3), onTimeout: () {
-      throw TimeoutException('连接超时，请检查网络或主机是否可达');
-    });
+        .timeout(const Duration(seconds: 3),); //onTimeout: () {
+      //throw TimeoutException('连接超时，请检查网络或主机是否可达');
+    //});
       
     // 添加到最近连接（不等待完成），不然巨卡无比
     unawaited (storageService.addRecentConnection(connection));

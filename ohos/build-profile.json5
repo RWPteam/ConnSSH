@@ -2,29 +2,29 @@
   "app": {
     "signingConfigs": [
       {
-        "name": "co",
+        "name": "defaultrele",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\samuioto\\.ohos\\config\\default_ohos_rpRxKB2YehPUzNCDkdw81SON7GPeeJ9g0bbeOg1xnwA=.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B4BC69CA45599C2F39AFCFCDCBEE5FDD8CE1A6790269714B8D5D13033EE680532591252D30FD422",
-          "profile": "C:\\Users\\samuioto\\.ohos\\config\\default_ohos_rpRxKB2YehPUzNCDkdw81SON7GPeeJ9g0bbeOg1xnwA=.p7b",
+          "storeFile": "C:/Users/samuioto/Desktop/tssh/connecter.p12",
+          "storePassword": "000000331F561756FF4C483B4F26625433E7154A62394FFF48BBF61858454D35861C5019AB65077E61F3FC6DDA29BF4D4285083D3B1241A5E82BD71500B7527714AAA6",
+          "keyAlias": "connecter",
+          "keyPassword": "00000033BB043FF2EDC87C67368FCAA851BBB86A13DDF5EEED13F98F3D49CAE4B8B014697DFBE548EFB825A735F750A6E87EFD6B068D29B8E8DBEB4F28B411C5DB2708",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\samuioto\\.ohos\\config\\default_ohos_rpRxKB2YehPUzNCDkdw81SON7GPeeJ9g0bbeOg1xnwA=.p12",
-          "storePassword": "0000001BAAB906799B2B92E9F75FE0A29163D803981BF4926ADD4C990912EC1F48111B00D1B51C37C76A74"
+          "profile": "C:/Users/samuioto/Desktop/tssh/connecterRelease.p7b",
+          "certpath": "C:/Users/samuioto/Desktop/tssh/connecter.cer"
         }
       },
       {
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\samuioto\\.ohos\\config\\connecter_ohos_srS1tgMaG4LUhmG5-0bEkIs7KXu2myQh4uHQoVyA20w=.cer",
+          "certpath": "C:\\Users\\samuioto\\.ohos\\config\\defaulta_ohos_tc7QGu9Qt9rti39Ay-T8Tjgmp4ufHGngf8EwDthndzc=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001B11B3F1DF6FBD11B6409D472726DC3188C0ED2CE1FC86D7C65656D6AB21FB5115F41B1034F35595",
-          "profile": "C:\\Users\\samuioto\\.ohos\\config\\connecter_ohos_srS1tgMaG4LUhmG5-0bEkIs7KXu2myQh4uHQoVyA20w=.p7b",
+          "keyPassword": "0000001B110658E8B2E05578BC57254903483D0443A4AE869646D91F74F358E88E449FEBAF8A8BBBBD6BE4",
+          "profile": "C:\\Users\\samuioto\\.ohos\\config\\defaulta_ohos_tc7QGu9Qt9rti39Ay-T8Tjgmp4ufHGngf8EwDthndzc=.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\samuioto\\.ohos\\config\\connecter_ohos_srS1tgMaG4LUhmG5-0bEkIs7KXu2myQh4uHQoVyA20w=.p12",
-          "storePassword": "0000001B9FD3D92FFB54C153FAF78C936872FF3011C7D9AA5950DF9FE2C3FC88A7CE2718B84A024688FCCA"
+          "storeFile": "C:\\Users\\samuioto\\.ohos\\config\\defaulta_ohos_tc7QGu9Qt9rti39Ay-T8Tjgmp4ufHGngf8EwDthndzc=.p12",
+          "storePassword": "0000001B60959372471AB96BA047D62E4F8F3A82E413ACDB46AC135A700C1CBBA3182F39512B2D3BDE2BF8"
         }
       }
     ],
