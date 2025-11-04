@@ -107,6 +107,7 @@ class _MainPageState extends State<MainPage> {
         _permissionsGranted = true;
       });
       _loadRecentConnections();
+      _checkFirstRun();
     } else {
       _showPermissionDeniedDialog();
     }
