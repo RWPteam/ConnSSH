@@ -5,6 +5,7 @@ class HelpPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('帮助'),
@@ -19,7 +20,7 @@ class HelpPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                '欢迎使用 Connecter!',
+                'Connecter 帮助',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -41,33 +42,27 @@ class HelpPage extends StatelessWidget {
               ),
               _buildHelpSection(
                 title: 'SSH页面',
-                content: '安卓设备点击空白处可唤起输入法，Windows可直接进行输入',
-              ),
-              _buildHelpSection(
-                title: 'SSH快捷键',
-                content: '目前已经支持Windows平台 Ctrl+Shift+A全选 Ctrl+Shift+C复制 Ctrl+Shift+V粘贴，安卓端复制粘贴逻辑尚在开发中',
+                content: '点击空白处可唤起输入法，外接键盘可用Ctrl+Shift+C/V/A快捷键',
               ),
               _buildHelpSection(
                 title: 'SFTP页面',
-                content: '在顶部进行文件操作，安卓端可以使用侧滑返回',
+                content: '在顶部进行文件操作，可以使用侧滑返回',
               ),
               _buildHelpSection(
                 title: '反馈',
-                content: '如有问题或建议，请在github页面发布issue',
+                content: '如有问题或建议，请发送邮件至samuioto@outlook.com',
               ),
               const SizedBox(height: 24),
-              Center(
-                child: ElevatedButton(
+              OutlinedButton(
                   onPressed: () {
                     showAboutDialog(
                       context: context,
                       applicationName: 'connecter',
-                      applicationVersion: '1.0 Beta 5',
+                      applicationVersion: '1.0.0',
                     );
                   },
                   child: const Text('关于'),
                 ),
-              ),
             ],
           ),
         ),
@@ -95,3 +90,4 @@ class HelpPage extends StatelessWidget {
     );
   }
 }
+

@@ -765,7 +765,7 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${widget.connection.host}:${widget.connection.port}',
+              '${widget.connection.name}',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             const SizedBox(height: 2),

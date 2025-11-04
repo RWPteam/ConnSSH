@@ -1,12 +1,14 @@
 // ignore_for_file: use_build_context_synchronously
 import 'dart:async';
 import 'dart:io';
+import 'package:connecter/help_page.dart';
 import 'package:connecter/setting_page.dart';
 import 'package:flutter/material.dart';
 import 'manage_connections_page.dart';
 import 'manage_credentials_page.dart';
 import 'quick_connect_dialog.dart';
 import 'models/connection_model.dart';
+import 'services/setting_service.dart';
 import 'services/storage_service.dart';
 import 'services/ssh_service.dart';
 import 'terminal_page.dart';
@@ -28,12 +30,24 @@ class _MainPageState extends State<MainPage> {
   bool _isConnecting = false;
   ConnectionInfo? _connectingConnection;
   bool _permissionsGranted = false;
+  final SettingsService _settingsService = SettingsService();
+  bool _isFirstRun = true;
 
   @override
   void initState() {
     super.initState();
-    _checkAndRequestPermissions();
+    if (Platform.isAndroid) {
+      _checkAndRequestPermissions();
+    } else {
+      setState(() {
+        _permissionsGranted = true;
+      });
+      _loadRecentConnections();
+      _checkFirstRun();
+    }
   }
+
+
 
   Future<void> _checkAndRequestPermissions() async {
     final storageStatus = await Permission.storage.status;
@@ -121,6 +135,68 @@ class _MainPageState extends State<MainPage> {
     exit(0);
   }
     
+  Future<void> _checkFirstRun() async {
+    final settings = await _settingsService.getSettings();
+    setState(() {
+      _isFirstRun = settings.isFirstRun;
+    });
+
+    if (_isFirstRun) {
+      _showWelcome();
+      _settingsService.markAsNotFirstRun();
+    }
+  }
+
+
+
+  void _showWelcome() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('欢迎使用Connecter'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('看起来您是第一次使用该应用'),
+              const SizedBox(height: 8),
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: _showHelp,
+                  child: const Text(
+                    '点击查看帮助',
+                    style: TextStyle(
+                      color: Colors.blueAccent,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('关闭'),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  void _showHelp() {
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const HelpPage(),
+      ),
+    );
+  }
+
+
   Future<void> _loadRecentConnections() async {
     try {
       final recentConnections = await _storageService.getRecentConnections();
@@ -710,9 +786,9 @@ Future<void> _performConnection(ConnectionInfo connection) async {
     );
 
     await sshService.connect(connection, credential)
-        .timeout(const Duration(seconds: 3), onTimeout: () {
-      throw TimeoutException('连接超时，请检查网络或主机是否可达');
-    });
+        .timeout(const Duration(seconds: 3),); //onTimeout: () {
+      //throw TimeoutException('连接超时，请检查网络或主机是否可达');
+    //});
       
     // 添加到最近连接（不等待完成），不然巨卡无比
     unawaited (storageService.addRecentConnection(connection));
@@ -766,12 +842,14 @@ void _handleConnectionError(ConnectionInfo connection, String error) {
   );
 }
 
+
   List<Widget> _buildButtons(
     BuildContext context, 
     bool showSubtitle, 
     double screenHeight,
   ) {
-    const double buttonHeight = 100;
+    // 根据屏幕高度动态计算按钮高度
+    final double buttonHeight = screenHeight >= 500 ? 100 : 80;
     
     Widget buildButton({
       required VoidCallback onPressed,
@@ -787,16 +865,16 @@ void _handleConnectionError(ConnectionInfo connection, String error) {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      fontSize: 18,
+                    style: TextStyle(
+                      fontSize: screenHeight >= 500 ? 18 : 16, // 根据高度调整字体大小
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      fontSize: 14,
+                    style: TextStyle(
+                      fontSize: screenHeight >= 500 ? 14 : 12, // 根据高度调整字体大小
                       color: Colors.grey,
                     ),
                   ),
@@ -807,8 +885,8 @@ void _handleConnectionError(ConnectionInfo connection, String error) {
               padding: const EdgeInsets.only(left: 8.0), 
               child: Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 18,
+                style: TextStyle(
+                  fontSize: screenHeight >= 500 ? 18 : 16, // 根据高度调整字体大小
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -816,11 +894,11 @@ void _handleConnectionError(ConnectionInfo connection, String error) {
       
       return SizedBox(
         width: double.infinity,
-        height: buttonHeight,
+        height: buttonHeight, // 使用动态计算的高度
         child: OutlinedButton(
           onPressed: onPressed,
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(screenHeight >= 500 ? 14 : 12), // 根据高度调整内边距
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -846,7 +924,6 @@ void _handleConnectionError(ConnectionInfo connection, String error) {
         },
         title: '快速连接',
         subtitle: '输入地址和凭证快速建立连接',
-        
       ),
       const SizedBox(height: 16),
       
@@ -875,17 +952,16 @@ void _handleConnectionError(ConnectionInfo connection, String error) {
             ),
           );
         },
-
         title: '管理认证凭证',
         subtitle: '管理密码和证书凭证',
       ),
       const SizedBox(height: 16),
       buildButton(
         onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsPage()),
-              );
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SettingsPage()),
+          );
         },
         title: "设置",
         subtitle: "查看设置、使用说明和版本信息",

@@ -22,6 +22,11 @@ class SettingsService {
             return map;
           }))
         );
+
+        if (settingsMap.containsKey('isFirstRun')) {
+          settingsMap['isFirstRun'] = settingsMap['isFirstRun'] == 'true';
+        }
+        
         return AppSettings.fromMap(settingsMap);
       }
     } catch (e) {
@@ -46,7 +51,17 @@ class SettingsService {
     }
   }
 
-  // 获取平台特定的默认下载路径
+  Future<void> markAsNotFirstRun() async {
+    try {
+      final currentSettings = await getSettings();
+      final updatedSettings = currentSettings.copyWith(isFirstRun: false);
+      await saveSettings(updatedSettings);
+    } catch (e) {
+      debugPrint('标记为非第一次运行失败: $e');
+      throw Exception('标记为非第一次运行失败: $e');
+    }
+  }
+
   static Future<String?> getPlatformDefaultDownloadPath() async {
     if (Platform.isAndroid) {
       final externalDir = await getExternalStorageDirectory();
@@ -59,7 +74,6 @@ class SettingsService {
       }
     }
     
-    // 其他平台返回 null，让用户选择
     return null;
   }
 }
