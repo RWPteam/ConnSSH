@@ -19,7 +19,7 @@ A lightweight & cross-platform SSH/SFTP client built with Flutter.
 |------|------|------|
 | Android | [APK](https://github.com/RWPteam/connecter/releases/download/1.0/Release_android.apk) | arm&arm64 |
 | Windows | [exe](https://github.com/RWPteam/connecter/releases/download/1.0/Release_windows.exe) | 仅支持64位设备 |
-| OHOS | [app](https://github.com/RWPteam/connecter/releases/download/1.0/Release_ohos.app) | 应用市场正在审核中 |
+| OHOS | [app](https://github.com/RWPteam/connecter/releases/download/1.0/Release_ohos.zip) | 应用市场正在审核中 |
 
 
 ### 构建&打包
