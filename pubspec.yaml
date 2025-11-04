@@ -120,6 +120,9 @@ flutter:
       - family: hmossans
         fonts:
         - asset: fonts/HarmonyOS_Sans_Regular.ttf
+      - family: maple
+        fonts:
+        - asset: fonts/MapleMonoNL-Regular.ttf
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

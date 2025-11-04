@@ -22,6 +22,12 @@ class SettingsService {
             return map;
           }))
         );
+        
+        // 处理布尔值转换
+        if (settingsMap.containsKey('isFirstRun')) {
+          settingsMap['isFirstRun'] = settingsMap['isFirstRun'] == 'true';
+        }
+        
         return AppSettings.fromMap(settingsMap);
       }
     } catch (e) {
@@ -43,6 +49,18 @@ class SettingsService {
     } catch (e) {
       debugPrint('保存设置失败: $e');
       throw Exception('保存设置失败: $e');
+    }
+  }
+
+  // 新增方法：标记为非第一次运行
+  Future<void> markAsNotFirstRun() async {
+    try {
+      final currentSettings = await getSettings();
+      final updatedSettings = currentSettings.copyWith(isFirstRun: false);
+      await saveSettings(updatedSettings);
+    } catch (e) {
+      debugPrint('标记为非第一次运行失败: $e');
+      throw Exception('标记为非第一次运行失败: $e');
     }
   }
 

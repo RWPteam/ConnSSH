@@ -2,7 +2,7 @@
   "app": {
     "signingConfigs": [
       {
-        "name": "defaultrele",
+        "name": "default",
         "type": "HarmonyOS",
         "material": {
           "storeFile": "C:/Users/samuioto/Desktop/tssh/connecter.p12",
@@ -15,7 +15,7 @@
         }
       },
       {
-        "name": "default",
+        "name": "defaults",
         "type": "HarmonyOS",
         "material": {
           "certpath": "C:\\Users\\samuioto\\.ohos\\config\\defaulta_ohos_tc7QGu9Qt9rti39Ay-T8Tjgmp4ufHGngf8EwDthndzc=.cer",

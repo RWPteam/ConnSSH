@@ -764,7 +764,7 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${widget.connection.host}:${widget.connection.port}',
+              '${widget.connection.name}',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             const SizedBox(height: 2),
@@ -801,7 +801,7 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
       body: TerminalView(
         terminal,
         backgroundOpacity: 1.0,
-        textStyle: TerminalStyle(fontSize: _fontSize, fontFamily: 'hmossans'),
+        textStyle: TerminalStyle(fontSize: _fontSize, fontFamily: 'maple'),
         theme: _currentTheme,
         autoResize: true,
         readOnly: _shouldBeReadOnly,

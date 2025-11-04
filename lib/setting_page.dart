@@ -43,7 +43,8 @@ class _SettingsPageState extends State<SettingsPage> {
             : _sftpPathController.text.trim(),
         defaultDownloadPath: _downloadPathController.text.trim().isEmpty
             ? null
-            : _downloadPathController.text.trim(),
+            : _downloadPathController.text.trim(), 
+        
       );
 
       await _settingsService.saveSettings(newSettings);
