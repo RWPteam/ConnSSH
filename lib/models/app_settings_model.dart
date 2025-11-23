@@ -7,7 +7,7 @@ class AppSettings {
     this.defaultSftpPath,
     this.defaultDownloadPath,
     this.isFirstRun = true, 
-  });
+  });//定义设置的数据结构
 
   AppSettings copyWith({
     String? defaultSftpPath,
@@ -27,7 +27,7 @@ class AppSettings {
       'defaultDownloadPath': defaultDownloadPath,
       'isFirstRun': isFirstRun,
     };
-  }
+  }//SFTP默认目录，默认下载位置，是否第一次运行（用于判断是否需要展示帮助）
 
   factory AppSettings.fromMap(Map<String, dynamic> map) {
     return AppSettings(
@@ -35,7 +35,7 @@ class AppSettings {
       defaultDownloadPath: map['defaultDownloadPath'],
       isFirstRun: map['isFirstRun'] ?? true, 
     );
-  }
+  }//构造设置对象
 
   static AppSettings get defaults {
     return const AppSettings(
@@ -43,5 +43,5 @@ class AppSettings {
       defaultDownloadPath: null,
       isFirstRun: true,
     );
-  }
+  }//默认设置
 }

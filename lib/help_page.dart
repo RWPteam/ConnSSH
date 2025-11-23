@@ -58,7 +58,7 @@ class HelpPage extends StatelessWidget {
                     showAboutDialog(
                       context: context,
                       applicationName: 'connecter',
-                      applicationVersion: '1.0.0',
+                      applicationVersion: '1.0.1',
                     );
                   },
                   child: const Text('关于'),

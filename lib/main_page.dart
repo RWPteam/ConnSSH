@@ -24,8 +24,8 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  List<ConnectionInfo> _recentConnections = [];
-  bool _isLoading = true; 
+  List<ConnectionInfo> _recentConnections = [];//获取最近连接列表
+  bool _isLoading = true; //获取是否在加载
   final StorageService _storageService = StorageService();
   bool _isConnecting = false;
   ConnectionInfo? _connectingConnection;

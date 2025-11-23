@@ -43,7 +43,7 @@ class SshService {
       disconnect();
       throw Exception('连接失败: $e');
     }
-  }
+  }//定义连接的方法
 
   Future<String> executeCommand(String command) async {
     if (_client == null) {
@@ -56,10 +56,10 @@ class SshService {
     } catch (e) {
       throw Exception('命令执行失败: $e');
     }
-  }
+  }//执行相应的命令
 
   void disconnect() {
     _client?.close();
     _client = null;
-  }
+  }//断开连接方法
 }

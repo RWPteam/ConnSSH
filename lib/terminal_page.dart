@@ -169,7 +169,7 @@ class _TerminalPageState extends State<TerminalPage> implements TextInputClient 
         setState(() {
           _isConnected = false;
           _isConnecting = false;
-          _status = '连接失败: $e';
+          _status = '连接失败';
           _connectionEstablished = false;
         });
         terminal.write('连接失败: $e\r\n');

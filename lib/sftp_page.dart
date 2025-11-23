@@ -133,7 +133,7 @@ class _SftpPageState extends State<SftpPage> {
         setState(() {
           _isConnected = false;
           _isLoading = false;
-          _status = '连接失败: $e';
+          _status = '连接失败';
           _appBarColor = Colors.red;
         });
         _showErrorDialog('SFTP连接失败', e.toString());

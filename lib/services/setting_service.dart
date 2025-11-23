@@ -34,7 +34,7 @@ class SettingsService {
     }
     
     return AppSettings.defaults;
-  }
+  }//从设置模型中获取数据
 
   Future<void> saveSettings(AppSettings settings) async {
     try {
@@ -49,7 +49,7 @@ class SettingsService {
       debugPrint('保存设置失败: $e');
       throw Exception('保存设置失败: $e');
     }
-  }
+  }//将设置写入sharedpreferences
 
   Future<void> markAsNotFirstRun() async {
     try {
@@ -60,7 +60,7 @@ class SettingsService {
       debugPrint('标记为非第一次运行失败: $e');
       throw Exception('标记为非第一次运行失败: $e');
     }
-  }
+  }//标记是否第一次运行，据此判断是否需要展示帮助
 
   static Future<String?> getPlatformDefaultDownloadPath() async {
     if (Platform.isAndroid) {
@@ -75,5 +75,5 @@ class SettingsService {
     }
     
     return null;
-  }
+  }//尝试获取安卓设备的特定目录，防止获取出错导致无法下载
 }

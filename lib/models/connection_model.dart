@@ -21,7 +21,7 @@ class ConnectionInfo {
     this.isPinned = false,
     this.sftpPath, 
     DateTime? lastUsed,
-  }) : lastUsed = lastUsed ?? DateTime.now();
+  }) : lastUsed = lastUsed ?? DateTime.now();//定义连接信息模型
 
   Map<String, dynamic> toJson() {
     return {
@@ -36,7 +36,7 @@ class ConnectionInfo {
       'lastUsed': lastUsed.toIso8601String(),
       'sftpPath': sftpPath, 
     };
-  }
+  }//转换为json
 
   factory ConnectionInfo.fromJson(Map<String, dynamic> json) {
     ConnectionType type;

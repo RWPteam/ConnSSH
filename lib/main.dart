@@ -56,4 +56,4 @@ class _MyAppState extends State<MyApp> {
       useMaterial3: true,
     );
   }
-}
+}//应用入口，定义了主题和起始点
