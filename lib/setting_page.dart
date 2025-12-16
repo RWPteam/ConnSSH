@@ -300,7 +300,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     padding: const EdgeInsets.all(8.0),
                     color: Colors.transparent, // 浅灰色背景
                     child: Text(
-                      '鲁ICP备2024127829号-5A', // 请替换为实际的备案号
+                      '1145141919', // 请替换为实际的备案号
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,

@@ -15,7 +15,7 @@ class Credential {
     this.password,
     this.privateKey,
     this.passphrase,
-  });
+  });//定义凭证模型
 
   @override
   bool operator ==(Object other) =>
@@ -37,7 +37,7 @@ class Credential {
       'privateKey': privateKey,
       'passphrase': passphrase,
     };
-  }
+  }//转换为JSON
 
   factory Credential.fromJson(Map<String, dynamic> json) {
     return Credential(

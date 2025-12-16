@@ -6,7 +6,7 @@ A lightweight & cross-platform SSH/SFTP client built with Flutter.
 - 完整 SSH 终端（快捷键、手势滚动、字号缩放）
 - 完整 SFTP：批量文件操作，支持自定义默认访问目录
 - 响应式布局：多尺寸设备自适应
-- 跨平台：Android / Windows / iOS(ToDo) / HarmonyOS(ToDo)
+- 跨平台：Android / Windows / iOS(ToDo) / HarmonyOS
 - 支持私钥 / 密码 认证
 
 ### 截图
@@ -17,8 +17,10 @@ A lightweight & cross-platform SSH/SFTP client built with Flutter.
 ### 下载
 | 平台 | 下载 | 备注 |
 |------|------|------|
-| Android | [APK](https://github.com/RWPteam/connecter/releases/download/1.0Beta5/1.0Beta5_android_arm64.apk) | arm64-v8a，更多架构查看Release |
-| Windows | [exe](https://github.com/RWPteam/connecter/releases/download/1.0Beta5/1.0Beta5_windows_x64.exe) | 仅支持64位设备 |
+| Android | [APK](https://github.com/RWPteam/connecter/releases/download/1.0/Release_android.apk) | arm&arm64 |
+| Windows | [exe](https://github.com/RWPteam/connecter/releases/download/1.0/Release_windows.exe) | 仅支持64位设备 |
+| OHOS | [app](https://github.com/RWPteam/connecter/releases/download/1.0/Release_ohos.zip) | 应用市场正在审核中 |
+
 
 ### 构建&打包
 * 需注意，本项目使用了修改过的[xterm.dart](https://github.com/samu1oto/xterm.dart)以添加快捷操作栏等功能
@@ -37,7 +39,7 @@ flutter run -d <device_id>
 flutter build apk --split-per-abi
 # Windows
 flutter build windows
-# HarmonyOS
+# HarmonyOS 请使用https://github.com/samu1oto/connecter-ohos/tree/ohos
 flutter build hap
 # or
 flutter build app

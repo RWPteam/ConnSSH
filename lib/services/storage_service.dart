@@ -27,7 +27,7 @@ class StorageService {
     } catch (e) {
       return [];
     }
-  }
+  }//从sharedpreferences中获取最近的连接
 
   Future<void> addRecentConnection(ConnectionInfo connection) async {
     final prefs = await SharedPreferences.getInstance();
@@ -45,7 +45,7 @@ class StorageService {
     }
     final jsonList = recentConnections.map((c) => c.toJson()).toList();
     await prefs.setString(_recentConnectionsKey, json.encode(jsonList));
-  }
+  }//将连接信息按照模型转换为最近连接
 
   Future<void> togglePinConnection(String id) async {
     final prefs = await SharedPreferences.getInstance();
@@ -70,7 +70,7 @@ class StorageService {
       final jsonList = recentConnections.map((c) => c.toJson()).toList();
       await prefs.setString(_recentConnectionsKey, json.encode(jsonList));
     }
-  }
+  }//存储置顶列表
 
   Future<void> deleteRecentConnection(String id) async {
     final prefs = await SharedPreferences.getInstance();
@@ -78,7 +78,7 @@ class StorageService {
     recentConnections.removeWhere((c) => c.id == id);
     final jsonList = recentConnections.map((c) => c.toJson()).toList();
     await prefs.setString(_recentConnectionsKey, json.encode(jsonList));
-  }
+  }//删除最近连接
 
   Future<void> saveConnection(ConnectionInfo connection) async {
     final prefs = await SharedPreferences.getInstance();
@@ -89,7 +89,7 @@ class StorageService {
     
     final jsonList = connections.map((c) => c.toJson()).toList();
     await prefs.setString(_connectionsKey, json.encode(jsonList)); 
-  }
+  }//保存连接到连接列表
 
   Future<List<ConnectionInfo>> getConnections() async {
     final prefs = await SharedPreferences.getInstance();
@@ -103,7 +103,7 @@ class StorageService {
     } catch (e) {
       return [];
     }
-  }
+  }//获取连接列表
 
   Future<void> deleteConnection(String id) async {
     final prefs = await SharedPreferences.getInstance();
@@ -112,7 +112,7 @@ class StorageService {
     
     final jsonList = connections.map((c) => c.toJson()).toList();
     await prefs.setString(_connectionsKey, json.encode(jsonList)); 
-  }
+  }//删除连接
 
   Future<void> saveCredential(Credential credential) async {
     final prefs = await SharedPreferences.getInstance();
@@ -124,7 +124,7 @@ class StorageService {
     
     final jsonList = credentials.map((c) => c.toJson()).toList();
     await prefs.setString(_credentialsKey, json.encode(jsonList)); 
-  }
+  }//保存凭证
 
   Future<List<Credential>> getCredentials() async {
     final prefs = await SharedPreferences.getInstance();
@@ -138,7 +138,7 @@ class StorageService {
     } catch (e) {
       return [];
     }
-  }
+  }//获取凭证列表
 
   Future<void> deleteCredential(String id) async {
     final prefs = await SharedPreferences.getInstance();
@@ -147,5 +147,5 @@ class StorageService {
     
     final jsonList = credentials.map((c) => c.toJson()).toList();
     await prefs.setString(_credentialsKey, json.encode(jsonList)); 
-  }
+  }//删除保存的凭证
 }
