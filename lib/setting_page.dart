@@ -1,7 +1,7 @@
 // settings_page.dart
 import 'dart:io';
 
-import 'package:connecter/help_page.dart';
+import 'package:ConnSSH/help_page.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'models/app_settings_model.dart';
@@ -300,7 +300,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     padding: const EdgeInsets.all(8.0),
                     color: Colors.transparent, // 浅灰色背景
                     child: Text(
-                      '1145141919', // 请替换为实际的备案号
+                      '鲁ICP备2024127829号-5A', // 请替换为实际的备案号
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,

@@ -1,8 +1,8 @@
 // ignore_for_file: use_build_context_synchronously
 import 'dart:async';
 import 'dart:io';
-import 'package:connecter/monitor_server_page.dart';
-import 'package:connecter/setting_page.dart';
+import 'package:ConnSSH/monitor_server_page.dart';
+import 'package:ConnSSH/setting_page.dart';
 import 'package:flutter/material.dart';
 import 'manage_connections_page.dart';
 import 'manage_credentials_page.dart';
@@ -18,7 +18,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
 
 class NativeBridge {
-  static const platform = MethodChannel('com.samuioto.connecter/native');
+  static const platform = MethodChannel('com.samuioto.ConnSSH/native');
 
   Future<String> getNativeMessage() async {
     try {

@@ -44,7 +44,7 @@ class _TerminalPageState extends State<TerminalPage> {
   
   bool _isSliderVisible = false;
   bool _menuIsOpen = false;
-  bool _ismobile = defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS;
+  bool _ismobile = defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.ohos || defaultTargetPlatform == TargetPlatform.iOS ;
 
   bool _isThemeSelectorVisible = false;
   OverlayEntry? _themeSelectorOverlay;

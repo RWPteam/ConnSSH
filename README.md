@@ -1,4 +1,4 @@
-# Connecter  
+# ConnSSH  
 A lightweight & cross-platform SSH/SFTP client built with Flutter.
 一个基于Flutter的，轻量、跨平台的SSH/SFTP工具
 
@@ -17,9 +17,9 @@ A lightweight & cross-platform SSH/SFTP client built with Flutter.
 ### 下载
 | 平台 | 下载 | 备注 |
 |------|------|------|
-| Android | [APK](https://github.com/RWPteam/connecter/releases/download/1.0/Release_android.apk) | arm&arm64 |
-| Windows | [exe](https://github.com/RWPteam/connecter/releases/download/1.0/Release_windows.exe) | 仅支持64位设备 |
-| OHOS | [app](https://github.com/RWPteam/connecter/releases/download/1.0/Release_ohos.zip) | 应用市场正在审核中 |
+| Android | [APK](https://github.com/RWPteam/ConnSSH/releases/download/1.0/Release_android.apk) | arm&arm64 |
+| Windows | [exe](https://github.com/RWPteam/ConnSSH/releases/download/1.0/Release_windows.exe) | 仅支持64位设备 |
+| OHOS | [app](https://github.com/RWPteam/ConnSSH/releases/download/1.0/Release_ohos.zip) | 应用市场正在审核中 |
 
 
 ### 构建&打包
@@ -28,24 +28,24 @@ A lightweight & cross-platform SSH/SFTP client built with Flutter.
 
 ```bash
 # 源码运行（Flutter ≥ 3.22）
-git clone https://github.com/RWPteam/connecter.git
-cd connecter
+git clone https://github.com/RWPteam/ConnSSH.git
+cd ConnSSH
 flutter pub get
 flutter run -d <device_id>
 ```
 
 ```bash
 # Android
-flutter build apk --split-per-abi
+flutter build apk #--split-per-abi(Recommend)
 # Windows
 flutter build windows
-# HarmonyOS 请使用https://github.com/samu1oto/connecter-ohos/tree/ohos
+# HarmonyOS NEXT
 flutter build hap
 # or
 flutter build app
 ```
 ### ToDo
-已迁移至 [GitHub Issues](https://github.com/RWPteam/connecter) 
+已迁移至 [GitHub Issues](https://github.com/RWPteam/ConnSSH) 
 
 ### 开源协议
 BSD 3-Clause © 2025 RWPteam
