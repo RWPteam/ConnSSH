@@ -1,7 +1,7 @@
 {
   "modelVersion": "5.1.0",
   "name": "Connecter",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A lightweight SSH tool.",
   "main": "",
   "author": "",

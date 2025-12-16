@@ -6,7 +6,6 @@ import '../models/app_settings_model.dart';
 
 class SettingsService {
   static const String _settingsKey = 'app_settings';
-
   Future<AppSettings> getSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -22,7 +21,8 @@ class SettingsService {
             return map;
           }))
         );
-
+        
+        // 处理布尔值转换
         if (settingsMap.containsKey('isFirstRun')) {
           settingsMap['isFirstRun'] = settingsMap['isFirstRun'] == 'true';
         }
@@ -34,7 +34,7 @@ class SettingsService {
     }
     
     return AppSettings.defaults;
-  }//从设置模型中获取数据
+  }
 
   Future<void> saveSettings(AppSettings settings) async {
     try {
@@ -49,8 +49,9 @@ class SettingsService {
       debugPrint('保存设置失败: $e');
       throw Exception('保存设置失败: $e');
     }
-  }//将设置写入sharedpreferences
+  }
 
+  // 新增方法：标记为非第一次运行
   Future<void> markAsNotFirstRun() async {
     try {
       final currentSettings = await getSettings();
@@ -60,8 +61,9 @@ class SettingsService {
       debugPrint('标记为非第一次运行失败: $e');
       throw Exception('标记为非第一次运行失败: $e');
     }
-  }//标记是否第一次运行，据此判断是否需要展示帮助
+  }
 
+  // 获取平台特定的默认下载路径
   static Future<String?> getPlatformDefaultDownloadPath() async {
     if (Platform.isAndroid) {
       final externalDir = await getExternalStorageDirectory();
@@ -74,6 +76,7 @@ class SettingsService {
       }
     }
     
+    // 其他平台返回 null，让用户选择
     return null;
-  }//尝试获取安卓设备的特定目录，防止获取出错导致无法下载
+  }
 }

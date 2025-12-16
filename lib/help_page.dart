@@ -20,7 +20,7 @@ class HelpPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Connecter 帮助',
+                'ConnSSH 帮助',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -28,7 +28,7 @@ class HelpPage extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Connecter 是一个便捷的SSH和SFTP连接管理工具',
+                'ConnSSH 是一个便捷的SSH和SFTP连接管理工具',
                 style: TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 24),
@@ -49,6 +49,9 @@ class HelpPage extends StatelessWidget {
                 content: '在顶部进行文件操作，可以使用侧滑返回',
               ),
               _buildHelpSection(
+                title: '服务器监控（Beta）',
+                content: '此功能可以监控大部分Linux服务器的系统运行数据，但对于部分服务器不起作用'),
+              _buildHelpSection(
                 title: '反馈',
                 content: '如有问题或建议，请发送邮件至samuioto@outlook.com',
               ),
@@ -57,8 +60,8 @@ class HelpPage extends StatelessWidget {
                   onPressed: () {
                     showAboutDialog(
                       context: context,
-                      applicationName: 'connecter',
-                      applicationVersion: '1.0.1',
+                      applicationName: 'ConnSSH',
+                      applicationVersion: '1.1.0',
                     );
                   },
                   child: const Text('关于'),

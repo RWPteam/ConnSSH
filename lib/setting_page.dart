@@ -43,7 +43,8 @@ class _SettingsPageState extends State<SettingsPage> {
             : _sftpPathController.text.trim(),
         defaultDownloadPath: _downloadPathController.text.trim().isEmpty
             ? null
-            : _downloadPathController.text.trim(),
+            : _downloadPathController.text.trim(), 
+        
       );
 
       await _settingsService.saveSettings(newSettings);
@@ -132,161 +133,184 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  // SFTP 初始路径设置
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'SFTP 初始路径',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: _sftpPathController,
-                            decoration: const InputDecoration(
-                              labelText: '默认SFTP路径',
-                              hintText: '例如: /home/username',
-                              border: UnderlineInputBorder(),
-                              prefixIcon: Icon(Icons.folder),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            '连接SFTP时默认打开的目录路径',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // 下载路径设置
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            '下载保存路径',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
+          : Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      // SFTP 初始路径设置
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _downloadPathController,
-                                  decoration: InputDecoration(
-                                    labelText: '默认下载路径',
-                                    hintText: Platform.isWindows 
-                                        ? 'Windows平台不支持目录选择' 
-                                        : '留空则使用平台默认',
-                                    border: const UnderlineInputBorder(),
-                                    prefixIcon: const Icon(Icons.download),
-                                  ),
-                                  // Windows平台只读，不允许编辑
-                                  readOnly: Platform.isWindows,
+                              const Text(
+                                'SFTP 初始路径',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              // Windows平台隐藏目录选择按钮
-                              if (!Platform.isWindows)
-                                IconButton(
-                                  icon: const Icon(Icons.folder_open),
-                                  onPressed: _selectDownloadDirectory,
-                                  tooltip: '选择目录',
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: _sftpPathController,
+                                decoration: const InputDecoration(
+                                  labelText: '默认SFTP路径',
+                                  hintText: '例如: /home/username',
+                                  border: UnderlineInputBorder(),
+                                  prefixIcon: Icon(Icons.folder),
                                 ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                '连接SFTP时默认打开的目录路径',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            Platform.isWindows 
-                                ? 'Windows平台不支持目录选择功能，如需自定义路径请手动输入' 
-                                : Platform.isAndroid 
-                                    ? '留空将在每次下载时询问，当权限不完整则会保存到Android/data中' 
-                                    : '无需修改',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // 下载路径设置
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '下载保存路径',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _downloadPathController,
+                                      decoration: InputDecoration(
+                                        labelText: '默认下载路径',
+                                        hintText: Platform.isWindows 
+                                            ? 'Windows平台不支持目录选择' 
+                                            : '留空则使用平台默认',
+                                        border: const UnderlineInputBorder(),
+                                        prefixIcon: const Icon(Icons.download),
+                                      ),
+                                      // Windows平台只读，不允许编辑
+                                      readOnly: Platform.isWindows,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // Windows平台隐藏目录选择按钮
+                                  if (!Platform.isWindows)
+                                    IconButton(
+                                      icon: const Icon(Icons.folder_open),
+                                      onPressed: _selectDownloadDirectory,
+                                      tooltip: '选择目录',
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                Platform.isWindows 
+                                    ? 'Windows平台不支持目录选择功能，如需自定义路径请手动输入' 
+                                    : Platform.isAndroid 
+                                        ? '留空将在每次下载时询问，当权限不完整则会保存到Android/data中' 
+                                        : '无需修改',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              if (_downloadPathController.text.isEmpty)
+                                if (!Platform.isWindows)
+                                    OutlinedButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _downloadPathController.text = '';
+                                      });
+                                    },
+                                    child: const Text('使用平台默认路径'),
+                                  ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      
+                      const Spacer(),
+                      
+                      // 操作按钮
+                      Row(
+                        children: [    
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const HelpPage()),
+                                );
+                              },
+                              child: const Text('帮助'),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          if (_downloadPathController.text.isEmpty)
-                            if (!Platform.isWindows)
-                                OutlinedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _downloadPathController.text = '';
-                                  });
-                                },
-                                child: const Text('使用平台默认路径'),
-                              ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: _saveSettings,
+                              child: const Text('保存'),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                _sftpPathController.text = '/';
+                                _downloadPathController.text = '';
+                              },
+                              child: const Text('默认'),
+                            ),
+                          ),
                         ],
+                      ),
+
+                      // 为备案号留出空间，避免被按钮遮挡
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                ),
+
+                // 悬挂在底部的备案号
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 5,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(8.0),
+                    color: Colors.transparent, // 浅灰色背景
+                    child: Text(
+                      '1145141919', // 请替换为实际的备案号
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
                       ),
                     ),
                   ),
-                  
-                  const Spacer(),
-                  
-                  // 操作按钮
-                  Row(
-                    children: [    
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const HelpPage()),
-                            );
-                          },
-                          child: const Text('帮助'),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _saveSettings,
-                          child: const Text('保存'),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            _sftpPathController.text = '/';
-                            _downloadPathController.text = '';
-                          },
-                          child: const Text('默认'),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                ],
-              ),
+                ),
+              ],
             ),
     );
   }
 }
-
-
-

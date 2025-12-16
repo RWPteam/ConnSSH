@@ -23,10 +23,10 @@ keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 
 def flutterVersionCode = localProperties.getProperty("flutter.versionCode")
 if (flutterVersionCode == null) {
-    flutterVersionCode = "103"
+    flutterVersionCode = "112"
 }
 
-def flutterVersionName = "1.0"
+def flutterVersionName = "1.1.0"
 //def flutterVersionName = localProperties.getProperty("flutter.versionName")
 //if (flutterVersionName == null) {
 //    flutterVersionName = "1.0Beta3"
@@ -63,9 +63,6 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
-        ndk {
-            abiFilters 'arm64-v8a', 'armeabi-v7a'
-        }
     }
 
     buildTypes {

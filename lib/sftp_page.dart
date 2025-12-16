@@ -4,13 +4,14 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:dartssh2/dartssh2.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart'; 
 import 'models/connection_model.dart';
 import 'models/credential_model.dart';
 import 'services/setting_service.dart';
 import 'models/app_settings_model.dart';
 import 'services/ssh_service.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+//import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+
 
 enum ViewMode { list, icon }
 
@@ -133,7 +134,7 @@ class _SftpPageState extends State<SftpPage> {
         setState(() {
           _isConnected = false;
           _isLoading = false;
-          _status = '连接失败';
+          _status = '连接失败: $e';
           _appBarColor = Colors.red;
         });
         _showErrorDialog('SFTP连接失败', e.toString());
@@ -537,103 +538,102 @@ class _SftpPageState extends State<SftpPage> {
       _showErrorDialog('重命名失败', e.toString());
     }
   }
+
   Future<void> _uploadFile() async {
     // 在操作前检查连接状态
     if (!await _checkConnection()) return;
     
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(allowMultiple: true);
-      if (result == null || !mounted) return;
+      // 使用 file_selector 替代 file_picker
+      const XTypeGroup typeGroup = XTypeGroup(label: 'files', extensions: <String>[]);
+      final XFile? file = await openFile(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
+      
+      if (file == null || !mounted) return;
 
       _showProgressDialog('上传文件', showCancel: true);
       _cancelOperation = false;
 
       int successCount = 0;
-      int totalCount = result.files.length;
+      int totalCount = 1;
       int skippedCount = 0;
 
-      for (int i = 0; i < totalCount; i++) {
-        // 在每个文件上传前检查连接状态
+      // 在每个文件上传前检查连接状态
+      if (!await _checkConnection()) return;
+      if (_cancelOperation) return;
+      
+      final localFile = File(file.path);
+      final remotePath = _joinPath(_currentPath, file.name);
+      if (!await localFile.exists()) return;
+
+      bool fileExists = false;
+      try {
+        await _sftpClient.stat(remotePath);
+        fileExists = true;
+      } catch (e) {
+        fileExists = false;
+      }
+
+      if (fileExists) {
+        if (mounted) {
+          Navigator.of(context).pop();
+          final shouldOverwrite = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: const Text('文件已存在'),
+              content: Text('文件 "${file.name}" 已存在，是否覆盖？'),
+              actions: [
+                OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('跳过'),
+                ),
+                OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('覆盖', style: TextStyle(color: Colors.red)),
+                ),
+              ],
+            ),
+          );
+          _showProgressDialog('上传文件', showCancel: true);
+          if (shouldOverwrite == false) {
+            skippedCount++;
+            return;
+          }
+        }
+      }
+
+      final fileSize = await localFile.length();
+      setState(() {
+        _currentOperation = '正在上传: ${file.name} (1 / 1)';
+        _uploadProgress = 0.0;
+      });
+
+      final remote = await _sftpClient.open(
+        remotePath,
+        mode: SftpFileOpenMode.create | SftpFileOpenMode.write | SftpFileOpenMode.truncate,
+      );
+      _currentUploader = remote;
+
+      int offset = 0;
+      await for (final chunk in localFile.openRead()) {
+        // 在每次写入前检查连接状态
         if (!await _checkConnection()) break;
         if (_cancelOperation) break;
         
-        final item = result.files[i];
-        if (item.path == null) continue;
-
-        final localFile = File(item.path!);
-        final remotePath = _joinPath(_currentPath, item.name);
-        if (!await localFile.exists()) continue;
-
-        bool fileExists = false;
-        try {
-          await _sftpClient.stat(remotePath);
-          fileExists = true;
-        } catch (e) {
-          fileExists = false;
+        await remote.writeBytes(chunk, offset: offset);
+        offset += chunk.length;
+        if (mounted) {
+          setState(() {
+            _uploadProgress = fileSize > 0 ? offset / fileSize : 0.0;
+          });
         }
-
-        if (fileExists) {
-          if (mounted) {
-            Navigator.of(context).pop();
-            final shouldOverwrite = await showDialog<bool>(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => AlertDialog(
-                title: const Text('文件已存在'),
-                content: Text('文件 "${item.name}" 已存在，是否覆盖？'),
-                actions: [
-                  OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('跳过'),
-                  ),
-                  OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text('覆盖', style: TextStyle(color: Colors.red)),
-                  ),
-                ],
-              ),
-            );
-            _showProgressDialog('上传文件', showCancel: true);
-            if (shouldOverwrite == false) {
-              skippedCount++;
-              continue;
-            }
-          }
-        }
-
-        final fileSize = await localFile.length();
-        setState(() {
-          _currentOperation = '正在上传: ${item.name} (${i + 1} / $totalCount)';
-          _uploadProgress = 0.0;
-        });
-
-        final remote = await _sftpClient.open(
-          remotePath,
-          mode: SftpFileOpenMode.create | SftpFileOpenMode.write | SftpFileOpenMode.truncate,
-        );
-        _currentUploader = remote;
-
-        int offset = 0;
-        await for (final chunk in localFile.openRead()) {
-          // 在每次写入前检查连接状态
-          if (!await _checkConnection()) break;
-          if (_cancelOperation) break;
-          
-          await remote.writeBytes(chunk, offset: offset);
-          offset += chunk.length;
-          if (mounted) {
-            setState(() {
-              _uploadProgress = fileSize > 0 ? offset / fileSize : 0.0;
-            });
-          }
-        }
-
-        try {
-          await remote.close();
-        } catch (e) {}
-        _currentUploader = null;
-        if (!_cancelOperation) successCount++;
       }
+
+      try {
+        await remote.close();
+      } catch (e) {}
+      _currentUploader = null;
+      if (!_cancelOperation) successCount++;
 
       if (mounted) Navigator.of(context).pop();
       if (!_cancelOperation && mounted) {
@@ -652,7 +652,7 @@ class _SftpPageState extends State<SftpPage> {
       _uploadProgress = 0;
       _currentOperation = '';
     }
-  }  
+  }
 
   Future<void> _deleteSelectedFilesAction() async {
     // 在操作前检查连接状态
@@ -815,16 +815,23 @@ class _SftpPageState extends State<SftpPage> {
   }
 
   Future<String?> _getDownloadDirectory() async {
+    // 使用 file_selector 替代 file_picker
     if (Platform.isWindows) {
       final firstSelectedFile = _selectedFiles.first;
-      final result = await FilePicker.platform.saveFile(
-        dialogTitle: '保存 ${_selectedFiles.length > 1 ? '多个文件' : firstSelectedFile}',
-        fileName: _selectedFiles.length == 1 ? firstSelectedFile : null,
-      );
+      final String? result = (await getSaveLocation(
+        suggestedName: _selectedFiles.length == 1 ? firstSelectedFile : 'download',
+      )) as String?;
       return result?.substring(0, result.lastIndexOf(Platform.pathSeparator));
     } else {
-      return await FilePicker.platform.getDirectoryPath(dialogTitle: '选择默认下载目录');
+      if (Platform.isOhos) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('HarmonyOS暂不支持文件下载')));
+        //for 2in1,tablet only
+        //return await PathProviderPlatform.instance.getDownloadsPath();
+      } else {
+        return await getDirectoryPath();
+      }
     }
+    return null;
   }
 
   Future<String?> _getAndroidDownloadDirectory() async {
@@ -832,6 +839,7 @@ class _SftpPageState extends State<SftpPage> {
         ? _appSettings.defaultDownloadPath
         : await SettingsService.getPlatformDefaultDownloadPath();
   }
+
 
   Future<void> _downloadSingleFile(String remotePath, String localFilePath, String filename, int index, int total) async {
     IOSink? sink;
@@ -1550,15 +1558,6 @@ class _SftpPageState extends State<SftpPage> {
         if (shouldExit) {
           _lastBackPressedTime = now;
           
-          Fluttertoast.showToast(
-              msg: "再按一次退出",
-              toastLength: Toast.LENGTH_SHORT, 
-              gravity: ToastGravity.BOTTOM, 
-              timeInSecForIosWeb: 1, 
-              backgroundColor: Colors.grey[700], 
-              textColor: Colors.white,
-              fontSize: 16.0 
-          );
           
           Future.delayed(const Duration(seconds: 2), () {});
         } else {

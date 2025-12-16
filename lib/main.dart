@@ -20,7 +20,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: _navigatorKey,
-      title: 'Connecter',
+      title: 'ConnSSH',
       theme: _buildLightTheme(),
       darkTheme: _buildDarkTheme(),
       themeMode: ThemeMode.system,
@@ -56,4 +56,4 @@ class _MyAppState extends State<MyApp> {
       useMaterial3: true,
     );
   }
-}//应用入口，定义了主题和起始点
+}

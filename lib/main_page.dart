@@ -1,7 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 import 'dart:async';
 import 'dart:io';
-import 'package:connecter/help_page.dart';
+import 'package:connecter/monitor_server_page.dart';
 import 'package:connecter/setting_page.dart';
 import 'package:flutter/material.dart';
 import 'manage_connections_page.dart';
@@ -11,9 +11,26 @@ import 'models/connection_model.dart';
 import 'services/setting_service.dart';
 import 'services/storage_service.dart';
 import 'services/ssh_service.dart';
+import 'help_page.dart';
 import 'terminal_page.dart';
 import 'sftp_page.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/services.dart';
+
+class NativeBridge {
+  static const platform = MethodChannel('com.samuioto.connecter/native');
+
+  Future<String> getNativeMessage() async {
+    try {
+      final String result = await platform.invokeMethod('getMessage');
+      debugPrint('${result}');
+      return result;
+    } on PlatformException catch (e) {
+      return "调用失败: ${e.message}";
+    }
+  }
+}
+
 
 
 class MainPage extends StatefulWidget {
@@ -24,8 +41,8 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  List<ConnectionInfo> _recentConnections = [];//获取最近连接列表
-  bool _isLoading = true; //获取是否在加载
+  List<ConnectionInfo> _recentConnections = [];
+  bool _isLoading = true; 
   final StorageService _storageService = StorageService();
   bool _isConnecting = false;
   ConnectionInfo? _connectingConnection;
@@ -107,7 +124,6 @@ class _MainPageState extends State<MainPage> {
         _permissionsGranted = true;
       });
       _loadRecentConnections();
-      _checkFirstRun();
     } else {
       _showPermissionDeniedDialog();
     }
@@ -156,7 +172,7 @@ class _MainPageState extends State<MainPage> {
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
-          title: const Text('欢迎使用Connecter'),
+          title: const Text('欢迎使用ConnSSH'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,6 +203,7 @@ class _MainPageState extends State<MainPage> {
       );
     });
   }
+
 
   void _showHelp() {
 
@@ -284,7 +301,7 @@ class _MainPageState extends State<MainPage> {
     if (!_permissionsGranted) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Connecter'),
+          title: const Text('ConnSSH'),
           backgroundColor: Colors.transparent,
           elevation: 0,
           foregroundColor: Theme.of(context).colorScheme.onSurface,
@@ -296,7 +313,7 @@ class _MainPageState extends State<MainPage> {
     }
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Connecter'),
+        title: const Text('ConnSSH'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Theme.of(context).colorScheme.onSurface,
@@ -927,7 +944,19 @@ void _handleConnectionError(ConnectionInfo connection, String error) {
         subtitle: '输入地址和凭证快速建立连接',
       ),
       const SizedBox(height: 16),
-      
+      buildButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MonitorServerPage(),
+            ),
+          );
+        },
+        title: '数据面板',
+        subtitle: '监控服务器的CPU、内存等数据',
+      ),
+      const SizedBox(height: 16),      
       buildButton(
         onPressed: () {
           Navigator.push(
@@ -956,6 +985,7 @@ void _handleConnectionError(ConnectionInfo connection, String error) {
         title: '管理认证凭证',
         subtitle: '管理密码和证书凭证',
       ),
+
       const SizedBox(height: 16),
       buildButton(
         onPressed: () {

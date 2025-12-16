@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'manage_credentials_page.dart';
 import 'package:uuid/uuid.dart';
@@ -29,7 +31,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
   final _portController = TextEditingController(text: '22');
   final _sftpPathController = TextEditingController();
   final _storageService = StorageService();
-  final _sshService = SshService();
+  // 移除了未使用的 _sshService 字段
 
   List<Credential> _credentials = [];
   Credential? _selectedCredential;
@@ -118,46 +120,58 @@ void _generateConnectionName() {
     ));
   }
 
-  Future<void> _connectToServer() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_selectedCredential == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请选择认证凭证')),
-      );
-      return;
-    }
-
+  void _connectToServer(ConnectionInfo connection) async {
+    if (_isConnecting) return;
+    
     setState(() {
       _isConnecting = true;
     });
 
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          backgroundColor: Colors.transparent,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('正在测试连接...'),
+            ],
+          ),
+        );
+      },
+    );
+
     try {
-      final connection = ConnectionInfo(
-        id: widget.connection?.id ?? const Uuid().v4(),
-        name: _nameController.text,
-        host: _hostController.text,
-        port: int.parse(_portController.text),
-        credentialId: _selectedCredential!.id,
-        type: _selectedType,
-        remember: _rememberConnection,
-        sftpPath: _selectedType == ConnectionType.sftp ? _sftpPathController.text : null, // 保存SFTP路径
+      final storageService = StorageService();
+      final sshService = SshService(); // 在方法内创建 SSH 服务实例
+      
+      final credentials = await storageService.getCredentials();
+      final credential = credentials.firstWhere(
+        (c) => c.id == connection.credentialId,
+        orElse: () => throw Exception('找不到认证凭证'),
       );
 
-      await _sshService.connect(connection, _selectedCredential!);
-      await _storageService.addRecentConnection(connection);
-
-      if (_rememberConnection || _isEditing) {
-        await _storageService.saveConnection(connection);
-      }
+      // 设置3秒超时
+      await sshService.connect(connection, credential)
+          .timeout(const Duration(seconds: 3), onTimeout: () {
+        throw TimeoutException('连接超时，请检查网络或主机是否可达');
+      });
+      
+      unawaited(storageService.addRecentConnection(connection));
 
       if (mounted) {
         Navigator.of(context).pop();
-        if (_selectedType == ConnectionType.sftp) {
+      }
+
+      if (mounted) {
+        if (connection.type == ConnectionType.sftp) {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => SftpPage(
                 connection: connection,
-                credential: _selectedCredential!,
+                credential: credential,
               ),
             ),
           );
@@ -166,15 +180,49 @@ void _generateConnectionName() {
             MaterialPageRoute(
               builder: (context) => TerminalPage(
                 connection: connection,
-                credential: _selectedCredential!,
+                credential: credential,
               ),
             ),
           );
         }
       }
+
+    } on TimeoutException catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); 
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('连接失败'),
+            content: Text(e.message ?? '连接超时'),
+            actions: [
+              OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('确定'),
+              ),
+            ],
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
-        _showConnectionError(e.toString());
+        Navigator.of(context).pop(); // 关闭加载对话框
+      }
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('连接失败'),
+            content: Text(e.toString()),
+            actions: [
+              OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('确定'),
+              ),
+            ],
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -184,7 +232,7 @@ void _generateConnectionName() {
       }
     }
   }
-
+  
   Future<void> _updateConnection() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCredential == null) {
@@ -281,28 +329,7 @@ void _generateConnectionName() {
     }
   }
 
-  void _showConnectionError(String error) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('连接失败'),
-        content: Text(error),
-        actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
-          ),
-          OutlinedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _connectToServer();
-            },
-            child: const Text('重试'),
-          ),
-        ],
-      ),
-    );
-  }
+  // 移除了未使用的 _showConnectionError 方法
 
   String _getDialogTitle() {
     if (widget.isNewConnection) return '新建连接';
@@ -500,21 +527,25 @@ void _generateConnectionName() {
             } else if (_isEditing) {
               _updateConnection();
             } else {
-              _connectToServer(); 
+              // 修复：创建连接对象并传递给 _connectToServer
+              final connection = ConnectionInfo(
+                id: const Uuid().v4(),
+                name: _nameController.text,
+                host: _hostController.text,
+                port: int.parse(_portController.text),
+                credentialId: _selectedCredential!.id,
+                type: _selectedType,
+                remember: _rememberConnection,
+                sftpPath: _selectedType == ConnectionType.sftp ? _sftpPathController.text : null,
+              );
+              _connectToServer(connection);
             }
           },
           child: _isConnecting
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+              ? Text(_getActionButtonText())
               : Text(_getActionButtonText()),
         ),
       ],
     );
   }
 }
-
-
-
