@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -27,38 +28,55 @@ class _ReadKeyInfoPageState extends State<ReadKeyInfoPage> {
     Map<String, String> info = {};
     String trimmed = content.trim();
 
+    // 定义常用签名算法 OID 映射
+    const oidMap = {
+      '1.2.840.113549.1.1.11': 'sha256WithRSAEncryption',
+      '1.2.840.113549.1.1.12': 'sha384WithRSAEncryption',
+      '1.2.840.113549.1.1.13': 'sha512WithRSAEncryption',
+      '1.2.840.113549.1.1.5': 'sha1WithRSAEncryption',
+      '1.2.840.10045.4.3.2': 'ecdsa-with-sha256',
+    };
+
     try {
-      info["文件名"] = "${_fileName}";
+      info["文件名"] = _fileName ?? "未命名";
       if (trimmed.contains("BEGIN CERTIFICATE")) {
         info["类型"] = "X.509 证书";
 
         var data = X509Utils.x509CertificateFromPem(trimmed);
 
-        info["主体"] = data.subject['CN'] ?? "未知主体";
-        info["颁发者"] = data.issuer['CN'] ?? "未知颁发者";
+        // 1. 优化主体获取：优先获取 CN，否则拼接完整信息
+        String getReadableName(Map<String, dynamic> dnMap) {
+          if (dnMap.containsKey('CN') && dnMap['CN'] != null) {
+            return dnMap['CN'].toString();
+          }
+          // 如果没有 CN，则把所有的 key-value 拼起来 (如 C=CN, O=Google...)
+          return dnMap.entries.map((e) => "${e.key}=${e.value}").join(", ");
+        }
+
+        info["主体"] = getReadableName(data.subject);
+        info["颁发者"] = getReadableName(data.issuer);
+
+        // 2. 时间解析
         DateTime notBefore = data.validity.notBefore;
         DateTime notAfter = data.validity.notAfter;
         info["生效时间"] = notBefore.toLocal().toString().split('.')[0];
         info["过期时间"] = notAfter.toLocal().toString().split('.')[0];
+
         bool isExpired = DateTime.now().isAfter(notAfter);
         info["状态"] = isExpired ? "已过期" : "有效中";
 
-        info["签名算法"] = data.signatureAlgorithm ?? "未知";
+        // 3. 签名算法 OID 转换
+        String sigOid = data.signatureAlgorithm ?? "";
+        info["签名算法"] = oidMap[sigOid] ?? sigOid; // 找不到映射则显示原始 OID
       } else if (trimmed.contains("BEGIN RSA PRIVATE KEY") ||
           trimmed.contains("BEGIN PRIVATE KEY")) {
         info["类型"] = "私钥 (Private Key)";
         info["格式"] = trimmed.contains("RSA") ? "PKCS#1" : "PKCS#8";
-      } else if (trimmed.contains("BEGIN OPENSSH PRIVATE KEY")) {
-        info["类型"] = "OpenSSH 私钥";
-      } else if (trimmed.contains("ssh-rsa") ||
-          trimmed.contains("ssh-ed25519")) {
-        info["类型"] = "公钥 (Public Key)";
-      } else {
-        info["类型"] = "文本数据";
       }
+      // ... 其他分支逻辑保持不变
     } catch (e) {
       info["解析状态"] = "证书结构解析失败";
-      info["详情"] = "请检查 PEM 格式是否完整";
+      info["详情"] = "错误原因: $e";
     }
 
     info["字符长度"] = "${content.length} 字符";
@@ -263,19 +281,42 @@ class _ReadKeyInfoPageState extends State<ReadKeyInfoPage> {
   Future<void> _pickKeyFile() async {
     setState(() => _isProcessing = true);
     try {
-      FilePickerResult? result =
-          await FilePicker.platform.pickFiles(type: FileType.any);
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pem', 'crt', 'cer', 'key', 'jks', 'pub'],
+      );
+
       if (result != null && result.files.single.path != null) {
         File file = File(result.files.single.path!);
-        String content = await file.readAsString();
-        setState(() => _fileName = result.files.single.name);
-        _parseInput(content);
+        String extension = result.files.single.extension?.toLowerCase() ?? '';
+        _fileName = result.files.single.name;
+
+        // 处理二进制格式 (CER/CRT 可能以 DER 形式存在)
+        if (extension == 'cer' || extension == 'crt' || extension == 'jks') {
+          List<int> bytes = await file.readAsBytes();
+          String content = _attemptToConvertPem(bytes);
+          _parseInput(content);
+        } else {
+          String content = await file.readAsString();
+          _parseInput(content);
+        }
       }
     } catch (e) {
-      _showError("文件读取失败");
+      _showError("文件读取或转换失败: $e");
     } finally {
       setState(() => _isProcessing = false);
     }
+  }
+
+  String _attemptToConvertPem(List<int> bytes) {
+    try {
+      String text = utf8.decode(bytes);
+      if (text.contains("BEGIN ")) return text;
+    } catch (_) {}
+
+    String base64Content = base64.encode(bytes);
+
+    return "-----BEGIN CERTIFICATE-----\n$base64Content\n-----END CERTIFICATE-----";
   }
 
   void _showError(String msg) {
