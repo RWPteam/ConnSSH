@@ -3,7 +3,7 @@ A lightweight & cross-platform SSH/SFTP client built with Flutter.
 一个基于Flutter的，轻量、跨平台的SSH/SFTP工具
 
 ### 特性
-- 完整 SSH 终端（快捷键、手势滚动、字号缩放）
+- 完整 SSH 终端（快捷键、终端主题、多会话）
 - 完整 SFTP：批量文件操作，支持自定义默认访问目录
 - 响应式布局：多尺寸设备自适应
 - 跨平台：Android / Windows / iOS(ToDo) / HarmonyOS
@@ -17,9 +17,9 @@ A lightweight & cross-platform SSH/SFTP client built with Flutter.
 ### 下载
 | 平台 | 下载 | 备注 |
 |------|------|------|
-| Android | [APK](https://github.com/RWPteam/ConnSSH/releases/download/1.0/Release_android.apk) | arm&arm64 |
-| Windows | [exe](https://github.com/RWPteam/ConnSSH/releases/download/1.0/Release_windows.exe) | 仅支持64位设备 |
-| OHOS | [app](https://github.com/RWPteam/ConnSSH/releases/download/1.0/Release_ohos.zip) | 应用市场正在审核中 |
+| Android | [APK](https://github.com/RWPteam/ConnSSH/releases/download/1.1.0/ConnSSH_1.1.0.apk) | arm&arm64 |
+| Windows | [exe](https://github.com/RWPteam/ConnSSH/releases/download/1.1.0/ConnSSH_1.1.0.exe) | 仅支持64位设备 |
+| OHOS | [app](https://github.com/RWPteam/ConnSSH/releases/download/1.1.0/ConnSSH_1.1.0.app.zip) | 应用市场正在审核中 |
 
 
 ### 构建&打包
@@ -28,8 +28,8 @@ A lightweight & cross-platform SSH/SFTP client built with Flutter.
 
 ```bash
 # 源码运行（Flutter ≥ 3.22）
-git clone https://github.com/RWPteam/ConnSSH.git
-cd ConnSSH
+git clone https://github.com/RWPteam/connssh.git
+cd connssh
 flutter pub get
 flutter run -d <device_id>
 ```
@@ -40,8 +40,6 @@ flutter build apk #--split-per-abi(Recommend)
 # Windows
 flutter build windows
 # HarmonyOS NEXT
-flutter build hap
-# or
 flutter build app
 ```
 ### ToDo
