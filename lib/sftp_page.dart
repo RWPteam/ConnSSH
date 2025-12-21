@@ -121,7 +121,7 @@ class _SftpPageState extends State<SftpPage> {
         setState(() {
           _isConnected = true;
           _status = '已连接';
-          _appBarColor = Colors.green.shade800;
+          _appBarColor = Theme.of(context).primaryColor;
         });
       }
 

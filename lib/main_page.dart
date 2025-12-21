@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 import 'package:connssh/monitor_server_page.dart';
 import 'package:connssh/read_key_info_page.dart';
 import 'package:connssh/setting_page.dart';
@@ -325,7 +326,7 @@ class _MainPageState extends State<MainPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('connssh'),
-        //backgroundColor: Colors.transparent,
+        backgroundColor: Colors.transparent,
         //elevation: 0,
         //foregroundColor: Theme.of(context).colorScheme.onSurface,
       ),

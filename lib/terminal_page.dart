@@ -337,9 +337,9 @@ class _TerminalPageState extends State<TerminalPage> {
   }
 
   Color _getAppBarColor() {
-    if (_isConnecting) return Colors.grey.shade700; // 连接中 - 灰色
-    if (_isConnected) return Colors.green.shade800; // 已连接 - 绿色
-    return Colors.red; // 未连接/连接失败 - 红色
+    if (_isConnecting) return Colors.grey.shade700; 
+    if (_isConnected) return Theme.of(context).primaryColor; 
+    return Colors.red; 
   }
 
   List<PopupMenuEntry<String>> _buildMenuItems() {

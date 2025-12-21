@@ -1,0 +1,44 @@
+Date : 2025-12-21 17:16:21
+Directory : /Users/zhangyutong/connssh/lib
+Total : 17 files,  7400 codes, 123 comments, 661 blanks, all 8184 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| Dart     |         17 |      7,400 |        123 |        661 |      8,184 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++---------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                          | files      | code       | comment    | blank      | total      |
++---------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                             |         17 |      7,400 |        123 |        661 |      8,184 |
+| . (Files)                                                     |         11 |      6,948 |        122 |        593 |      7,663 |
+| models                                                        |          3 |        204 |          1 |         20 |        225 |
+| services                                                      |          3 |        248 |          0 |         48 |        296 |
++---------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++---------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                      | language | code       | comment    | blank      | total      |
++---------------------------------------------------------------+----------+------------+------------+------------+------------+
+| /Users/zhangyutong/connssh/lib/help_page.dart                 | Dart     |        115 |          0 |          4 |        119 |
+| /Users/zhangyutong/connssh/lib/main.dart                      | Dart     |         88 |          0 |         15 |        103 |
+| /Users/zhangyutong/connssh/lib/main_page.dart                 | Dart     |      1,082 |         17 |         62 |      1,161 |
+| /Users/zhangyutong/connssh/lib/manage_connections_page.dart   | Dart     |        317 |          3 |         30 |        350 |
+| /Users/zhangyutong/connssh/lib/manage_credentials_page.dart   | Dart     |        518 |          2 |         33 |        553 |
+| /Users/zhangyutong/connssh/lib/models/app_settings_model.dart | Dart     |         70 |          1 |          6 |         77 |
+| /Users/zhangyutong/connssh/lib/models/connection_model.dart   | Dart     |         78 |          0 |          9 |         87 |
+| /Users/zhangyutong/connssh/lib/models/credential_model.dart   | Dart     |         56 |          0 |          5 |         61 |
+| /Users/zhangyutong/connssh/lib/monitor_server_page.dart       | Dart     |        787 |          9 |         79 |        875 |
+| /Users/zhangyutong/connssh/lib/quick_connect_dialog.dart      | Dart     |        529 |          2 |         38 |        569 |
+| /Users/zhangyutong/connssh/lib/read_key_info_page.dart        | Dart     |        290 |          4 |         31 |        325 |
+| /Users/zhangyutong/connssh/lib/services/setting_service.dart  | Dart     |         65 |          0 |         12 |         77 |
+| /Users/zhangyutong/connssh/lib/services/ssh_service.dart      | Dart     |         59 |          0 |          9 |         68 |
+| /Users/zhangyutong/connssh/lib/services/storage_service.dart  | Dart     |        124 |          0 |         27 |        151 |
+| /Users/zhangyutong/connssh/lib/setting_page.dart              | Dart     |        934 |          7 |         57 |        998 |
+| /Users/zhangyutong/connssh/lib/sftp_page.dart                 | Dart     |      1,596 |         52 |        170 |      1,818 |
+| /Users/zhangyutong/connssh/lib/terminal_page.dart             | Dart     |        692 |         26 |         74 |        792 |
+| Total                                                         |          |      7,400 |        123 |        661 |      8,184 |
++---------------------------------------------------------------+----------+------------+------------+------------+------------+

@@ -485,14 +485,23 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
   }
 
   void _showCustomShortcutBarMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('自定义快捷栏功能正在开发中...'),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.fixed,
-        backgroundColor: Theme.of(context).primaryColor,
-      ),
-    );
+    if(TargetPlatform == TargetPlatform.iOS || TargetPlatform == TargetPlatform.ohos  || TargetPlatform == TargetPlatform.android ) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('绝赞监修中...'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.fixed,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('绝赞监修中...'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.fixed,
+        ),
+      );
+    }
   }
 
   Widget _buildSettingTile({
@@ -574,11 +583,13 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
                   subtitle: _termType,
                   onTap: _showTermTypeDialog,
                 ),
-                _buildSettingTile(
-                  title: '自定义快捷栏',
-                  subtitle: '点击配置常用命令',
-                  onTap: _showCustomShortcutBarMessage,
-                ),
+                
+                  _buildSettingTile(
+                    title: '自定义快捷栏',
+                    subtitle: '配置快捷栏样式',
+                    onTap: _showCustomShortcutBarMessage,
+                  ),
+                
               ],
             ),
     );
