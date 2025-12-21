@@ -117,6 +117,9 @@ dependency_overrides:
 
 # The following section is specific to Flutter packages.
 flutter:
+  assets:
+    - assets/
+  
   fonts:
       - family: hmossans
         fonts:

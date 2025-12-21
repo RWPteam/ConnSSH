@@ -485,7 +485,9 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
   }
 
   void _showCustomShortcutBarMessage() {
-    if(TargetPlatform == TargetPlatform.iOS || TargetPlatform == TargetPlatform.ohos  || TargetPlatform == TargetPlatform.android ) {
+    if (TargetPlatform == TargetPlatform.iOS ||
+        TargetPlatform == TargetPlatform.ohos ||
+        TargetPlatform == TargetPlatform.android) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('绝赞监修中...'),
@@ -583,13 +585,11 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
                   subtitle: _termType,
                   onTap: _showTermTypeDialog,
                 ),
-                
-                  _buildSettingTile(
-                    title: '自定义快捷栏',
-                    subtitle: '配置快捷栏样式',
-                    onTap: _showCustomShortcutBarMessage,
-                  ),
-                
+                _buildSettingTile(
+                  title: '自定义快捷栏',
+                  subtitle: '配置快捷栏样式',
+                  onTap: _showCustomShortcutBarMessage,
+                ),
               ],
             ),
     );
@@ -971,7 +971,6 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 60), // 为备案号留出空间
             ],
           ),
-          // 悬浮在底部的备案号
           Positioned(
             left: 0,
             right: 0,
