@@ -47,7 +47,7 @@ class _SftpPageState extends State<SftpPage> {
 
   SSHClient? _sshClient;
   dynamic _sftpClient;
-  // 修改剪貼板為支持多個檔案
+  // 修改剪贴板为支持多个文件
   final List<ClipboardItem> _clipboardItems = [];
   bool _clipboardIsCut = false;
   List<dynamic> _fileList = [];
@@ -55,7 +55,7 @@ class _SftpPageState extends State<SftpPage> {
   bool _isLoading = true;
   bool _isConnected = false;
   bool _isConnecting = false;
-  String _status = '連線中...';
+  String _status = '连接中...';
   final Set<String> _selectedFiles = {};
   bool _isMultiSelectMode = false;
   double _uploadProgress = 0.0;
@@ -69,7 +69,7 @@ class _SftpPageState extends State<SftpPage> {
   DateTime? _lastBackPressedTime;
   bool _isProgressDialogOpen = false;
 
-  // 判斷是否為移動設備
+  // 判断是否为移动设备
   bool get _ismobile =>
       defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.ohos ||
@@ -93,7 +93,7 @@ class _SftpPageState extends State<SftpPage> {
         : Colors.grey[600]!;
   }
 
-  // 獲取AppBar背景色
+  // 获取AppBar背景色
   Color _getAppBarColor() {
     if (_isConnecting) return Colors.grey.shade700;
     if (_isConnected) return Theme.of(context).primaryColor;
@@ -109,7 +109,7 @@ class _SftpPageState extends State<SftpPage> {
             widget.connection.sftpPath ?? settings.defaultSftpPath ?? '/';
       });
     } catch (e) {
-      debugPrint('加載設定失敗: $e');
+      debugPrint('加载设置失败: $e');
       setState(() => _currentPath = '/');
     }
     await _connectSftp();
@@ -119,12 +119,11 @@ class _SftpPageState extends State<SftpPage> {
     try {
       if (!mounted) return;
       setState(() {
-        //清除已經保存的檔案選擇狀態，以防重連後產生衝突
         _isMultiSelectMode = false;
         _selectedFiles.clear();
         _isLoading = true;
         _isConnecting = true;
-        _status = '連線中...';
+        _status = '连接中...';
       });
 
       _sshClient =
@@ -135,14 +134,13 @@ class _SftpPageState extends State<SftpPage> {
         setState(() {
           _isConnected = true;
           _isConnecting = false;
-          _status = '已連線';
+          _status = '已连接';
         });
       }
 
       try {
         await _loadDirectory(_currentPath);
       } catch (e) {
-        debugPrint('初始路徑 $_currentPath 不可用，回退到根目錄: $e');
         await _loadDirectory('/');
       }
     } catch (e) {
@@ -151,40 +149,37 @@ class _SftpPageState extends State<SftpPage> {
           _isConnected = false;
           _isConnecting = false;
           _isLoading = false;
-          _status = '連線失敗: $e';
+          _status = '连接失败: $e';
         });
-        _showErrorDialog('SFTP連線失敗', e.toString());
+        _showErrorDialog('SFTP连接失败', e.toString());
       }
     }
   }
 
-  // 檢查連線狀態的輔助方法
   Future<bool> _checkConnection() async {
     if (!_isConnected || _sshClient == null || _sftpClient == null) {
       if (mounted) {
         setState(() {
           _isConnected = false;
           _isConnecting = false;
-          _status = '連線已斷開';
+          _status = '连接已断开';
         });
-        _showErrorDialog('連線錯誤', '請重新連線伺服器');
+        _showErrorDialog('连接已断开', '请重新连接服务器');
       }
       return false;
     }
 
-    // 嘗試執行一個簡單的命令來驗證連線是否仍然有效
     try {
       await _sshClient!.execute('pwd').timeout(const Duration(seconds: 5));
       return true;
     } catch (e) {
-      debugPrint('連線檢查失敗: $e');
       if (mounted) {
         setState(() {
           _isConnected = false;
           _isConnecting = false;
-          _status = '連線已斷開';
+          _status = '连接已断开';
         });
-        _showErrorDialog('連線已斷開', '伺服器連線已斷開，請重新連線');
+        _showErrorDialog('连接已断开', '请重新连接服务器');
       }
       return false;
     }
@@ -201,8 +196,8 @@ class _SftpPageState extends State<SftpPage> {
               if (_currentPath != '/')
                 IconButton(
                   icon: const Icon(Icons.arrow_back),
-                  onPressed: _goToParentDirectory,
-                  tooltip: '上級目錄',
+                  onPressed: _isConnected ? _goToParentDirectory : null,
+                  tooltip: '返回上一级',
                 )
               else
                 IconButton(
@@ -211,26 +206,26 @@ class _SftpPageState extends State<SftpPage> {
                   tooltip: '/',
                 ),
               const SizedBox(width: 3),
-              _buildIconButton(Icons.upload, '上傳檔案', _uploadFile, iconColor),
+              _buildIconButton(Icons.upload, '上传', _uploadFile, iconColor),
               const SizedBox(width: 3),
               _buildIconButton(
                   Icons.download,
-                  '下載檔案',
+                  '下载',
                   hasSelection ? _downloadSelectedFiles : null,
                   hasSelection ? iconColor : disabledIconColor),
               const SizedBox(width: 3),
               _buildIconButton(
                   Icons.delete,
-                  '刪除檔案',
+                  '删除',
                   hasSelection ? _deleteSelectedFiles : null,
                   hasSelection ? iconColor : disabledIconColor),
               const SizedBox(width: 3),
-              _buildIconButton(Icons.create_new_folder, '新增資料夾',
+              _buildIconButton(Icons.create_new_folder, '新建文件夹',
                   _createDirectory, iconColor),
               const SizedBox(width: 3),
               _buildIconButton(
                   Icons.drive_file_rename_outline,
-                  '重新命名',
+                  '重命名',
                   singleSelection ? _renameFile : null,
                   singleSelection ? iconColor : disabledIconColor),
               const SizedBox(width: 3),
@@ -238,24 +233,24 @@ class _SftpPageState extends State<SftpPage> {
                   _isMultiSelectMode
                       ? Icons.check_box_outline_blank
                       : Icons.check_box,
-                  _isMultiSelectMode ? '取消選擇' : '全選',
+                  _isMultiSelectMode ? '取消选择' : '全选',
                   _selectAllFiles,
                   iconColor),
               _buildIconButton(
                   Icons.copy,
-                  '複製',
+                  '复制',
                   hasSelection ? _copySelected : null,
                   hasSelection ? iconColor : disabledIconColor),
               const SizedBox(width: 3),
               _buildIconButton(
                   Icons.cut,
-                  '剪下',
+                  '剪切',
                   hasSelection ? _cutSelected : null,
                   hasSelection ? iconColor : disabledIconColor),
               const SizedBox(width: 3),
               _buildIconButton(
                   Icons.paste,
-                  '貼上',
+                  '粘贴',
                   _clipboardItems.isNotEmpty ? _pasteFile : null,
                   _clipboardItems.isNotEmpty ? iconColor : disabledIconColor),
             ]),
@@ -268,7 +263,7 @@ class _SftpPageState extends State<SftpPage> {
               TextButton.icon(
                 icon: Icon(Icons.info,
                     color: singleSelection ? iconColor : disabledIconColor),
-                label: Text('屬性',
+                label: Text('属性',
                     style: TextStyle(
                         color:
                             singleSelection ? iconColor : disabledIconColor)),
@@ -277,21 +272,21 @@ class _SftpPageState extends State<SftpPage> {
             else
               _buildIconButton(
                   Icons.info,
-                  '屬性',
+                  '属性',
                   singleSelection ? _showFileDetails : null,
                   singleSelection ? iconColor : disabledIconColor),
             const SizedBox(width: 3),
             if (isWideScreen)
               TextButton.icon(
                 icon: Icon(Icons.view_module, color: disabledIconColor),
-                label: Text('切換視圖', style: TextStyle(color: disabledIconColor)),
+                label: Text('切换视图', style: TextStyle(color: disabledIconColor)),
                 onPressed: () => setState(() => _viewMode =
                     _viewMode == ViewMode.list ? ViewMode.icon : ViewMode.list),
               )
             else
               _buildIconButton(
                   Icons.view_module,
-                  '切換視圖',
+                  '切换视图',
                   () => setState(() => _viewMode = _viewMode == ViewMode.list
                       ? ViewMode.icon
                       : ViewMode.list),
@@ -315,54 +310,52 @@ class _SftpPageState extends State<SftpPage> {
               SizedBox(
                 width: buttonWidth,
                 child: _currentPath != '/'
-                    ? _buildIconButton(Icons.arrow_back, '上級目錄',
-                        _goToParentDirectory, iconColor, iconSize: 20)
+                    ? _buildIconButton(Icons.arrow_back, '返回上级',
+                        _isConnected ? _goToParentDirectory : null, iconColor,
+                        iconSize: 20)
                     : _buildIconButton(
                         Icons.circle_outlined, '/', null, disabledIconColor,
                         iconSize: 20),
               ),
-              // 上傳按鈕
               SizedBox(
                 width: buttonWidth,
                 child: _buildIconButton(
-                    Icons.upload, '上傳', _uploadFile, iconColor,
+                    Icons.upload, '上传', _uploadFile, iconColor,
                     iconSize: 20),
               ),
-              // 下載按鈕
               SizedBox(
                 width: buttonWidth,
                 child: _buildIconButton(
                     Icons.download,
-                    '下載',
+                    '下载',
                     hasSelection ? _downloadSelectedFiles : null,
                     hasSelection ? iconColor : disabledIconColor,
                     iconSize: 20),
               ),
-              // 刪除按鈕
               SizedBox(
                 width: buttonWidth,
                 child: _buildIconButton(
                     Icons.delete,
-                    '刪除',
+                    '删除',
                     hasSelection ? _deleteSelectedFiles : null,
                     hasSelection ? iconColor : disabledIconColor,
                     iconSize: 20),
               ),
-              // 新增資料夾按鈕
+              // 新增文件夹按钮
               SizedBox(
                 width: buttonWidth,
-                child: _buildIconButton(Icons.create_new_folder, '新增資料夾',
+                child: _buildIconButton(Icons.create_new_folder, '新建文件夹',
                     _createDirectory, iconColor,
                     iconSize: 20),
               ),
-              // 全選按鈕
+              // 全选按钮
               SizedBox(
                 width: buttonWidth,
                 child: _buildIconButton(
                     _isMultiSelectMode
                         ? Icons.check_box_outline_blank
                         : Icons.check_box,
-                    _isMultiSelectMode ? '取消全選' : '全選',
+                    _isMultiSelectMode ? '取消选择' : '全选',
                     _selectAllFiles,
                     iconColor,
                     iconSize: 20),
@@ -370,67 +363,60 @@ class _SftpPageState extends State<SftpPage> {
             ],
           ),
         ),
-        // 第二行：次要操作按鈕和功能按鈕
         SizedBox(
           height: 40,
           child: Row(
             children: [
-              // 複製按鈕
               SizedBox(
                 width: buttonWidth,
                 child: _buildIconButton(
                     Icons.copy,
-                    '複製',
+                    '复制',
                     hasSelection ? _copySelected : null,
                     hasSelection ? iconColor : disabledIconColor,
                     iconSize: 20),
               ),
-              // 剪下按鈕
               SizedBox(
                 width: buttonWidth,
                 child: _buildIconButton(
                     Icons.cut,
-                    '剪下',
+                    '剪切',
                     hasSelection ? _cutSelected : null,
                     hasSelection ? iconColor : disabledIconColor,
                     iconSize: 20),
               ),
-              // 貼上按鈕
               SizedBox(
                 width: buttonWidth,
                 child: _buildIconButton(
                     Icons.paste,
-                    '貼上',
+                    '粘贴',
                     _clipboardItems.isNotEmpty ? _pasteFile : null,
                     _clipboardItems.isNotEmpty ? iconColor : disabledIconColor,
                     iconSize: 20),
               ),
-              // 重新命名按鈕 - 替換原來的刷新按鈕
               SizedBox(
                 width: buttonWidth,
                 child: _buildIconButton(
                     Icons.drive_file_rename_outline,
-                    '重新命名',
+                    '重命名',
                     singleSelection ? _renameFile : null,
                     singleSelection ? iconColor : disabledIconColor,
                     iconSize: 20),
               ),
-              // 屬性按鈕
               SizedBox(
                 width: buttonWidth,
                 child: _buildIconButton(
                     Icons.info,
-                    '屬性',
+                    '属性',
                     singleSelection ? _showFileDetails : null,
                     singleSelection ? iconColor : disabledIconColor,
                     iconSize: 20),
               ),
-              // 切換視圖按鈕
               SizedBox(
                 width: buttonWidth,
                 child: _buildIconButton(
                     Icons.view_module,
-                    '切換視圖',
+                    '切换视图',
                     () => setState(() => _viewMode = _viewMode == ViewMode.list
                         ? ViewMode.icon
                         : ViewMode.list),
@@ -445,7 +431,6 @@ class _SftpPageState extends State<SftpPage> {
   }
 
   Future<void> _loadDirectory(String dirPath) async {
-    // 在操作前檢查連線狀態
     if (!await _checkConnection()) return;
 
     try {
@@ -481,11 +466,10 @@ class _SftpPageState extends State<SftpPage> {
         });
       }
     } catch (e) {
-      // 如果操作失敗，檢查連線狀態
       if (!await _checkConnection()) return;
 
       if (mounted) setState(() => _isLoading = false);
-      _showErrorDialog('讀取目錄失敗', '路徑: $dirPath\n錯誤: $e');
+      _showErrorDialog('读取目录失败', '$e');
     }
   }
 
@@ -545,14 +529,12 @@ class _SftpPageState extends State<SftpPage> {
     });
   }
 
-  //重新命名
   Future<void> _renameFile() async {
     if (_selectedFiles.length != 1) {
-      _showErrorDialog('重新命名失敗', '請選擇一個檔案或資料夾進行重新命名');
+      _showErrorDialog('重命名失败', '请重新选择');
       return;
     }
 
-    // 在操作前檢查連線狀態
     if (!await _checkConnection()) return;
 
     final oldName = _selectedFiles.first;
@@ -563,12 +545,12 @@ class _SftpPageState extends State<SftpPage> {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('重新命名'),
+        title: const Text('重命名'),
         content: TextField(
           controller: textController,
           decoration: const InputDecoration(
-            labelText: '新名稱',
-            hintText: '輸入新的檔案/資料夾名稱',
+            labelText: '新文件名',
+            hintText: '请输入新的文件名称',
           ),
           autofocus: true,
         ),
@@ -581,7 +563,7 @@ class _SftpPageState extends State<SftpPage> {
             onPressed: () async {
               final newName = textController.text.trim();
               if (newName.isEmpty) {
-                _showErrorDialog('重新命名失敗', '名稱不能為空');
+                _showErrorDialog('重命名失败', '名称不能为空');
                 return;
               }
               if (newName == oldName) {
@@ -591,7 +573,7 @@ class _SftpPageState extends State<SftpPage> {
               Navigator.of(context).pop();
               await _renameFileAction(oldPath, oldName, newName);
             },
-            child: const Text('重新命名'),
+            child: const Text('重命名'),
           ),
         ],
       ),
@@ -603,10 +585,9 @@ class _SftpPageState extends State<SftpPage> {
     try {
       final newPath = _joinPath(_currentPath, newName);
 
-      // 檢查新名稱是否已存在
       try {
         await _sftpClient.stat(newPath);
-        _showErrorDialog('重新命名失敗', '名稱 "$newName" 已存在');
+        _showErrorDialog('重命名', '"$newName" 已存在');
         return;
       } catch (e) {}
 
@@ -614,18 +595,17 @@ class _SftpPageState extends State<SftpPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('重新命名成功: $oldName → $newName')),
+          SnackBar(content: Text('重命名成功: $oldName → $newName')),
         );
         _clearSelectionAndExitMultiSelect();
         await _loadDirectory(_currentPath);
       }
     } catch (e) {
-      _showErrorDialog('重新命名失敗', e.toString());
+      _showErrorDialog('重命名失败', e.toString());
     }
   }
 
   Future<void> _uploadFile() async {
-    // 在操作前檢查連線狀態
     if (!await _checkConnection()) return;
 
     try {
@@ -637,14 +617,13 @@ class _SftpPageState extends State<SftpPage> {
 
       if (file == null || !mounted) return;
 
-      _showProgressDialog('上傳檔案', showCancel: true);
+      _showProgressDialog('上传文件', showCancel: true);
       _cancelOperation = false;
 
       int successCount = 0;
       int totalCount = 1;
       int skippedCount = 0;
 
-      // 在每個檔案上傳前檢查連線狀態
       if (!await _checkConnection()) return;
       if (_cancelOperation) return;
 
@@ -667,21 +646,21 @@ class _SftpPageState extends State<SftpPage> {
             context: context,
             barrierDismissible: false,
             builder: (context) => AlertDialog(
-              title: const Text('檔案已存在'),
-              content: Text('檔案 "${file.name}" 已存在，是否覆蓋？'),
+              title: const Text('文件'),
+              content: Text('文件 "${file.name}" 已存在，是否覆盖？'),
               actions: [
                 OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('跳過'),
+                  child: const Text('跳过'),
                 ),
                 OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('覆蓋', style: TextStyle(color: Colors.red)),
+                  child: const Text('覆盖', style: TextStyle(color: Colors.red)),
                 ),
               ],
             ),
           );
-          _showProgressDialog('上傳檔案', showCancel: true);
+          _showProgressDialog('上传文件', showCancel: true);
           if (shouldOverwrite == false) {
             skippedCount++;
             return;
@@ -691,7 +670,7 @@ class _SftpPageState extends State<SftpPage> {
 
       final fileSize = await localFile.length();
       setState(() {
-        _currentOperation = '正在上傳: ${file.name} (1 / 1)';
+        _currentOperation = '正在上传: ${file.name} (1 / 1)';
         _uploadProgress = 0.0;
       });
 
@@ -705,7 +684,6 @@ class _SftpPageState extends State<SftpPage> {
 
       int offset = 0;
       await for (final chunk in localFile.openRead()) {
-        // 在每次寫入前檢查連線狀態
         if (!await _checkConnection()) break;
         if (_cancelOperation) break;
 
@@ -726,8 +704,8 @@ class _SftpPageState extends State<SftpPage> {
 
       if (mounted) Navigator.of(context).pop();
       if (!_cancelOperation && mounted) {
-        String message = '上傳完成: $successCount / $totalCount 個檔案';
-        if (skippedCount > 0) message += ' (跳過 $skippedCount 個檔案)';
+        String message = '上传完成: $successCount / $totalCount 个文件';
+        if (skippedCount > 0) message += ' (跳过 $skippedCount 个文件)';
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(message)));
         await _loadDirectory(_currentPath);
@@ -737,7 +715,7 @@ class _SftpPageState extends State<SftpPage> {
         try {
           Navigator.of(context).pop();
         } catch (_) {}
-        _showErrorDialog('上傳失敗', e.toString());
+        _showErrorDialog('上传失败', e.toString());
       }
     } finally {
       _currentUploader = null;
@@ -747,18 +725,16 @@ class _SftpPageState extends State<SftpPage> {
   }
 
   Future<void> _deleteSelectedFilesAction() async {
-    // 在操作前檢查連線狀態
     if (!await _checkConnection()) return;
 
     try {
       int successCount = 0;
       int totalCount = _selectedFiles.length;
 
-      _showProgressDialog('刪除檔案', showCancel: true);
+      _showProgressDialog('删除文件', showCancel: true);
       _cancelOperation = false;
 
       for (int i = 0; i < totalCount; i++) {
-        // 在刪除每個檔案前檢查連線狀態
         if (!await _checkConnection()) break;
         if (_cancelOperation) break;
 
@@ -766,13 +742,12 @@ class _SftpPageState extends State<SftpPage> {
         final itemPath = _joinPath(_currentPath, filename);
 
         setState(() {
-          _currentOperation = '正在刪除: $filename (${i + 1} / $totalCount)';
+          _currentOperation = '正在删除: $filename (${i + 1} / $totalCount)';
         });
 
         try {
           final stat = await _sftpClient.stat(itemPath);
           if (stat.isDirectory) {
-            // 使用SSH命令刪除目錄，支援非空目錄
             final session = await _sshClient!
                 .execute('rm -rf "${_escapeShellArgument(itemPath)}"');
             await session.done;
@@ -780,14 +755,14 @@ class _SftpPageState extends State<SftpPage> {
               successCount++;
             } else {
               final error = await session.stderr.join();
-              debugPrint('刪除目錄失敗: $error');
+              debugPrint('删除目录失败: $error');
             }
           } else {
             await _sftpClient.remove(itemPath);
             successCount++;
           }
         } catch (e) {
-          debugPrint('刪除 $filename 失敗: $e');
+          debugPrint('删除 $filename 失败: $e');
         }
       }
 
@@ -795,7 +770,7 @@ class _SftpPageState extends State<SftpPage> {
       if (!_cancelOperation && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('刪除完成: $successCount/${_selectedFiles.length}')),
+              content: Text('删除成功: $successCount/${_selectedFiles.length}')),
         );
         _clearSelectionAndExitMultiSelect();
         await _loadDirectory(_currentPath);
@@ -805,25 +780,21 @@ class _SftpPageState extends State<SftpPage> {
         try {
           Navigator.of(context).pop();
         } catch (_) {}
-        _showErrorDialog('刪除失敗', e.toString());
+        _showErrorDialog('删除失败', e.toString());
       }
     } finally {
       _currentOperation = '';
     }
   }
 
-  // 轉義Shell參數中的特殊字符
   String _escapeShellArgument(String argument) {
     return argument.replaceAll("'", "'\\''");
   }
 
   Future<void> _downloadSelectedFiles() async {
     if (_selectedFiles.isEmpty) {
-      debugPrint('沒有選中任何檔案，跳過下載');
       return;
     }
-
-    // 在操作前檢查連線狀態
     if (!await _checkConnection()) return;
 
     List<String> directories = [];
@@ -833,7 +804,7 @@ class _SftpPageState extends State<SftpPage> {
             .firstWhere((item) => item.filename.toString() == filename);
         if (fileItem.attr?.isDirectory == true) directories.add(filename);
       } catch (e) {
-        debugPrint('找不到檔案: $filename');
+        debugPrint('找不到文件: $filename');
       }
     }
 
@@ -841,8 +812,7 @@ class _SftpPageState extends State<SftpPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('錯誤: 不能下載目錄: ${directories.join(', ')}'),
-            backgroundColor: Colors.red,
+            content: Text('暂不支持下载目录'),
           ),
         );
       }
@@ -863,22 +833,21 @@ class _SftpPageState extends State<SftpPage> {
     } catch (e) {
       if (mounted) {
         if (saveDir == null || saveDir.isEmpty) {
-          debugPrint('沒有可用的下載目錄，下載操作已取消');
+          debugPrint('没有可用的下载目录，下载操作已取消');
         } else {
-          _showErrorDialog('下載失敗', '無法創建保存目錄: $e');
+          _showErrorDialog('下载失败', '无法创建目录: $e');
         }
       }
       return;
     }
 
-    _showProgressDialog('下載檔案', showCancel: true);
+    _showProgressDialog('下载文件', showCancel: true);
     _cancelOperation = false;
 
     int successCount = 0;
     int total = _selectedFiles.length;
 
     for (int i = 0; i < total; i++) {
-      // 在下載每個檔案前檢查連線狀態
       if (!await _checkConnection()) break;
       if (_cancelOperation) break;
 
@@ -888,7 +857,7 @@ class _SftpPageState extends State<SftpPage> {
       final localFilePath = '$saveDir/$safeFilename';
 
       setState(() {
-        _currentOperation = '正在下載: $filename (${i + 1} / $total)';
+        _currentOperation = '正在下载: $filename (${i + 1} / $total)';
         _downloadProgress = 0.0;
       });
 
@@ -903,7 +872,7 @@ class _SftpPageState extends State<SftpPage> {
       } catch (_) {}
       if (!_cancelOperation) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('下載完成: $successCount / $total 個檔案')),
+          SnackBar(content: Text('下载完成: $successCount / $total 个文件')),
         );
         _clearSelectionAndExitMultiSelect();
       }
@@ -926,7 +895,7 @@ class _SftpPageState extends State<SftpPage> {
     } else {
       if (Platform.isOhos) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('HarmonyOS暫不支援檔案下載')));
+            .showSnackBar(const SnackBar(content: Text('HarmonyOS暂不支持文件下载')));
         //for 2in1,tablet only
         //return await PathProviderPlatform.instance.getDownloadsPath();
       } else {
@@ -951,7 +920,7 @@ class _SftpPageState extends State<SftpPage> {
       final stat = await _sftpClient.stat(remotePath);
       final int fileSize = (stat.size ?? 0).toInt();
       if (fileSize <= 0) {
-        debugPrint('檔案大小為0或無效: $filename');
+        debugPrint('文件大小为0或无效: $filename');
         return;
       }
 
@@ -964,7 +933,6 @@ class _SftpPageState extends State<SftpPage> {
       const int chunkSize = 32 * 1024;
 
       while (offset < fileSize && !_cancelOperation) {
-        // 在每次讀取前檢查連線狀態
         if (!await _checkConnection()) break;
 
         final bytesToRead =
@@ -972,7 +940,7 @@ class _SftpPageState extends State<SftpPage> {
         final chunk =
             await remote.readBytes(offset: offset, length: bytesToRead);
         if (chunk.isEmpty) {
-          debugPrint('讀取到空數據塊，檔案可能已損壞: $filename');
+          debugPrint('文件可能已经损坏: $filename');
           break;
         }
         sink.add(chunk);
@@ -988,7 +956,7 @@ class _SftpPageState extends State<SftpPage> {
       await remote.close();
       _currentDownloadFile = null;
     } catch (e) {
-      debugPrint('下載檔案 $filename 失敗: $e');
+      debugPrint('下载文件 $filename 失败: $e');
       try {
         await sink?.close();
       } catch (_) {}
@@ -1000,7 +968,7 @@ class _SftpPageState extends State<SftpPage> {
         final incompleteFile = File(localFilePath);
         if (await incompleteFile.exists()) await incompleteFile.delete();
       } catch (deleteError) {
-        debugPrint('刪除不完整檔案失敗: $deleteError');
+        debugPrint('删除不完整的文件失败: $deleteError');
       }
       rethrow;
     }
@@ -1015,12 +983,12 @@ class _SftpPageState extends State<SftpPage> {
     try {
       await _currentUploader?.close();
     } catch (e) {
-      debugPrint('關閉 uploader 出錯: $e');
+      debugPrint('关闭 uploader 出错: $e');
     }
     try {
       await _currentDownloadFile?.close();
     } catch (e) {
-      debugPrint('關閉 download file 出錯: $e');
+      debugPrint('关闭 download file 出错: $e');
     }
     _currentUploader = null;
     _currentDownloadFile = null;
@@ -1032,7 +1000,6 @@ class _SftpPageState extends State<SftpPage> {
         _currentOperation = '';
       });
 
-      // 安全關閉對話框
       if (_isProgressDialogOpen && Navigator.canPop(context)) {
         Navigator.of(context, rootNavigator: true).pop();
       }
@@ -1047,14 +1014,13 @@ class _SftpPageState extends State<SftpPage> {
   Future<void> _deleteSelectedFiles() async {
     if (_selectedFiles.isEmpty) return;
 
-    // 在操作前檢查連線狀態
     if (!await _checkConnection()) return;
 
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('刪除檔案'),
-        content: Text('確定要刪除選中的 ${_selectedFiles.length} 個檔案/資料夾嗎？'),
+        title: const Text('删除文件'),
+        content: Text('确定要删除选中的 ${_selectedFiles.length} 个文件/文件夹吗？'),
         actions: [
           OutlinedButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -1065,7 +1031,7 @@ class _SftpPageState extends State<SftpPage> {
               Navigator.of(context).pop();
               await _deleteSelectedFilesAction();
             },
-            child: const Text('刪除', style: TextStyle(color: Colors.red)),
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -1075,7 +1041,6 @@ class _SftpPageState extends State<SftpPage> {
   Future<void> _showFileDetails() async {
     if (_selectedFiles.length != 1) return;
 
-    // 在操作前檢查連線狀態
     if (!await _checkConnection()) return;
 
     final filename = _selectedFiles.first;
@@ -1087,33 +1052,33 @@ class _SftpPageState extends State<SftpPage> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text('屬性 - $filename'),
+            title: Text('属性 - $filename'),
             content: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildDetailItem('檔案名', filename),
-                  _buildDetailItem('路徑', filePath),
-                  _buildDetailItem('類型', _getFileType(stat)),
+                  _buildDetailItem('文件名', filename),
+                  _buildDetailItem('路径', filePath),
+                  _buildDetailItem('类型', _getFileType(stat)),
                   _buildDetailItem('大小', _formatFileSize(stat.size ?? 0)),
-                  _buildDetailItem('權限', _getPermissions(stat)),
-                  _buildDetailItem('修改時間', _formatDate(stat.modifyTime)),
-                  _buildDetailItem('訪問時間', _formatDate(stat.accessTime)),
+                  _buildDetailItem('权限', _getPermissions(stat)),
+                  _buildDetailItem('修改时间', _formatDate(stat.modifyTime)),
+                  _buildDetailItem('访问时间', _formatDate(stat.accessTime)),
                 ],
               ),
             ),
             actions: [
               OutlinedButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('關閉'),
+                child: const Text('关闭'),
               ),
             ],
           ),
         );
       }
     } catch (e) {
-      _showErrorDialog('獲取屬性失敗', e.toString());
+      _showErrorDialog('读取文件属性失败', e.toString());
     }
   }
 
@@ -1224,7 +1189,7 @@ class _SftpPageState extends State<SftpPage> {
         color: isDirectory ? Colors.blueAccent : Colors.grey,
       ),
       title: Text(filename),
-      subtitle: Text(isDirectory ? '資料夾' : _formatFileSize(size)),
+      subtitle: Text(isDirectory ? '文件夹' : _formatFileSize(size)),
       onTap: () {
         if (_isMultiSelectMode) {
           _toggleFileSelection(filename);
@@ -1257,23 +1222,23 @@ class _SftpPageState extends State<SftpPage> {
   }
 
   String _getFileType(dynamic stat) {
-    if (stat.isDirectory) return '目錄';
-    if (stat.isSymbolicLink) return '符號鏈接';
+    if (stat.isDirectory) return '目录';
+    if (stat.isSymbolicLink) return '符号链接';
     if (stat.isSocket) return '套接字';
-    if (stat.isBlockDevice) return '塊設備';
-    if (stat.isCharacterDevice) return '字符設備';
+    if (stat.isBlockDevice) return '块设备';
+    if (stat.isCharacterDevice) return '字符设备';
 
     try {
       final type = stat.type?.toString().toLowerCase() ?? '';
-      if (type.contains('directory')) return '目錄';
-      if (type.contains('symlink') || type.contains('link')) return '符號鏈接';
+      if (type.contains('directory')) return '目录';
+      if (type.contains('symlink') || type.contains('link')) return '符号链接';
       if (type.contains('socket')) return '套接字';
-      if (type.contains('block')) return '塊設備';
-      if (type.contains('character')) return '字符設備';
+      if (type.contains('block')) return '块设备';
+      if (type.contains('character')) return '字符设备';
       if (type.contains('fifo') || type.contains('pipe')) return 'FIFO';
-      if (type.contains('regular') || type.contains('file')) return '普通檔案';
+      if (type.contains('regular') || type.contains('file')) return '普通文件';
     } catch (e) {}
-    return '普通檔案';
+    return '普通文件';
   }
 
   String _getPermissions(dynamic stat) {
@@ -1316,7 +1281,7 @@ class _SftpPageState extends State<SftpPage> {
       }
       return '---------';
     } catch (e) {
-      debugPrint('獲取權限失敗: $e');
+      debugPrint('获取权限失败: $e');
       return '---------';
     }
   }
@@ -1356,19 +1321,19 @@ class _SftpPageState extends State<SftpPage> {
   }
 
   Future<void> _createDirectory() async {
-    // 在操作前檢查連線狀態
+    // 在操作前检查连接状态
     if (!await _checkConnection()) return;
 
     final textController = TextEditingController();
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('新增資料夾'),
+        title: const Text('新建文件夹'),
         content: TextField(
           controller: textController,
           decoration: const InputDecoration(
-            labelText: '資料夾名稱',
-            hintText: '輸入新資料夾名稱',
+            labelText: '文件夹名称',
+            hintText: '输入新文件夹名称',
           ),
           autofocus: true,
         ),
@@ -1384,7 +1349,7 @@ class _SftpPageState extends State<SftpPage> {
                 await _createDirectoryAction(textController.text.trim());
               }
             },
-            child: const Text('創建'),
+            child: const Text('创建'),
           ),
         ],
       ),
@@ -1392,7 +1357,7 @@ class _SftpPageState extends State<SftpPage> {
   }
 
   Future<void> _createDirectoryAction(String dirName) async {
-    // 在操作前檢查連線狀態
+    // 在操作前检查连接状态
     if (!await _checkConnection()) return;
 
     try {
@@ -1400,19 +1365,19 @@ class _SftpPageState extends State<SftpPage> {
       await _sftpClient.mkdir(newDirPath);
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('資料夾創建成功')));
+            .showSnackBar(const SnackBar(content: Text('文件夹创建成功')));
         await _loadDirectory(_currentPath);
       }
     } catch (e) {
-      _showErrorDialog('創建資料夾失敗', e.toString());
+      _showErrorDialog('创建文件夹失败', e.toString());
     }
   }
 
-  // 修改為支持批量複製
+  // 修改为支持批量复制
   Future<void> _copySelected() async {
     if (_selectedFiles.isEmpty) return;
 
-    // 在操作前檢查連線狀態
+    // 在操作前检查连接状态
     if (!await _checkConnection()) return;
 
     final newClipboardItems = <ClipboardItem>[];
@@ -1423,7 +1388,7 @@ class _SftpPageState extends State<SftpPage> {
       try {
         final stat = await _sftpClient.stat(remotePath);
         if (!_hasReadPermission(stat)) {
-          _showErrorDialog('複製失敗', '沒有讀取 $name 的權限');
+          _showErrorDialog('复制失败', '没有读取 $name 的权限');
           return;
         }
         newClipboardItems.add(ClipboardItem(
@@ -1432,7 +1397,7 @@ class _SftpPageState extends State<SftpPage> {
           name: name,
         ));
       } catch (e) {
-        _showErrorDialog('複製失敗', '無法訪問 $name: $e');
+        _showErrorDialog('复制失败', '无法访问 $name: $e');
         return;
       }
     }
@@ -1445,17 +1410,17 @@ class _SftpPageState extends State<SftpPage> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已複製 ${_selectedFiles.length} 個項目')),
+        SnackBar(content: Text('已复制 ${_selectedFiles.length} 个项目')),
       );
       _clearSelectionAndExitMultiSelect();
     }
   }
 
-  // 修改為支持批量剪下
+  // 修改为支持批量剪切
   Future<void> _cutSelected() async {
     if (_selectedFiles.isEmpty) return;
 
-    // 在操作前檢查連線狀態
+    // 在操作前检查连接状态
     if (!await _checkConnection()) return;
 
     final newClipboardItems = <ClipboardItem>[];
@@ -1466,7 +1431,7 @@ class _SftpPageState extends State<SftpPage> {
       try {
         final stat = await _sftpClient.stat(remotePath);
         if (!_hasReadPermission(stat)) {
-          _showErrorDialog('剪下失敗', '沒有修改 $name 的權限');
+          _showErrorDialog('剪切失败', '没有修改 $name 的权限');
           return;
         }
         newClipboardItems.add(ClipboardItem(
@@ -1475,7 +1440,7 @@ class _SftpPageState extends State<SftpPage> {
           name: name,
         ));
       } catch (e) {
-        _showErrorDialog('剪下失敗', '無法訪問 $name: $e');
+        _showErrorDialog('剪切失败', '无法访问 $name: $e');
         return;
       }
     }
@@ -1488,7 +1453,7 @@ class _SftpPageState extends State<SftpPage> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已剪下 ${_selectedFiles.length} 個項目')),
+        SnackBar(content: Text('已剪切 ${_selectedFiles.length} 个项目')),
       );
     }
   }
@@ -1498,7 +1463,7 @@ class _SftpPageState extends State<SftpPage> {
       final permissions = _getPermissions(stat);
       return permissions.length >= 9 && permissions[6] == 'r';
     } catch (e) {
-      debugPrint('檢查讀取權限失敗: $e');
+      debugPrint('检查读取权限失败: $e');
       return true;
     }
   }
@@ -1520,7 +1485,7 @@ class _SftpPageState extends State<SftpPage> {
             final progress =
                 _uploadProgress > 0 ? _uploadProgress : _downloadProgress;
             final displayedText =
-                _currentOperation.isEmpty ? '處理中...' : _currentOperation;
+                _currentOperation.isEmpty ? '处理中...' : _currentOperation;
             return AlertDialog(
               title: Text(title),
               content: Column(
@@ -1549,14 +1514,14 @@ class _SftpPageState extends State<SftpPage> {
     });
   }
 
-  // 修改為支持批量貼上，添加權限檢查
+  // 修改为支持批量粘贴，添加权限检查
   Future<void> _pasteFile() async {
     if (_clipboardItems.isEmpty) return;
 
-    // 在操作前檢查連線狀態
+    // 在操作前检查连接状态
     if (!await _checkConnection()) return;
 
-    _showProgressDialog('貼上檔案', showCancel: true);
+    _showProgressDialog('粘贴文件', showCancel: true);
     _cancelOperation = false;
 
     int successCount = 0;
@@ -1570,16 +1535,16 @@ class _SftpPageState extends State<SftpPage> {
       final newPath = _joinPath(_currentPath, item.name);
 
       setState(() {
-        _currentOperation = '正在貼上: ${item.name} (${i + 1} / $totalCount)';
+        _currentOperation = '正在粘贴: ${item.name} (${i + 1} / $totalCount)';
       });
 
       try {
         if (_clipboardIsCut) {
-          // 剪下操作：移動檔案/目錄
+          // 剪切操作：移动文件/目录
           await _sftpClient.rename(item.path, newPath);
           successCount++;
         } else {
-          // 複製操作：使用SSH命令複製
+          // 复制操作：使用SSH命令复制
           final cmd = item.isDirectory
               ? 'cp -r "${_escapeShellArgument(item.path)}" "${_escapeShellArgument(newPath)}"'
               : 'cp "${_escapeShellArgument(item.path)}" "${_escapeShellArgument(newPath)}"';
@@ -1591,11 +1556,11 @@ class _SftpPageState extends State<SftpPage> {
             successCount++;
           } else {
             final stderr = await session.stderr.join();
-            debugPrint('複製失敗: $stderr');
+            debugPrint('复制失败: $stderr');
           }
         }
       } catch (e) {
-        debugPrint('貼上 ${item.name} 失敗: $e');
+        debugPrint('粘贴 ${item.name} 失败: $e');
       }
     }
 
@@ -1603,10 +1568,10 @@ class _SftpPageState extends State<SftpPage> {
 
     if (!_cancelOperation && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('貼上完成: $successCount / $totalCount 個項目')),
+        SnackBar(content: Text('粘贴完成: $successCount / $totalCount 个项目')),
       );
 
-      // 如果是剪下操作，清空剪貼板
+      // 如果是剪切操作，清空剪贴板
       if (_clipboardIsCut) {
         setState(() {
           _clipboardItems.clear();
@@ -1630,7 +1595,7 @@ class _SftpPageState extends State<SftpPage> {
         actions: [
           OutlinedButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('確定'))
+              child: const Text('确定'))
         ],
       ),
     );
@@ -1710,7 +1675,7 @@ class _SftpPageState extends State<SftpPage> {
 
           Future.delayed(const Duration(seconds: 3), () {});
         } else {
-          // 允許退出
+          // 允许退出
           if (mounted) {
             Navigator.of(context).pop();
           }
@@ -1722,7 +1687,7 @@ class _SftpPageState extends State<SftpPage> {
           backgroundColor: _getAppBarColor(),
           foregroundColor: Colors.white,
           titleSpacing: 0,
-          automaticallyImplyLeading: false, // 完全禁用預設的返回按鈕
+          automaticallyImplyLeading: false, // 完全禁用默认的返回按钮
           leading: _ismobile
               ? null
               : IconButton(
@@ -1733,7 +1698,7 @@ class _SftpPageState extends State<SftpPage> {
           title: Container(
             width: double.infinity,
             child: Padding(
-              padding: EdgeInsets.only(left: _ismobile ? 18.0 : 0), // 添加左邊距
+              padding: EdgeInsets.only(left: _ismobile ? 18.0 : 0), // 添加左边距
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1791,7 +1756,7 @@ class _SftpPageState extends State<SftpPage> {
                 ),
                 const PopupMenuItem(
                   value: 'reconnect',
-                  child: Row(children: [Text('重新連線')]),
+                  child: Row(children: [Text('重新连接')]),
                 ),
                 const PopupMenuDivider(),
                 const PopupMenuItem(
@@ -1829,9 +1794,9 @@ class _SftpPageState extends State<SftpPage> {
             ),
             Expanded(
               child: _isLoading
-                  ? const Center(child: Text('正在加載'))
+                  ? const Center(child: Text('正在加载'))
                   : _fileList.isEmpty
-                      ? const Center(child: Text('目錄為空'))
+                      ? const Center(child: Text('目录为空'))
                       : _viewMode == ViewMode.list
                           ? _buildListView()
                           : _buildGridView(),

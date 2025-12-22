@@ -821,7 +821,7 @@ class _KeygenPageState extends State<KeygenPage> {
                 child: SelectableText(
                   keyContent,
                   style: const TextStyle(
-                    fontFamily: 'monospace',
+                    fontFamily: 'maple',
                     fontSize: 11,
                   ),
                 ),
