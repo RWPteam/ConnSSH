@@ -6,7 +6,7 @@ import 'terminal_page.dart';
 import 'package:uuid/uuid.dart';
 import 'models/connection_model.dart';
 import 'services/storage_service.dart';
-import 'quick_connect_dialog.dart';
+import 'components/quick_connect_dialog.dart';
 import 'services/ssh_service.dart';
 import 'sftp_page.dart';
 
@@ -267,7 +267,7 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
                       leading: Icon(
                         connection.type == ConnectionType.ssh
                             ? Icons.terminal
-                            : Icons.folder_shared,
+                            : Icons.folder,
                       ),
                       title: Text(
                         connection.name,

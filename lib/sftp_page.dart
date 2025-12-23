@@ -2,6 +2,8 @@
 
 import 'dart:io';
 import 'dart:async';
+import 'dart:convert';
+import 'package:connssh/components/file_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:file_selector/file_selector.dart';
@@ -187,6 +189,18 @@ class _SftpPageState extends State<SftpPage> {
 
   Widget _buildSingleRowToolbar(Color iconColor, Color disabledIconColor,
       bool hasSelection, bool singleSelection, bool isWideScreen) {
+    // 判断是否显示编辑按钮
+    bool showEditButton = _isMultiSelectMode &&
+        _selectedFiles.length == 1 &&
+        !_isSelectedItemDirectory() && // 检查选中的不是文件夹
+        _isTextFile(_selectedFiles.first);
+
+    // 判断上传按钮是否可用
+    bool uploadEnabled = !_isMultiSelectMode ||
+        (_isMultiSelectMode &&
+            _selectedFiles.isEmpty &&
+            !_isSelectedItemDirectory());
+
     return Row(
       children: [
         Expanded(
@@ -206,7 +220,21 @@ class _SftpPageState extends State<SftpPage> {
                   tooltip: '/',
                 ),
               const SizedBox(width: 3),
-              _buildIconButton(Icons.upload, '上传', _uploadFile, iconColor),
+              // 上传/编辑按钮
+              if (showEditButton)
+                _buildIconButton(
+                  Icons.edit,
+                  '编辑',
+                  _editSelectedFile,
+                  iconColor,
+                )
+              else
+                _buildIconButton(
+                  Icons.upload,
+                  '上传',
+                  uploadEnabled ? _uploadFile : null,
+                  uploadEnabled ? iconColor : disabledIconColor,
+                ),
               const SizedBox(width: 3),
               _buildIconButton(
                   Icons.download,
@@ -220,8 +248,9 @@ class _SftpPageState extends State<SftpPage> {
                   hasSelection ? _deleteSelectedFiles : null,
                   hasSelection ? iconColor : disabledIconColor),
               const SizedBox(width: 3),
-              _buildIconButton(Icons.create_new_folder, '新建文件夹',
-                  _createDirectory, iconColor),
+              // 修改为新建按钮，点击弹出dialog选择文件/文件夹
+              _buildIconButton(
+                  Icons.create_new_folder, '新建', _showCreateDialog, iconColor),
               const SizedBox(width: 3),
               _buildIconButton(
                   Icons.drive_file_rename_outline,
@@ -278,8 +307,8 @@ class _SftpPageState extends State<SftpPage> {
             const SizedBox(width: 3),
             if (isWideScreen)
               TextButton.icon(
-                icon: Icon(Icons.view_module, color: disabledIconColor),
-                label: Text('切换视图', style: TextStyle(color: disabledIconColor)),
+                icon: Icon(Icons.view_module, color: iconColor),
+                label: Text('切换视图', style: TextStyle(color: iconColor)),
                 onPressed: () => setState(() => _viewMode =
                     _viewMode == ViewMode.list ? ViewMode.icon : ViewMode.list),
               )
@@ -290,7 +319,7 @@ class _SftpPageState extends State<SftpPage> {
                   () => setState(() => _viewMode = _viewMode == ViewMode.list
                       ? ViewMode.icon
                       : ViewMode.list),
-                  disabledIconColor),
+                  iconColor),
           ]),
         ),
       ],
@@ -317,11 +346,32 @@ class _SftpPageState extends State<SftpPage> {
                         Icons.circle_outlined, '/', null, disabledIconColor,
                         iconSize: 20),
               ),
+              // 上传/编辑按钮
               SizedBox(
                 width: buttonWidth,
-                child: _buildIconButton(
-                    Icons.upload, '上传', _uploadFile, iconColor,
-                    iconSize: 20),
+                child: _isMultiSelectMode &&
+                        _selectedFiles.length == 1 &&
+                        !_isSelectedItemDirectory() && // 检查选中的不是文件夹
+                        _isTextFile(_selectedFiles.first)
+                    ? _buildIconButton(
+                        Icons.edit, '编辑', _editSelectedFile, iconColor,
+                        iconSize: 20)
+                    : _buildIconButton(
+                        Icons.upload,
+                        '上传',
+                        !_isMultiSelectMode ||
+                                (_isMultiSelectMode &&
+                                    _selectedFiles.isEmpty &&
+                                    !_isSelectedItemDirectory())
+                            ? _uploadFile
+                            : null,
+                        !_isMultiSelectMode ||
+                                (_isMultiSelectMode &&
+                                    _selectedFiles.isEmpty &&
+                                    !_isSelectedItemDirectory())
+                            ? iconColor
+                            : disabledIconColor,
+                        iconSize: 20),
               ),
               SizedBox(
                 width: buttonWidth,
@@ -341,11 +391,11 @@ class _SftpPageState extends State<SftpPage> {
                     hasSelection ? iconColor : disabledIconColor,
                     iconSize: 20),
               ),
-              // 新增文件夹按钮
+              // 新建按钮
               SizedBox(
                 width: buttonWidth,
-                child: _buildIconButton(Icons.create_new_folder, '新建文件夹',
-                    _createDirectory, iconColor,
+                child: _buildIconButton(
+                    Icons.create_new_folder, '新建', _showCreateDialog, iconColor,
                     iconSize: 20),
               ),
               // 全选按钮
@@ -428,6 +478,95 @@ class _SftpPageState extends State<SftpPage> {
         ),
       ],
     );
+  }
+
+  // 检查选中的项目是否为文件夹
+  bool _isSelectedItemDirectory() {
+    if (_selectedFiles.isEmpty) return false;
+
+    final filename = _selectedFiles.first;
+    try {
+      final fileItem =
+          _fileList.firstWhere((item) => item.filename.toString() == filename);
+      return fileItem.attr?.isDirectory == true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<void> _showCreateDialog() async {
+    if (!await _checkConnection()) return;
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('新建'),
+        content: const Text('请选择要创建的类型'),
+        actions: [
+          OutlinedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _createFile();
+            },
+            child: const Text('文件'),
+          ),
+          OutlinedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _createDirectory();
+            },
+            child: const Text('文件夹'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 判断是否为文本文件
+  bool _isTextFile(String filename) {
+    final textFileExtensions = [
+      '.txt',
+      '.md',
+      '.json',
+      '.xml',
+      '.html',
+      '.css',
+      '.js',
+      '.dart',
+      '.java',
+      '.py',
+      '.cpp',
+      '.c',
+      '.h',
+      '.cs',
+      '.php',
+      '.rb',
+      '.go',
+      '.rs',
+      '.swift',
+      '.kt',
+      '.ts',
+      '.sql',
+      '.yml',
+      '.yaml',
+      '.ini',
+      '.cfg',
+      '.conf',
+      '.log',
+      '.sh',
+      '.bat',
+      '.ps1',
+      '.yaml',
+      '.toml',
+      '.properties'
+    ];
+
+    final lowercaseName = filename.toLowerCase();
+    return textFileExtensions.any((ext) => lowercaseName.endsWith(ext)) ||
+        !lowercaseName.contains('.') ||
+        lowercaseName.endsWith('.config') ||
+        lowercaseName.endsWith('.gitignore') ||
+        lowercaseName.endsWith('.dockerfile');
   }
 
   Future<void> _loadDirectory(String dirPath) async {
@@ -1356,6 +1495,42 @@ class _SftpPageState extends State<SftpPage> {
     );
   }
 
+  Future<void> _createFile() async {
+    // 在操作前检查连接状态
+    if (!await _checkConnection()) return;
+
+    final textController = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('新建文件'),
+        content: TextField(
+          controller: textController,
+          decoration: const InputDecoration(
+            labelText: '文件名称',
+            hintText: '输入新文件名称',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          OutlinedButton(
+            onPressed: () async {
+              if (textController.text.trim().isNotEmpty) {
+                Navigator.of(context).pop();
+                await _createFileAction(textController.text.trim());
+              }
+            },
+            child: const Text('创建'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _createDirectoryAction(String dirName) async {
     // 在操作前检查连接状态
     if (!await _checkConnection()) return;
@@ -1373,11 +1548,132 @@ class _SftpPageState extends State<SftpPage> {
     }
   }
 
-  // 修改为支持批量复制
+  Future<void> _createFileAction(String fileName) async {
+    // 在操作前检查连接状态
+    if (!await _checkConnection()) return;
+
+    try {
+      final newFilePath = _joinPath(_currentPath, fileName);
+
+      // 创建空文件
+      final remote = await _sftpClient.open(
+        newFilePath,
+        mode: SftpFileOpenMode.create | SftpFileOpenMode.write,
+      );
+      await remote.close();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('文件创建成功')));
+        await _loadDirectory(_currentPath);
+      }
+    } catch (e) {
+      _showErrorDialog('创建文件失败', e.toString());
+    }
+  }
+
+  // 编辑选中的文件
+  Future<void> _editSelectedFile() async {
+    if (_selectedFiles.length != 1) return;
+
+    if (!await _checkConnection()) return;
+
+    final filename = _selectedFiles.first;
+
+    // 检查是否是文件夹
+    if (_isSelectedItemDirectory()) {
+      _showErrorDialog('编辑失败', '不能编辑文件夹');
+      return;
+    }
+
+    // 检查是否是文本文件
+    if (!_isTextFile(filename)) {
+      _showErrorDialog('编辑失败', '只支持编辑文本文件');
+      return;
+    }
+
+    final remotePath = _joinPath(_currentPath, filename);
+
+    try {
+      // 下载文件内容
+      _showProgressDialog('下载文件', showCancel: false);
+
+      final remote = await _sftpClient.open(remotePath);
+      _currentDownloadFile = remote;
+
+      final bytes = await remote.readBytes();
+      final content = utf8.decode(bytes, allowMalformed: true);
+
+      await remote.close();
+      _currentDownloadFile = null;
+
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        // 打开全屏编辑页面
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => FileEditorPage(
+              filename: filename,
+              remotePath: remotePath,
+              initialContent: content,
+              saveCallback: _saveFile,
+            ),
+            settings: RouteSettings(arguments: _saveFile),
+          ),
+        );
+
+        // 编辑完成后刷新文件列表
+        await _loadDirectory(_currentPath);
+        _clearSelectionAndExitMultiSelect();
+      }
+    } catch (e) {
+      if (mounted) {
+        try {
+          Navigator.of(context).pop();
+        } catch (_) {}
+        _showErrorDialog('下载文件失败', e.toString());
+      }
+    }
+  }
+
+  // 保存文件内容（修改为接受Uint8List）
+  Future<void> _saveFile(
+      String remotePath, Uint8List data, String filename) async {
+    if (!await _checkConnection()) return;
+
+    try {
+      _showProgressDialog('保存文件', showCancel: false);
+
+      final remote = await _sftpClient.open(
+        remotePath,
+        mode: SftpFileOpenMode.create |
+            SftpFileOpenMode.write |
+            SftpFileOpenMode.truncate,
+      );
+
+      await remote.writeBytes(data);
+
+      await remote.close();
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('文件保存成功')));
+      }
+    } catch (e) {
+      if (mounted) {
+        try {
+          Navigator.of(context).pop();
+        } catch (_) {}
+        _showErrorDialog('保存文件失败', e.toString());
+      }
+    }
+  }
+
   Future<void> _copySelected() async {
     if (_selectedFiles.isEmpty) return;
 
-    // 在操作前检查连接状态
     if (!await _checkConnection()) return;
 
     final newClipboardItems = <ClipboardItem>[];

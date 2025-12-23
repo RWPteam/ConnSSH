@@ -70,6 +70,8 @@ dependencies:
   pointycastle: ^3.9.1
   encrypt: ^5.0.3
   asn1lib: ^1.6.5
+  code_text_field: ^1.1.0
+  highlight: ^0.7.0
 
 dev_dependencies:
   flutter_test:

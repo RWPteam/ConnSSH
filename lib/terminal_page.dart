@@ -57,7 +57,7 @@ class _TerminalPageState extends State<TerminalPage> {
       defaultTargetPlatform == TargetPlatform.ohos ||
       defaultTargetPlatform == TargetPlatform.iOS;
 
-  // 主题选择相关
+  // 主题选择
   bool _isThemeSelectorVisible = false;
   Timer? _hideThemeSelectorTimer;
   TerminalTheme _currentTheme = TerminalThemes.defaultTheme;
@@ -388,8 +388,8 @@ class _TerminalPageState extends State<TerminalPage> {
   void _showThemeSelector() {
     if (_isThemeSelectorVisible) return;
     setState(() => _isThemeSelectorVisible = true);
-    FocusScope.of(context).unfocus();
-    _hideThemeSelectorTimer?.cancel();
+    //FocusScope.of(context).unfocus();
+    //_hideThemeSelectorTimer?.cancel();
 
     showDialog(
       context: context,
@@ -475,7 +475,6 @@ class _TerminalPageState extends State<TerminalPage> {
       _menuIsOpen = false;
       _isThemeSelectorVisible = false;
     });
-    // 恢复焦点到终端
     if (_isConnected) _terminalFocusNode.requestFocus();
 
     _hideThemeSelectorTimer?.cancel();
@@ -644,7 +643,6 @@ class _TerminalPageState extends State<TerminalPage> {
         ? "${widget.connection.name}-${_activeIndex + 1}"
         : widget.connection.name;
 
-    // 如果终端未初始化，显示加载界面
     if (_terminals == null) {
       return Scaffold(
         appBar: AppBar(
@@ -652,7 +650,7 @@ class _TerminalPageState extends State<TerminalPage> {
           foregroundColor: Colors.white,
           toolbarHeight: 40,
           titleSpacing: 0,
-          automaticallyImplyLeading: false, // 完全禁用默认的返回按钮
+          automaticallyImplyLeading: false,
           leading: _ismobile
               ? null
               : IconButton(
@@ -663,7 +661,7 @@ class _TerminalPageState extends State<TerminalPage> {
           title: Container(
             width: double.infinity,
             child: Padding(
-              padding: EdgeInsets.only(left: _ismobile ? 18.0 : 0), // 添加左边距
+              padding: EdgeInsets.only(left: _ismobile ? 18.0 : 0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -724,7 +722,6 @@ class _TerminalPageState extends State<TerminalPage> {
             ),
           );
         } else {
-          // 允许退出
           if (mounted) {
             Navigator.of(context).pop();
           }
@@ -737,7 +734,7 @@ class _TerminalPageState extends State<TerminalPage> {
           backgroundColor: _getAppBarColor(),
           foregroundColor: Colors.white,
           titleSpacing: 0,
-          automaticallyImplyLeading: false, // 完全禁用默认的返回按钮
+          automaticallyImplyLeading: false,
           leading: _ismobile
               ? null
               : IconButton(
@@ -748,7 +745,7 @@ class _TerminalPageState extends State<TerminalPage> {
           title: Container(
             width: double.infinity,
             child: Padding(
-              padding: EdgeInsets.only(left: _ismobile ? 18.0 : 0), // 添加左边距
+              padding: EdgeInsets.only(left: _ismobile ? 18.0 : 0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,

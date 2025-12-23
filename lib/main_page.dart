@@ -7,7 +7,7 @@ import 'setting_page.dart';
 import 'package:flutter/material.dart';
 import 'manage_connections_page.dart';
 import 'manage_credentials_page.dart';
-import 'quick_connect_dialog.dart';
+import 'components/quick_connect_dialog.dart';
 import 'models/connection_model.dart';
 import 'services/setting_service.dart';
 import 'services/storage_service.dart';
@@ -313,9 +313,9 @@ class _MainPageState extends State<MainPage> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('ConnSSH'),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          foregroundColor: Theme.of(context).colorScheme.onSurface,
+          //backgroundColor: Colors.transparent,
+          //elevation: 0,
+          //foregroundColor: Theme.of(context).colorScheme.onSurface,
         ),
         body: const Center(
           child: CircularProgressIndicator(),
@@ -325,7 +325,7 @@ class _MainPageState extends State<MainPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('ConnSSH'),
-        backgroundColor: Colors.transparent,
+        //backgroundColor: Colors.transparent,
         //elevation: 0,
         //foregroundColor: Theme.of(context).colorScheme.onSurface,
       ),
@@ -377,13 +377,13 @@ class _MainPageState extends State<MainPage> {
                       Column(
                         children: [
                           for (int i = 0;
-                              i < _recentConnections.take(2).length;
+                              i < _recentConnections.take(4).length;
                               i++)
                             Container(
                               height: 50,
                               margin: EdgeInsets.only(
                                   bottom:
-                                      i < _recentConnections.take(2).length - 1
+                                      i < _recentConnections.take(4).length - 1
                                           ? 12
                                           : 0),
                               decoration: BoxDecoration(

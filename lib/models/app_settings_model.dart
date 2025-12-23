@@ -6,7 +6,8 @@ class AppSettings {
   final double defaultFontSize;
   final String defaultTermTheme;
   final String termType;
-  final String defaultPageTheme; // 改为final String
+  final String defaultPageTheme;
+  final String defaultThemeMode;
 
   const AppSettings({
     this.defaultSftpPath,
@@ -15,7 +16,8 @@ class AppSettings {
     this.defaultFontSize = 12.0,
     this.defaultTermTheme = 'dark',
     this.termType = 'xterm-256color',
-    this.defaultPageTheme = 'default', // 默认主题
+    this.defaultPageTheme = 'default',
+    this.defaultThemeMode = 'system',
   });
 
   AppSettings copyWith({
@@ -25,7 +27,8 @@ class AppSettings {
     double? defaultFontSize,
     String? defaultTermTheme,
     String? termType,
-    String? defaultPageTheme, // 添加这个参数
+    String? defaultPageTheme,
+    String? defaultThemeMode,
   }) {
     return AppSettings(
       defaultSftpPath: defaultSftpPath ?? this.defaultSftpPath,
@@ -34,7 +37,8 @@ class AppSettings {
       defaultFontSize: defaultFontSize ?? this.defaultFontSize,
       defaultTermTheme: defaultTermTheme ?? this.defaultTermTheme,
       termType: termType ?? this.termType,
-      defaultPageTheme: defaultPageTheme ?? this.defaultPageTheme, // 复制这个字段
+      defaultPageTheme: defaultPageTheme ?? this.defaultPageTheme,
+      defaultThemeMode: defaultThemeMode ?? this.defaultThemeMode,
     );
   }
 
@@ -46,7 +50,8 @@ class AppSettings {
       'defaultFontSize': defaultFontSize,
       'defaultTermTheme': defaultTermTheme,
       'termType': termType,
-      'defaultPageTheme': defaultPageTheme, // 添加到map
+      'defaultPageTheme': defaultPageTheme,
+      'defaultThemeMode': defaultThemeMode,
     };
   }
 
@@ -55,10 +60,11 @@ class AppSettings {
       defaultSftpPath: map['defaultSftpPath'],
       defaultDownloadPath: map['defaultDownloadPath'],
       isFirstRun: map['isFirstRun'] ?? true,
-      defaultFontSize: map['defaultFontSize']?.toDouble() ?? 12.0,
+      defaultFontSize: map['defaultFontSize']?.toDouble() ?? 10.0,
       defaultTermTheme: map['defaultTermTheme'] ?? 'dark',
       termType: map['termType'] ?? 'xterm-256color',
-      defaultPageTheme: map['defaultPageTheme'] ?? 'default', // 从map读取
+      defaultPageTheme: map['defaultPageTheme'] ?? 'default',
+      defaultThemeMode: map['defaultThemeMode'] ?? 'system',
     );
   }
 
@@ -71,6 +77,7 @@ class AppSettings {
       defaultTermTheme: 'dark',
       termType: 'xterm-256color',
       defaultPageTheme: 'default',
+      defaultThemeMode: 'system',
     );
   }
 }

@@ -11,7 +11,7 @@ import 'services/rsa_key_service.dart';
 import 'services/ecdsa_key_service.dart';
 import 'services/storage_service.dart';
 import 'services/ssh_service.dart';
-import 'quick_connect_dialog.dart';
+import 'components/quick_connect_dialog.dart';
 
 class KeygenPage extends StatefulWidget {
   const KeygenPage({super.key});
@@ -223,7 +223,7 @@ class _KeygenPageState extends State<KeygenPage> {
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text('取消'),
             ),
-            ElevatedButton(
+            OutlinedButton(
               onPressed: () => Navigator.of(context).pop(true),
               child: const Text('快速连接'),
             ),
@@ -322,7 +322,7 @@ class _KeygenPageState extends State<KeygenPage> {
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('取消'),
           ),
-          ElevatedButton(
+          OutlinedButton(
             onPressed: () =>
                 Navigator.of(context).pop(uploadPathController.text),
             child: const Text('确定'),
@@ -461,7 +461,7 @@ class _KeygenPageState extends State<KeygenPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('密钥生成器'),
+        title: const Text('密钥生成'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -599,22 +599,6 @@ class _KeygenPageState extends State<KeygenPage> {
                       ),
                       obscureText: true,
                     ),
-                    if (_keyAlgorithm == 'ecdsa') ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(Icons.info_outline, size: 16),
-                          const SizedBox(width: 8),
-                          Text(
-                            'ECDSA仅支持PKCS8格式',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: colorScheme.onSurface.withOpacity(0.7),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -623,9 +607,9 @@ class _KeygenPageState extends State<KeygenPage> {
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: OutlinedButton.icon(
                     onPressed: _isGenerating ? null : _generateKeyPair,
-                    style: ElevatedButton.styleFrom(
+                    style: OutlinedButton.styleFrom(
                       minimumSize: const Size(0, 50),
                       backgroundColor: colorScheme.primary,
                       foregroundColor: colorScheme.onPrimary,
@@ -641,9 +625,9 @@ class _KeygenPageState extends State<KeygenPage> {
                               ),
                             ),
                           )
-                        : const Icon(Icons.vpn_key),
+                        : null,
                     label: Text(
-                      _isGenerating ? '生成中...' : '生成密钥',
+                      _isGenerating ? '生成中...' : '生成',
                       style: const TextStyle(fontSize: 16),
                     ),
                   ),
@@ -668,9 +652,9 @@ class _KeygenPageState extends State<KeygenPage> {
                               ),
                             ),
                           )
-                        : const Icon(Icons.cloud_upload),
+                        : null,
                     label: const Text(
-                      '上传到服务器',
+                      '上传',
                       style: TextStyle(fontSize: 16),
                     ),
                   ),
@@ -682,9 +666,8 @@ class _KeygenPageState extends State<KeygenPage> {
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(0, 50),
                     ),
-                    icon: const Icon(Icons.save),
                     label: const Text(
-                      '保存到本地',
+                      '保存',
                       style: TextStyle(fontSize: 16),
                     ),
                   ),
@@ -721,7 +704,7 @@ class _KeygenPageState extends State<KeygenPage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.vpn_key_outlined,
+                            Icons.badge_outlined,
                             size: 64,
                             color: colorScheme.onSurface.withOpacity(0.5),
                           ),
@@ -732,16 +715,6 @@ class _KeygenPageState extends State<KeygenPage> {
                               color: colorScheme.onSurface.withOpacity(0.5),
                             ),
                           ),
-                          if (_keyAlgorithm == 'ecdsa') ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              '支持曲线: ${_ecdsaCurveOptions.join(', ').toUpperCase()}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: colorScheme.onSurface.withOpacity(0.4),
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     )
@@ -752,7 +725,6 @@ class _KeygenPageState extends State<KeygenPage> {
                           child: _buildKeyCard(
                             title: '私钥',
                             keyContent: _privateKey!,
-                            icon: Icons.lock,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -760,7 +732,6 @@ class _KeygenPageState extends State<KeygenPage> {
                           child: _buildKeyCard(
                             title: '公钥',
                             keyContent: _publicKey!,
-                            icon: Icons.lock_open,
                           ),
                         ),
                       ],
@@ -775,7 +746,6 @@ class _KeygenPageState extends State<KeygenPage> {
   Widget _buildKeyCard({
     required String title,
     required String keyContent,
-    required IconData icon,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -792,7 +762,6 @@ class _KeygenPageState extends State<KeygenPage> {
           children: [
             Row(
               children: [
-                Icon(icon, color: colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
                   title,

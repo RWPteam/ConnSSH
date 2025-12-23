@@ -241,6 +241,8 @@ class _ReadKeyInfoPageState extends State<ReadKeyInfoPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const Text('证书解析', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
             if (!_isOhos) ...[
               _buildActionButton(
                 onPressed: _pickKeyFile,
@@ -255,6 +257,8 @@ class _ReadKeyInfoPageState extends State<ReadKeyInfoPage> {
               },
               title: '从剪贴板粘贴',
             ),
+            const SizedBox(height: 16),
+            const Text('密钥工具', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             _buildActionButton(
               onPressed: _navigateToKeyGen,

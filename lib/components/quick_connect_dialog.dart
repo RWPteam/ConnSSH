@@ -1,14 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'manage_credentials_page.dart';
+import '../manage_credentials_page.dart';
 import 'package:uuid/uuid.dart';
-import 'models/connection_model.dart';
-import 'models/credential_model.dart';
-import 'services/storage_service.dart';
-import 'services/ssh_service.dart';
-import 'terminal_page.dart';
-import 'sftp_page.dart';
+import '../models/connection_model.dart';
+import '../models/credential_model.dart';
+import '../services/storage_service.dart';
+import '../services/ssh_service.dart';
+import '../terminal_page.dart';
+import '../sftp_page.dart';
 
 class QuickConnectDialog extends StatefulWidget {
   final ConnectionInfo? connection;

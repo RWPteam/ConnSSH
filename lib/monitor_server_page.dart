@@ -5,7 +5,7 @@ import 'models/connection_model.dart';
 import 'models/credential_model.dart';
 import 'services/storage_service.dart';
 import 'services/ssh_service.dart';
-import 'quick_connect_dialog.dart';
+import 'components/quick_connect_dialog.dart';
 
 class ServerMetrics {
   final double cpuUsage;
@@ -520,11 +520,11 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _isMonitoring
-                              ? ElevatedButton.icon(
+                              ? OutlinedButton.icon(
                                   onPressed: _isLoading
                                       ? null
                                       : _handleConnectOrDisconnect,
-                                  style: ElevatedButton.styleFrom(
+                                  style: OutlinedButton.styleFrom(
                                     backgroundColor: colorScheme.primary,
                                     foregroundColor: colorScheme.onPrimary,
                                     padding: const EdgeInsets.symmetric(

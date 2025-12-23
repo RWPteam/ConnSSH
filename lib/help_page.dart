@@ -56,10 +56,11 @@ ConnSSH 版本 1.2.0
 新增功能：
 • 重新制作了设置页面和帮助页面
 • 新增了全局主题功能，支持调整主题色
-• 在安卓平台尝试支持保活
 • 增加了生成并上传密钥对(RSA、ECDSA)功能
-• 支持了终端字体、类型、主题的全局设置，新增终端浅色主题，快捷栏改进：支持自定义，支持收起（todo）
-• 新增连接导入导出功能（todo）
+• 支持了终端字体、类型、主题的全局设置，新增终端浅色主题，快捷栏支持收起（todo）
+• SFTP新增内建文本编辑器
+• 初步支持了telnet
+• 初步支持了2FA(todo)
 
 问题改进：
 • 修复连接成功后快速连接窗口没有正常退出的问题
@@ -68,6 +69,7 @@ ConnSSH 版本 1.2.0
 • 修复从1.1.0升级会出现Unexpected character的问题，支持自动清除错误的设置项
 • 修复了设置默认目录情况下，SFTP连接错误无法退出的问题
 • 证书解析支持华为Appgallery Connect颁发的cer证书
+• 修复了SFTP的部分操作逻辑错误
 • 重新设计了样式，修正了一些文字说明
 
 
@@ -116,9 +118,9 @@ samuioto@outlook.com
     return Scaffold(
       appBar: AppBar(
         title: const Text('帮助'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        //backgroundColor: Colors.transparent,
+        //elevation: 0,
+        //foregroundColor: Theme.of(context).colorScheme.onSurface,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
