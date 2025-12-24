@@ -17,9 +17,9 @@
         "name": "EntryAbility",
         "srcEntry": "./ets/entryability/EntryAbility.ets",
         "description": "$string:EntryAbility_desc",
-        "icon": "$media:app_icon",
+        "icon": "$media:app_layered_image",
         "label": "$string:app_name",
-        "startWindowIcon": "$media:app_icon",
+        "startWindowIcon": "$media:app_layered_image",
         "startWindowBackground": "$color:start_window_background",
         "exported": true,
         "skills": [
@@ -28,7 +28,8 @@
               "entity.system.home"
             ],
             "actions": [
-              "action.system.home"
+              "ohos.want.action.home"
+
             ]
           }
         ]

@@ -56,6 +56,7 @@ class _TerminalPageState extends State<TerminalPage> {
   bool _ismobile = defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.ohos ||
       defaultTargetPlatform == TargetPlatform.iOS;
+  bool _showToolbar = false; // 添加：快捷栏显示状态
 
   // 主题选择
   bool _isThemeSelectorVisible = false;
@@ -82,6 +83,8 @@ class _TerminalPageState extends State<TerminalPage> {
   @override
   void initState() {
     super.initState();
+    // 初始化快捷栏显示状态，默认与设备类型一致
+    _showToolbar = _ismobile;
 
     _statuses[0] = '连接中...';
     _isConnectings[0] = true;
@@ -358,6 +361,11 @@ class _TerminalPageState extends State<TerminalPage> {
       const PopupMenuItem<String>(value: 'clear', child: Text('清屏')),
       const PopupMenuItem<String>(value: 'fontsize', child: Text('字体大小')),
       const PopupMenuItem<String>(value: 'theme', child: Text('主题')),
+      // 添加快捷栏切换菜单项
+      PopupMenuItem<String>(
+        value: 'toggle_toolbar',
+        child: Text(_showToolbar ? '收起快捷栏' : '展示快捷栏'),
+      ),
       const PopupMenuItem<String>(value: 'disconnect', child: Text('断开连接并返回')),
     ];
   }
@@ -379,10 +387,22 @@ class _TerminalPageState extends State<TerminalPage> {
       case 'theme':
         _showThemeSelector();
         break;
+      case 'toggle_toolbar': // 添加快捷栏切换处理
+        _toggleToolbar();
+        break;
       case 'disconnect':
         Navigator.of(context).pop();
         break;
     }
+  }
+
+  // 添加快捷栏切换方法
+  void _toggleToolbar() {
+    setState(() {
+      _showToolbar = !_showToolbar;
+    });
+    // 切换后恢复焦点到终端
+    if (_isConnected) _terminalFocusNode.requestFocus();
   }
 
   void _showThemeSelector() {
@@ -863,7 +883,7 @@ class _TerminalPageState extends State<TerminalPage> {
                   textStyle:
                       TerminalStyle(fontSize: _fontSize, fontFamily: 'maple'),
                   theme: _currentTheme,
-                  showToolbar: _ismobile,
+                  showToolbar: _showToolbar, // 修改为使用 _showToolbar 变量
                   readOnly: _shouldBeReadOnly,
                 )
               : const Center(
