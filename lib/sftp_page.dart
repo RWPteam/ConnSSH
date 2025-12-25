@@ -1206,7 +1206,6 @@ class _SftpPageState extends State<SftpPage> {
   }
 
   void _showDownloadSuccessDialog(String filename, String savePath) {
-    // 检查是否仍在 mounted 状态
     if (!mounted) return;
 
     showDialog(

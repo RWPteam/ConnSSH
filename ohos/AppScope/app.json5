@@ -2,8 +2,8 @@
   "app": {
     "bundleName": "com.samuioto.connecter",
     "vendor": "samuioto",
-    "versionCode": 188,
-    "versionName": "1.2.0",
+    "versionCode": 192,
+    "versionName": "1.2.1",
     "icon": "$media:app_layered_image",
     "label": "$string:app_name"
   }
