@@ -158,8 +158,8 @@ class _ReadKeyInfoPageState extends State<ReadKeyInfoPage> {
       } else if (trimmed.contains("BEGIN RSA PRIVATE KEY") ||
           trimmed.contains("BEGIN PRIVATE KEY") ||
           trimmed.contains("BEGIN ENCRYPTED PRIVATE KEY")) {
-        info["类型"] = "私钥 (不支持解析)";
-        info["状态"] = "私钥解析功能已禁用";
+        info["类型"] = "私钥";
+        info["状态"] = "私钥解析功能没啥用";
         info["建议"] = "请上传证书文件(.crt/.cer/.pem)";
       } else {
         try {

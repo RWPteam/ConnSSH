@@ -125,7 +125,7 @@ class _SFTPSettingsPageState extends State<SFTPSettingsPage> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('提示'),
-          content: const Text('HarmonyOS平台暂不支持文件下载'),
+          content: const Text('HarmonyOS平台仅支持保存在沙盒目录'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -216,9 +216,6 @@ class _SFTPSettingsPageState extends State<SFTPSettingsPage> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final isLargeScreen = screenHeight >= 500;
-
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
       decoration: BoxDecoration(
@@ -229,33 +226,32 @@ class _SFTPSettingsPageState extends State<SFTPSettingsPage> {
         borderRadius: BorderRadius.circular(12.0),
         color: Colors.transparent,
       ),
-      height: isLargeScreen ? 100 : 80,
       child: ListTile(
         title: Text(
           title,
           style: TextStyle(
-            fontSize: isLargeScreen ? 18 : 16,
+            fontSize: 16,
             fontWeight: FontWeight.w500,
           ),
         ),
-        subtitle: isLargeScreen
-            ? Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
-              )
-            : null,
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey.shade600,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
         trailing: const Icon(
           Icons.arrow_forward_ios,
           size: 16,
           color: Colors.grey,
         ),
         onTap: onTap,
-        contentPadding: EdgeInsets.symmetric(
+        contentPadding: const EdgeInsets.symmetric(
           horizontal: 16.0,
-          vertical: isLargeScreen ? 16.0 : 8.0,
+          vertical: 16.0,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.0),
@@ -272,22 +268,24 @@ class _SFTPSettingsPageState extends State<SFTPSettingsPage> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              children: [
-                const SizedBox(height: 16),
-                _buildSettingTile(
-                  title: '默认SFTP路径',
-                  subtitle: _sftpPath,
-                  onTap: _showSftpPathDialog,
-                ),
-                _buildSettingTile(
-                  title: '默认下载路径',
-                  subtitle: _downloadPath.isEmpty
-                      ? (Platform.isWindows ? 'Windows平台需在下载时选择' : '未设置')
-                      : _downloadPath,
-                  onTap: _showDownloadPathDialog,
-                ),
-              ],
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  _buildSettingTile(
+                    title: '默认SFTP路径',
+                    subtitle: _sftpPath,
+                    onTap: _showSftpPathDialog,
+                  ),
+                  _buildSettingTile(
+                    title: '默认下载路径',
+                    subtitle: _downloadPath.isEmpty
+                        ? (Platform.isWindows ? 'Windows平台需在下载时选择' : '未设置')
+                        : _downloadPath,
+                    onTap: _showDownloadPathDialog,
+                  ),
+                ],
+              ),
             ),
     );
   }
@@ -539,9 +537,6 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final isLargeScreen = screenHeight >= 500;
-
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
       decoration: BoxDecoration(
@@ -552,33 +547,32 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
         borderRadius: BorderRadius.circular(12.0),
         color: Colors.transparent,
       ),
-      height: isLargeScreen ? 100 : 80,
       child: ListTile(
         title: Text(
           title,
           style: TextStyle(
-            fontSize: isLargeScreen ? 18 : 16,
+            fontSize: 16,
             fontWeight: FontWeight.w500,
           ),
         ),
-        subtitle: isLargeScreen
-            ? Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
-              )
-            : null,
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey.shade600,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
         trailing: const Icon(
           Icons.arrow_forward_ios,
           size: 16,
           color: Colors.grey,
         ),
         onTap: onTap,
-        contentPadding: EdgeInsets.symmetric(
+        contentPadding: const EdgeInsets.symmetric(
           horizontal: 16.0,
-          vertical: isLargeScreen ? 16.0 : 8.0,
+          vertical: 16.0,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.0),
@@ -595,30 +589,32 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              children: [
-                const SizedBox(height: 16),
-                _buildSettingTile(
-                  title: '字体大小',
-                  subtitle: '${_fontSize.toInt()}px',
-                  onTap: _showFontSizeDialog,
-                ),
-                _buildSettingTile(
-                  title: '终端主题',
-                  subtitle: _termThemeMap[_termTheme] ?? _termTheme,
-                  onTap: _showTermThemeDialog,
-                ),
-                _buildSettingTile(
-                  title: '终端类型',
-                  subtitle: _termType,
-                  onTap: _showTermTypeDialog,
-                ),
-                _buildSettingTile(
-                  title: '自定义快捷栏',
-                  subtitle: '配置快捷栏样式',
-                  onTap: _showCustomShortcutBarMessage,
-                ),
-              ],
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  _buildSettingTile(
+                    title: '字体大小',
+                    subtitle: '${_fontSize.toInt()}px',
+                    onTap: _showFontSizeDialog,
+                  ),
+                  _buildSettingTile(
+                    title: '终端主题',
+                    subtitle: _termThemeMap[_termTheme] ?? _termTheme,
+                    onTap: _showTermThemeDialog,
+                  ),
+                  _buildSettingTile(
+                    title: '终端类型',
+                    subtitle: _termType,
+                    onTap: _showTermTypeDialog,
+                  ),
+                  _buildSettingTile(
+                    title: '自定义快捷栏',
+                    subtitle: '配置快捷栏样式',
+                    onTap: _showCustomShortcutBarMessage,
+                  ),
+                ],
+              ),
             ),
     );
   }
@@ -692,9 +688,6 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final isLargeScreen = screenHeight >= 500;
-
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
       decoration: BoxDecoration(
@@ -705,33 +698,32 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
         borderRadius: BorderRadius.circular(12.0),
         color: Colors.transparent,
       ),
-      height: isLargeScreen ? 100 : 80,
       child: ListTile(
         title: Text(
           title,
           style: TextStyle(
-            fontSize: isLargeScreen ? 18 : 16,
+            fontSize: 16,
             fontWeight: FontWeight.w500,
           ),
         ),
-        subtitle: isLargeScreen
-            ? Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
-              )
-            : null,
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey.shade600,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
         trailing: const Icon(
           Icons.arrow_forward_ios,
           size: 16,
           color: Colors.grey,
         ),
         onTap: onTap,
-        contentPadding: EdgeInsets.symmetric(
+        contentPadding: const EdgeInsets.symmetric(
           horizontal: 16.0,
-          vertical: isLargeScreen ? 16.0 : 8.0,
+          vertical: 16.0,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.0),
@@ -748,36 +740,37 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              children: [
-                const SizedBox(height: 16),
-                _buildSettingTile(
-                  title: '主题设置',
-                  subtitle: '主题风格和页面主题',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ThemeSettingsPage(
-                          settingsService: widget.settingsService,
-                          onSettingsChanged: widget.onSettingsChanged,
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  _buildSettingTile(
+                    title: '主题设置',
+                    subtitle: '主题风格和页面主题',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ThemeSettingsPage(
+                            settingsService: widget.settingsService,
+                            onSettingsChanged: widget.onSettingsChanged,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-                _buildSettingTile(
-                  title: '恢复默认设置',
-                  subtitle: '将所有设置恢复为默认值',
-                  onTap: _resetToDefaults,
-                ),
-              ],
+                      );
+                    },
+                  ),
+                  _buildSettingTile(
+                    title: '恢复默认设置',
+                    subtitle: '将所有设置恢复为默认值',
+                    onTap: _resetToDefaults,
+                  ),
+                ],
+              ),
             ),
     );
   }
 }
 
-// 新增的主题设置页面
 class ThemeSettingsPage extends StatefulWidget {
   final SettingsService settingsService;
   final Function() onSettingsChanged;
@@ -1067,105 +1060,106 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              children: [
-                const SizedBox(height: 16),
-                // 主题风格设置
-                Container(
-                  margin: const EdgeInsets.symmetric(
-                      vertical: 6.0, horizontal: 16.0),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Colors.grey,
-                      width: 1.0,
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  // 主题风格设置
+                  Container(
+                    margin: const EdgeInsets.symmetric(
+                        vertical: 6.0, horizontal: 16.0),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.grey,
+                        width: 1.0,
+                      ),
+                      borderRadius: BorderRadius.circular(12.0),
+                      color: Colors.transparent,
                     ),
-                    borderRadius: BorderRadius.circular(12.0),
-                    color: Colors.transparent,
+                    child: ListTile(
+                      title: Text(
+                        '主题风格',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        _themeModeMap[_themeMode] ?? _themeMode,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+                      onTap: _showThemeModeDialog,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 16.0,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                    ),
                   ),
-                  height: 100,
-                  child: ListTile(
-                    title: Text(
-                      '主题风格',
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Text(
+                      '页面主题',
                       style: TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    subtitle: Text(
-                      _themeModeMap[_themeMode] ?? _themeMode,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    trailing: const Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: Colors.grey,
-                    ),
-                    onTap: _showThemeModeDialog,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16.0,
-                      vertical: 16.0,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
                   ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Text(
-                    '页面主题',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      childAspectRatio: 1,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
                     ),
-                  ),
-                ),
-                // 颜色主题网格 - 改为正方形卡片
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3, // 每行显示3个
-                    childAspectRatio: 1, // 正方形，宽高比为1:1
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _pageThemes.length,
-                  itemBuilder: (context, index) {
-                    final theme = _pageThemes[index];
-                    final isSelected = _pageTheme == theme;
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _pageThemes.length,
+                    itemBuilder: (context, index) {
+                      final theme = _pageThemes[index];
+                      final isSelected = _pageTheme == theme;
 
-                    return GestureDetector(
-                      onTap: () async {
-                        setState(() {
-                          _pageTheme = theme;
-                        });
-                        await _saveSettings();
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12.0),
-                          border: Border.all(
-                            color: Colors.grey,
-                            width: 1.0,
+                      return GestureDetector(
+                        onTap: () async {
+                          setState(() {
+                            _pageTheme = theme;
+                          });
+                          await _saveSettings();
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12.0),
+                            border: Border.all(
+                              color: Colors.grey,
+                              width: 1.0,
+                            ),
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.onInverseSurface
+                                : Colors.transparent,
                           ),
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.onInverseSurface
-                              : Colors.transparent,
+                          child: Center(
+                            child: _buildColorPalette(theme),
+                          ),
                         ),
-                        child: Center(
-                          child: _buildColorPalette(theme),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
-              ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
     );
   }
@@ -1320,9 +1314,6 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildMenuItem(Map<String, dynamic> item, int index) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final isLargeScreen = screenHeight >= 500;
-
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
       decoration: BoxDecoration(
@@ -1333,33 +1324,32 @@ class _SettingsPageState extends State<SettingsPage> {
         borderRadius: BorderRadius.circular(12.0),
         color: Colors.transparent,
       ),
-      height: isLargeScreen ? 100 : 80,
       child: ListTile(
         title: Text(
           item['title'],
           style: TextStyle(
-            fontSize: isLargeScreen ? 18 : 16,
+            fontSize: 16,
             fontWeight: FontWeight.w500,
           ),
         ),
-        subtitle: isLargeScreen
-            ? Text(
-                item['subtitle'],
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
-              )
-            : null,
+        subtitle: Text(
+          item['subtitle'],
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey.shade600,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
         trailing: const Icon(
           Icons.arrow_forward_ios,
           size: 16,
           color: Colors.grey,
         ),
         onTap: () => _navigateToSettingsPage(index, context),
-        contentPadding: EdgeInsets.symmetric(
+        contentPadding: const EdgeInsets.symmetric(
           horizontal: 16.0,
-          vertical: isLargeScreen ? 16.0 : 8.0,
+          vertical: 16.0,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.0),
@@ -1374,32 +1364,31 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(
         title: const Text('设置'),
       ),
-      body: Stack(
+      body: Column(
         children: [
-          Column(
-            children: [
-              const SizedBox(height: 16),
-              ..._menuItems.asMap().entries.map(
-                    (entry) => _buildMenuItem(entry.value, entry.key),
-                  ),
-              const SizedBox(height: 60),
-            ],
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  ..._menuItems.asMap().entries.map(
+                        (entry) => _buildMenuItem(entry.value, entry.key),
+                      ),
+                  const SizedBox(height: 20), // 为底部备案号留出空间
+                ],
+              ),
+            ),
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 5,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(8.0),
-              color: Colors.transparent,
-              child: Text(
-                '鲁ICP备2024127829号-5A',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16.0),
+            color: Theme.of(context).colorScheme.surface,
+            child: Text(
+              '鲁ICP备2024127829号-5A',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
               ),
             ),
           ),

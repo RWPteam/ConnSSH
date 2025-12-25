@@ -55,16 +55,21 @@ class _MainPageState extends State<MainPage> {
   bool _isFirstRun = true;
 
   @override
+  @override
   void initState() {
     super.initState();
+    _initApp();
+  }
+
+  Future<void> _initApp() async {
     if (Platform.isAndroid) {
-      _checkAndRequestPermissions();
+      await _checkAndRequestPermissions();
     } else {
       setState(() {
         _permissionsGranted = true;
       });
-      _loadRecentConnections();
-      _checkFirstRun();
+      await _loadRecentConnections();
+      await _checkFirstRun();
     }
   }
 
@@ -76,6 +81,7 @@ class _MainPageState extends State<MainPage> {
       setState(() {
         _permissionsGranted = true;
       });
+      await _checkFirstRun();
       _loadRecentConnections();
       return;
     } else {
@@ -121,10 +127,12 @@ class _MainPageState extends State<MainPage> {
   Future<void> _requestPermissions() async {
     final storageStatus = await Permission.storage.request();
     final storageStatusHigh = await Permission.manageExternalStorage.request();
+    await Permission.ignoreBatteryOptimizations.request();
     if (storageStatus.isGranted || storageStatusHigh.isGranted) {
       setState(() {
         _permissionsGranted = true;
       });
+      await _checkFirstRun();
       _loadRecentConnections();
     } else {
       _showPermissionDeniedDialog();

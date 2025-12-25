@@ -402,8 +402,8 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  // 构建连接控制面板（用于横屏模式下的左侧部分）
+  Widget _buildConnectionPanel() {
     final colorScheme = Theme.of(context).colorScheme;
     final Map<String, ConnectionInfo> uniqueMap = {};
     for (var conn in _savedConnections) {
@@ -424,235 +424,256 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
       _selectedConnection = uniqueMap[selectedKey] ??
           (filteredConnections.isNotEmpty ? filteredConnections.first : null);
     }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '选择服务器连接',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<ConnectionInfo>(
+              value: _selectedConnection,
+              decoration: InputDecoration(
+                labelText: '已保存的连接',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+              ),
+              items: [
+                if (filteredConnections.isEmpty)
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('请选择连接'),
+                  ),
+                ...filteredConnections.map((connection) {
+                  return DropdownMenuItem(
+                    value: connection,
+                    child: Text(connection.name),
+                  );
+                }),
+              ],
+              // 监控中禁止修改连接
+              onChanged: _isMonitoring
+                  ? null
+                  : (value) {
+                      setState(() {
+                        _selectedConnection = value;
+                      });
+                    },
+            ),
+            const SizedBox(height: 16),
+            if (_errorMessage.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: colorScheme.error),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline, color: colorScheme.error),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _errorMessage,
+                        style: TextStyle(color: colorScheme.onErrorContainer),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            Row(
+              children: [
+                // 快速连接按钮
+                OutlinedButton(
+                  onPressed: _isMonitoring
+                      ? null
+                      : _showQuickConnectDialog, // 监控中禁止快速连接
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16, horizontal: 16),
+                    side: BorderSide(
+                      color: _isMonitoring
+                          ? colorScheme.onSurface.withOpacity(0.12)
+                          : colorScheme.outline,
+                    ),
+                  ),
+                  child: const Text('快速连接'),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _isMonitoring
+                      ? OutlinedButton.icon(
+                          onPressed:
+                              _isLoading ? null : _handleConnectOrDisconnect,
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: colorScheme.primary,
+                            foregroundColor: colorScheme.onPrimary,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          icon: _isLoading
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        colorScheme.onPrimary),
+                                  ),
+                                )
+                              : const Icon(Icons.stop),
+                          label: Text(
+                            _isLoading ? '连接中...' : '停止监控',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        )
+                      : OutlinedButton.icon(
+                          onPressed: _isLoading || _selectedConnection == null
+                              ? null
+                              : _handleConnectOrDisconnect,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: colorScheme.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: BorderSide(color: colorScheme.primary),
+                          ),
+                          icon: _isLoading
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        colorScheme.primary),
+                                  ),
+                                )
+                              : const Icon(Icons.play_arrow),
+                          label: Text(
+                            _isLoading ? '连接中...' : '开始监控',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 构建数据展示面板（用于横屏模式下的右侧部分）
+  Widget _buildDataPanel() {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    if (_isMonitoring && _serverMetrics != null) {
+      return SingleChildScrollView(
+        child: Column(
+          children: [
+            _buildUptimeCard(_serverMetrics!.uptime),
+            const SizedBox(height: 12),
+
+            // CPU使用率
+            _buildAnimatedMetricCard(
+              title: 'CPU使用率',
+              currentUsage: _serverMetrics!.cpuUsage,
+              icon: Icons.memory,
+              subtitle:
+                  '15分钟负载: ${_serverMetrics!.loadAverage15.toStringAsFixed(2)}%',
+            ),
+
+            const SizedBox(height: 12),
+
+            // 内存使用率
+            _buildAnimatedMetricCard(
+              title: '内存使用',
+              currentUsage: _serverMetrics!.memoryUsage,
+              icon: Icons.sd_storage,
+              subtitle:
+                  '已用: ${_serverMetrics!.memoryUsed.toStringAsFixed(0)} MB /  ${_serverMetrics!.memoryTotal.toStringAsFixed(0)} MB',
+            ),
+
+            const SizedBox(height: 12),
+
+            // 磁盘使用情况
+            _buildDiskUsageCard(),
+          ],
+        ),
+      );
+    } else if (_isMonitoring) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('正在获取服务器信息...'),
+          ],
+        ),
+      );
+    } else {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.monitor_heart_outlined,
+                size: 64, color: colorScheme.onSurface.withOpacity(0.5)),
+            const SizedBox(height: 16),
+            Text(
+              '请选择一个服务器连接并开始监控',
+              style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5)),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final orientation = MediaQuery.of(context).orientation;
+    final isLandscape = orientation == Orientation.landscape;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('数据面板'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '选择服务器连接',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<ConnectionInfo>(
-                      value: _selectedConnection,
-                      decoration: InputDecoration(
-                        labelText: '已保存的连接',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                      ),
-                      items: [
-                        if (filteredConnections.isEmpty)
-                          const DropdownMenuItem(
-                            value: null,
-                            child: Text('请选择连接'),
-                          ),
-                        ...filteredConnections.map((connection) {
-                          return DropdownMenuItem(
-                            value: connection,
-                            child: Text(connection.name),
-                          );
-                        }),
-                      ],
-                      // 监控中禁止修改连接
-                      onChanged: _isMonitoring
-                          ? null
-                          : (value) {
-                              setState(() {
-                                _selectedConnection = value;
-                              });
-                            },
-                    ),
-                    const SizedBox(height: 16),
-                    if (_errorMessage.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 16),
-                        decoration: BoxDecoration(
-                          color: colorScheme.errorContainer,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: colorScheme.error),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.error_outline, color: colorScheme.error),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _errorMessage,
-                                style: TextStyle(
-                                    color: colorScheme.onErrorContainer),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    Row(
-                      children: [
-                        // 快速连接按钮
-                        OutlinedButton(
-                          onPressed: _isMonitoring
-                              ? null
-                              : _showQuickConnectDialog, // 监控中禁止快速连接
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 16, horizontal: 16),
-                            side: BorderSide(
-                              color: _isMonitoring
-                                  ? colorScheme.onSurface.withOpacity(0.12)
-                                  : colorScheme.outline,
-                            ),
-                          ),
-                          child: const Text('快速连接'),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _isMonitoring
-                              ? OutlinedButton.icon(
-                                  onPressed: _isLoading
-                                      ? null
-                                      : _handleConnectOrDisconnect,
-                                  style: OutlinedButton.styleFrom(
-                                    backgroundColor: colorScheme.primary,
-                                    foregroundColor: colorScheme.onPrimary,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 16),
-                                  ),
-                                  icon: _isLoading
-                                      ? SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                    colorScheme.onPrimary),
-                                          ),
-                                        )
-                                      : const Icon(Icons.stop),
-                                  label: Text(
-                                    _isLoading ? '连接中...' : '停止监控',
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
-                                )
-                              : OutlinedButton.icon(
-                                  onPressed:
-                                      _isLoading || _selectedConnection == null
-                                          ? null
-                                          : _handleConnectOrDisconnect,
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: colorScheme.primary,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 16),
-                                    side:
-                                        BorderSide(color: colorScheme.primary),
-                                  ),
-                                  icon: _isLoading
-                                      ? SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                    colorScheme.primary),
-                                          ),
-                                        )
-                                      : const Icon(Icons.play_arrow),
-                                  label: Text(
-                                    _isLoading ? '连接中...' : '开始监控',
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
-                                ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (_isMonitoring && _serverMetrics != null)
-              Expanded(
-                  child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    _buildUptimeCard(_serverMetrics!.uptime),
-                    const SizedBox(height: 12),
-
-                    // CPU使用率
-                    _buildAnimatedMetricCard(
-                      title: 'CPU使用率',
-                      currentUsage: _serverMetrics!.cpuUsage,
-                      icon: Icons.memory,
-                      subtitle:
-                          '15分钟负载: ${_serverMetrics!.loadAverage15.toStringAsFixed(2)}%',
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // 内存使用率
-                    _buildAnimatedMetricCard(
-                      title: '内存使用',
-                      currentUsage: _serverMetrics!.memoryUsage,
-                      icon: Icons.sd_storage,
-                      subtitle:
-                          '已用: ${_serverMetrics!.memoryUsed.toStringAsFixed(0)} MB /  ${_serverMetrics!.memoryTotal.toStringAsFixed(0)} MB',
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // 磁盘使用情况
-                    _buildDiskUsageCard(),
-                  ],
-                ),
-              ))
-            else if (_isMonitoring)
-              const Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('正在获取服务器信息...'),
-                    ],
+        child: isLandscape
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 左侧：连接面板
+                  SizedBox(
+                    width: 320, // 固定宽度，适合横屏
+                    child: _buildConnectionPanel(),
                   ),
-                ),
+                  const SizedBox(width: 16),
+                  // 右侧：数据面板
+                  Expanded(
+                    child: _buildDataPanel(),
+                  ),
+                ],
               )
-            else
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.monitor_heart_outlined,
-                          size: 64,
-                          color: colorScheme.onSurface.withOpacity(0.5)),
-                      const SizedBox(height: 16),
-                      Text(
-                        '请选择一个服务器连接并开始监控',
-                        style: TextStyle(
-                            color: colorScheme.onSurface.withOpacity(0.5)),
-                      ),
-                    ],
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 竖屏：连接面板在顶部
+                  _buildConnectionPanel(),
+                  const SizedBox(height: 16),
+                  // 竖屏：数据面板在底部
+                  Expanded(
+                    child: _buildDataPanel(),
                   ),
-                ),
+                ],
               ),
-          ],
-        ),
       ),
     );
   }
