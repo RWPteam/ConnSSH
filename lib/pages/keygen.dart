@@ -436,12 +436,10 @@ class _KeygenPageState extends State<KeygenPage> {
   }
 
   void _showError(String message) {
-    final colorScheme = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: colorScheme.error,
-        behavior: SnackBarBehavior.floating,
+        behavior: SnackBarBehavior.fixed,
       ),
     );
   }
@@ -618,9 +616,9 @@ class _KeygenPageState extends State<KeygenPage> {
                 child: OutlinedButton.icon(
                   onPressed: _isGenerating ? null : _generateKeyPair,
                   style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(0, 50),
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: colorScheme.onPrimary,
+                    foregroundColor: colorScheme.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: BorderSide(color: colorScheme.primary),
                   ),
                   icon: _isGenerating
                       ? SizedBox(
@@ -629,7 +627,7 @@ class _KeygenPageState extends State<KeygenPage> {
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              colorScheme.onPrimary,
+                              colorScheme.primary,
                             ),
                           ),
                         )
