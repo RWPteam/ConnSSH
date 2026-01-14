@@ -635,7 +635,7 @@ class _KeygenPageState extends State<KeygenPage> {
                         )
                       : null,
                   label: Text(
-                    _isGenerating ? '生成中...' : '生成',
+                    _isGenerating ? '' : '生成',
                     style: const TextStyle(fontSize: 16),
                   ),
                 ),

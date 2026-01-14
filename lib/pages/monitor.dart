@@ -15,6 +15,8 @@ class ServerMetrics {
   final List<DiskUsage> diskUsage;
   final String uptime;
   final double loadAverage15;
+  final List<ProcessInfo> processes;
+  final NetworkSpeed networkSpeed;
 
   ServerMetrics({
     required this.cpuUsage,
@@ -24,6 +26,8 @@ class ServerMetrics {
     required this.diskUsage,
     required this.uptime,
     required this.loadAverage15,
+    required this.processes,
+    required this.networkSpeed,
   });
 
   factory ServerMetrics.fromJson(Map<String, dynamic> json) {
@@ -48,6 +52,21 @@ class ServerMetrics {
 
     final load = json['load'] ?? {};
 
+    List<ProcessInfo> processes = [];
+    if (json['processes'] != null) {
+      for (var p in json['processes']) {
+        processes.add(ProcessInfo(
+          user: p['user']?.toString() ?? '',
+          pid: p['pid']?.toString() ?? '',
+          cpu: p['cpu']?.toString() ?? '',
+          mem: p['mem']?.toString() ?? '',
+          command: p['command']?.toString() ?? '',
+        ));
+      }
+    }
+
+    final net = json['network'] ?? {};
+
     return ServerMetrics(
       cpuUsage: (json['cpu'] ?? 0).toDouble(),
       memoryTotal: totalMem,
@@ -56,6 +75,13 @@ class ServerMetrics {
       diskUsage: disks,
       uptime: json['uptime']?.toString() ?? '未知',
       loadAverage15: (load['15min'] ?? 0).toDouble(),
+      processes: processes,
+      networkSpeed: NetworkSpeed(
+        rxBytes: (net['rx_bytes'] ?? 0).toInt(),
+        txBytes: (net['tx_bytes'] ?? 0).toInt(),
+        rxSpeed: (net['rx_speed'] ?? 0).toDouble(),
+        txSpeed: (net['tx_speed'] ?? 0).toDouble(),
+      ),
     );
   }
 }
@@ -78,6 +104,36 @@ class DiskUsage {
   });
 }
 
+class ProcessInfo {
+  final String user;
+  final String pid;
+  final String cpu;
+  final String mem;
+  final String command;
+
+  ProcessInfo({
+    required this.user,
+    required this.pid,
+    required this.cpu,
+    required this.mem,
+    required this.command,
+  });
+}
+
+class NetworkSpeed {
+  final int rxBytes;
+  final int txBytes;
+  final double rxSpeed;
+  final double txSpeed;
+
+  NetworkSpeed({
+    required this.rxBytes,
+    required this.txBytes,
+    required this.rxSpeed,
+    required this.txSpeed,
+  });
+}
+
 class MonitorServerPage extends StatefulWidget {
   const MonitorServerPage({super.key});
 
@@ -97,6 +153,12 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
   Timer? _monitorTimer;
   ServerMetrics? _serverMetrics;
   String _errorMessage = '';
+
+  int _lastRxBytes = 0;
+  int _lastTxBytes = 0;
+  DateTime? _lastNetworkTime;
+  double _rxSpeed = 0.0;
+  double _txSpeed = 0.0;
 
   final String _monitorScript = r'''
     #!/bin/bash
@@ -121,7 +183,6 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
     }
 
     get_disk() {
-      # 使用 -Ph 防止换行，并改用 awk 内部处理逗号逻辑
       df -Ph 2>/dev/null | grep -E '^/dev/|^/' | grep -vE 'loop|tmpfs|snap' | awk '
       BEGIN { first=1 }
       {
@@ -140,13 +201,60 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
       uptime -p 2>/dev/null | sed 's/"/\\"/g' | tr -d '\n'
     }
 
+    get_network() {
+      rx_total=0
+      tx_total=0
+      
+      for iface in /sys/class/net/*; do
+        iface_name=$(basename $iface)
+        if [ "$iface_name" != "lo" ]; then
+          if [ -r "$iface/statistics/rx_bytes" ] && [ -r "$iface/statistics/tx_bytes" ]; then
+            rx_bytes=$(cat "$iface/statistics/rx_bytes" 2>/dev/null)
+            tx_bytes=$(cat "$iface/statistics/tx_bytes" 2>/dev/null)
+            if [ ! -z "$rx_bytes" ] && [ ! -z "$tx_bytes" ]; then
+              rx_total=$((rx_total + rx_bytes))
+              tx_total=$((tx_total + tx_bytes))
+            fi
+          fi
+        fi
+      done
+      
+      printf "{\"rx_bytes\":%s,\"tx_bytes\":%s}" $rx_total $tx_total
+    }
+
+    get_processes() {
+      ps aux --sort=-%cpu | head -11 | tail -10 | awk '
+      BEGIN { 
+        first=1
+        getline
+      }
+      {
+        cmd = $11
+        for (i=12; i<=NF; i++) {
+          cmd = cmd " " $i
+        }
+        if (length(cmd) > 30) {
+          cmd = substr(cmd, 1, 27) "..."
+        }
+        
+        gsub(/"/, "\\\"", cmd)
+        gsub(/"/, "\\\"", $1)
+        
+        if (!first) printf ",";
+        printf "{\"user\":\"%s\",\"pid\":\"%s\",\"cpu\":\"%s\",\"mem\":\"%s\",\"command\":\"%s\"}", $1, $2, $3, $4, cmd;
+        first=0
+      }'
+    }
+
     CPU_RAW=$(get_cpu)
     MEM=$(get_mem)
     DISK=$(get_disk)
     LOAD=$(get_load)
     UPTIME=$(get_uptime)
+    NETWORK=$(get_network)
+    PROCESSES=$(get_processes)
 
-    echo "{\"cpu\":$CPU_RAW, \"memory\":$MEM, \"disk\":[$DISK], \"load\":$LOAD, \"uptime\":\"$UPTIME\"}"
+    echo "{\"cpu\":$CPU_RAW, \"memory\":$MEM, \"disk\":[$DISK], \"load\":$LOAD, \"uptime\":\"$UPTIME\", \"network\":$NETWORK, \"processes\":[$PROCESSES]}"
   ''';
 
   final String _cleanupScriptCommand = 'rm -f /tmp/connssh_monitor.sh';
@@ -198,6 +306,11 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
     setState(() {
       _isLoading = true;
       _errorMessage = '';
+      _lastRxBytes = 0;
+      _lastTxBytes = 0;
+      _lastNetworkTime = null;
+      _rxSpeed = 0.0;
+      _txSpeed = 0.0;
     });
 
     try {
@@ -250,6 +363,11 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
       _serverMetrics = null;
       _selectedCredential = null;
       _errorMessage = '';
+      _lastRxBytes = 0;
+      _lastTxBytes = 0;
+      _lastNetworkTime = null;
+      _rxSpeed = 0.0;
+      _txSpeed = 0.0;
     });
   }
 
@@ -345,12 +463,11 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
 
       String jsonStr = rawOutput;
 
-      // 尝试解码，如果失败则使用原始输出
       final decodedStr = _decodeSshOutput(rawOutput);
 
       if (decodedStr.trim().startsWith('{')) {
         jsonStr = decodedStr;
-      } else {}
+      }
 
       final startIndex = jsonStr.indexOf('{');
       final endIndex = jsonStr.lastIndexOf('}');
@@ -363,7 +480,27 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
       final Map<String, dynamic> data = jsonDecode(cleanJson);
 
       final cpuUsageRaw = (data['cpu'] ?? 0).toDouble();
-      data['cpu'] = cpuUsageRaw; //Raw数据就是正确的
+      data['cpu'] = cpuUsageRaw;
+
+      final network = data['network'] ?? {};
+      final rxBytes = (network['rx_bytes'] ?? 0).toInt();
+      final txBytes = (network['tx_bytes'] ?? 0).toInt();
+      final now = DateTime.now();
+
+      if (_lastNetworkTime != null && _lastRxBytes > 0 && _lastTxBytes > 0) {
+        final timeDiff = now.difference(_lastNetworkTime!).inSeconds;
+        if (timeDiff > 0) {
+          _rxSpeed = (rxBytes - _lastRxBytes) / timeDiff;
+          _txSpeed = (txBytes - _lastTxBytes) / timeDiff;
+        }
+      }
+
+      _lastRxBytes = rxBytes;
+      _lastTxBytes = txBytes;
+      _lastNetworkTime = now;
+
+      network['rx_speed'] = _rxSpeed;
+      network['tx_speed'] = _txSpeed;
 
       if (mounted) {
         setState(() {
@@ -378,9 +515,9 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
         setState(() {
           _errorMessage = '获取数据失败: $e\n(服务器返回了非标准数据或解码失败)';
           _stopMonitoring();
-          _cleanupRemoteScript(); // 清理脚本
+          _cleanupRemoteScript();
           _sshService.disconnect();
-          _isMonitoring = false; // 更新状态以改变按钮文本
+          _isMonitoring = false;
         });
       }
     }
@@ -422,7 +559,6 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
 
     if (_selectedConnection != null &&
         !filteredConnections.contains(_selectedConnection)) {
-      // 尝试寻找标识一致的那个
       final String selectedKey =
           '${_selectedConnection!.name}-${_selectedConnection!.host}-${_selectedConnection!.port}-${_selectedConnection!.credentialId}';
       _selectedConnection = uniqueMap[selectedKey] ??
@@ -461,7 +597,6 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
                   );
                 }),
               ],
-              // 监控中禁止修改连接
               onChanged: _isMonitoring
                   ? null
                   : (value) {
@@ -495,11 +630,8 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
               ),
             Row(
               children: [
-                // 快速连接按钮
                 OutlinedButton(
-                  onPressed: _isMonitoring
-                      ? null
-                      : _showQuickConnectDialog, // 监控中禁止快速连接
+                  onPressed: _isMonitoring ? null : _showQuickConnectDialog,
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                         vertical: 16, horizontal: 16),
@@ -581,8 +713,6 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
           children: [
             _buildUptimeCard(_serverMetrics!.uptime),
             const SizedBox(height: 12),
-
-            // CPU使用率
             _buildAnimatedMetricCard(
               title: 'CPU使用率',
               currentUsage: _serverMetrics!.cpuUsage,
@@ -590,22 +720,20 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
               subtitle:
                   '15分钟负载: ${_serverMetrics!.loadAverage15.toStringAsFixed(2)}%',
             ),
-
             const SizedBox(height: 12),
-
-            // 内存使用率
             _buildAnimatedMetricCard(
               title: '内存使用',
               currentUsage: _serverMetrics!.memoryUsage,
               icon: Icons.sd_storage,
               subtitle:
-                  '已用: ${_serverMetrics!.memoryUsed.toStringAsFixed(0)} MB /  ${_serverMetrics!.memoryTotal.toStringAsFixed(0)} MB',
+                  '已用: ${_serverMetrics!.memoryUsed.toStringAsFixed(0)} MB / ${_serverMetrics!.memoryTotal.toStringAsFixed(0)} MB',
             ),
-
             const SizedBox(height: 12),
-
-            // 磁盘使用情况
             _buildDiskUsageCard(),
+            const SizedBox(height: 12),
+            _buildNetworkSpeedCard(),
+            const SizedBox(height: 12),
+            _buildProcessListCard(),
           ],
         ),
       );
@@ -653,13 +781,11 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
             ? Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 左侧：连接面板
                   SizedBox(
-                    width: 320, // 固定宽度，适合横屏
+                    width: 320,
                     child: _buildConnectionPanel(),
                   ),
                   const SizedBox(width: 16),
-                  // 右侧：数据面板
                   Expanded(
                     child: _buildDataPanel(),
                   ),
@@ -668,10 +794,8 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 竖屏：连接面板在顶部
                   _buildConnectionPanel(),
                   const SizedBox(height: 16),
-                  // 竖屏：数据面板在底部
                   Expanded(
                     child: _buildDataPanel(),
                   ),
@@ -734,7 +858,6 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
     final color = _getColorByUsage(context, currentUsage);
     final colorScheme = Theme.of(context).colorScheme;
 
-    // 使用 TweenAnimationBuilder 来实现数字的平滑变化
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0.0, end: currentUsage),
       duration: const Duration(milliseconds: 500),
@@ -766,7 +889,7 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
                     ),
                     const Spacer(),
                     Text(
-                      '$animatedValue%', // 使用动画值
+                      '$animatedValue%',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -789,8 +912,7 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    value:
-                        animatedProgressValue, // Flutter 的 LinearProgressIndicator 自带动画效果
+                    value: animatedProgressValue,
                     backgroundColor: colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation<Color>(color),
                     minHeight: 8,
@@ -801,6 +923,129 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildNetworkSpeedCard() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final network = _serverMetrics?.networkSpeed;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey, width: 1),
+        color: Colors.transparent,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.speed, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                const Text(
+                  '网络速度',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (network != null)
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildNetworkSpeedItem(
+                      '下载速度',
+                      network.rxSpeed,
+                      Icons.download,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildNetworkSpeedItem(
+                      '上传速度',
+                      network.txSpeed,
+                      Icons.upload,
+                    ),
+                  ),
+                ],
+              )
+            else
+              const Text('无网络信息'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNetworkSpeedItem(String title, double speed, IconData icon) {
+    final colorScheme = Theme.of(context).colorScheme;
+    String formattedSpeed;
+    String unit;
+
+    if (speed < 1024) {
+      formattedSpeed = speed.toStringAsFixed(1);
+      unit = 'B/s';
+    } else if (speed < 1024 * 1024) {
+      formattedSpeed = (speed / 1024).toStringAsFixed(1);
+      unit = 'KB/s';
+    } else {
+      formattedSpeed = (speed / (1024 * 1024)).toStringAsFixed(1);
+      unit = 'MB/s';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 20, color: colorScheme.primary),
+              const SizedBox(width: 4),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                formattedSpeed,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                unit,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -832,14 +1077,16 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
               ],
             ),
             const SizedBox(height: 12),
-            if (_serverMetrics!.diskUsage.isEmpty) const Text("无磁盘信息"),
-            ..._serverMetrics!.diskUsage.map((disk) {
-              final usagePercent = double.tryParse(
-                    disk.usePercent.replaceAll('%', ''),
-                  ) ??
-                  0;
-              return _buildDiskUsageItem(disk, usagePercent);
-            }),
+            if (_serverMetrics!.diskUsage.isEmpty)
+              const Text("无磁盘信息")
+            else
+              ..._serverMetrics!.diskUsage.map((disk) {
+                final usagePercent = double.tryParse(
+                      disk.usePercent.replaceAll('%', ''),
+                    ) ??
+                    0;
+                return _buildDiskUsageItem(disk, usagePercent);
+              }),
           ],
         ),
       ),
@@ -868,7 +1115,6 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
           ],
         ),
         const SizedBox(height: 4),
-        // 使用 TweenAnimationBuilder 来平滑过渡进度条的值
         TweenAnimationBuilder<double>(
           tween: Tween<double>(begin: 0.0, end: progressValue),
           duration: const Duration(milliseconds: 500),
@@ -886,6 +1132,81 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
         ),
         const SizedBox(height: 8),
       ],
+    );
+  }
+
+  Widget _buildProcessListCard() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final processes = _serverMetrics?.processes ?? [];
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey, width: 1),
+        color: Colors.transparent,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.data_array, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                const Text(
+                  '进程列表',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (processes.isEmpty)
+              const Text('无进程信息')
+            else
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  columnSpacing: 24,
+                  horizontalMargin: 0,
+                  columns: const [
+                    DataColumn(label: Text('用户')),
+                    DataColumn(label: Text('PID')),
+                    DataColumn(label: Text('CPU（%）')),
+                    DataColumn(label: Text('MEM（%）')),
+                    DataColumn(
+                        label: Text('命令'), numeric: false, tooltip: '进程命令'),
+                  ],
+                  rows: processes
+                      .take(10)
+                      .map((process) => DataRow(cells: [
+                            DataCell(Text(process.user)),
+                            DataCell(Text(process.pid)),
+                            DataCell(Text(process.cpu)),
+                            DataCell(Text(process.mem)),
+                            DataCell(
+                              Tooltip(
+                                message: process.command,
+                                child: SizedBox(
+                                  width: 150,
+                                  child: Text(
+                                    process.command,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ]))
+                      .toList(),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:basic_utils/basic_utils.dart';
+import 'package:path_provider/path_provider.dart'; // 添加这个导入
 
 class ReadCerInfoPage extends StatefulWidget {
   const ReadCerInfoPage({super.key});
@@ -233,13 +234,11 @@ class _ReadCerInfoPageState extends State<ReadCerInfoPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!_isOhos) ...[
-              _buildActionButton(
-                onPressed: _pickKeyFile,
-                title: '选择本地文件',
-              ),
-              const SizedBox(height: 16),
-            ],
+            _buildActionButton(
+              onPressed: _pickKeyFile,
+              title: '选择本地文件',
+            ),
+            const SizedBox(height: 16),
             _buildActionButton(
               onPressed: () => {
                 setState(() => _showPasteField = !_showPasteField),
@@ -447,14 +446,52 @@ class _ReadCerInfoPageState extends State<ReadCerInfoPage> {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pem', 'crt', 'cer', 'der'],
+        allowMultiple: false,
+        dialogTitle: '选择证书文件',
       );
 
-      if (result != null && result.files.single.path != null) {
-        File file = File(result.files.single.path!);
-        _fileName = result.files.single.name;
+      if (result != null && result.files.isNotEmpty) {
+        final platformFile = result.files.first;
 
-        String content = await file.readAsString();
+        String? filePath;
+        String content;
+
+        if (Platform.operatingSystem == 'ohos') {
+          if (platformFile.path != null && platformFile.path!.isNotEmpty) {
+            filePath = platformFile.path!;
+            final file = File(filePath);
+            content = await file.readAsString();
+          } else if (platformFile.bytes != null) {
+            content = utf8.decode(platformFile.bytes!);
+            filePath = platformFile.name;
+
+            final tempDir = await getTemporaryDirectory();
+            final tempFile = File('${tempDir.path}/${platformFile.name}');
+            await tempFile.writeAsBytes(platformFile.bytes!);
+          } else {
+            throw Exception('无法获取文件内容');
+          }
+        } else {
+          if (platformFile.path == null || platformFile.path!.isEmpty) {
+            throw Exception('无法获取文件路径');
+          }
+
+          filePath = platformFile.path!;
+          final file = File(filePath);
+          content = await file.readAsString();
+        }
+
+        _fileName = platformFile.name;
         _parseInput(content);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('已加载文件: ${platformFile.name}'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       }
     } catch (e) {
       _showError("文件读取失败: $e");

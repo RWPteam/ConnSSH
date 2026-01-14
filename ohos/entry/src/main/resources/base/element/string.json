@@ -11,6 +11,10 @@
     {
       "name": "EntryAbility_label",
       "value": "connecter"
+    },
+    {
+      "name": "pasteboard_permission_reason",
+      "value": "用于提供文本粘贴以及密钥粘贴功能"
     }
   ]
 }

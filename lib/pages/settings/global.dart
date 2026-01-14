@@ -253,16 +253,7 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                             selectedFilePath = file.path;
                           });
                         }
-                      } catch (e) {
-                        debugPrint('选择文件失败: $e');
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('选择文件失败: $e'),
-                            ),
-                          );
-                        }
-                      }
+                      } catch (e) {}
                     },
                     icon: const Icon(Icons.folder_open),
                     label: Text(

@@ -3,6 +3,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/credential_model.dart';
 import '../services/storage_service.dart';
@@ -257,23 +258,50 @@ class _CredentialDialogState extends State<CredentialDialog> {
         type: FileType.custom,
         allowedExtensions: ['pem', 'key', 'ppk', 'txt'],
         allowMultiple: false,
+        dialogTitle: '选择私钥文件',
       );
 
-      if (result != null && result.files.single.path != null) {
-        final filePath = result.files.single.path!;
-        final file = File(filePath);
-        final keyContent = await file.readAsString();
-        setState(() {
-          _privateKeyController.text = keyContent;
-        });
+      if (result != null && result.files.isNotEmpty) {
+        final platformFile = result.files.first;
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('已从文件加载私钥: ${result.files.single.name}'),
-              duration: const Duration(seconds: 2),
-            ),
-          );
+        String? filePath;
+
+        if (Platform.operatingSystem == 'ohos') {
+          if (platformFile.path != null && platformFile.path!.isNotEmpty) {
+            filePath = platformFile.path!;
+          } else {
+            if (platformFile.bytes != null) {
+              final tempDir = await getTemporaryDirectory();
+              final tempFile = File('${tempDir.path}/${platformFile.name}');
+              await tempFile.writeAsBytes(platformFile.bytes!);
+              filePath = tempFile.path;
+            }
+          }
+        } else {
+          filePath = platformFile.path;
+        }
+
+        if (filePath != null && filePath.isNotEmpty) {
+          final file = File(filePath);
+          if (await file.exists()) {
+            final keyContent = await file.readAsString();
+            setState(() {
+              _privateKeyController.text = keyContent;
+            });
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('已从文件加载私钥: ${platformFile.name}'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          } else {
+            throw Exception('文件不存在');
+          }
+        } else {
+          throw Exception('无法获取文件路径');
         }
       }
     } catch (e) {
@@ -339,7 +367,6 @@ class _CredentialDialogState extends State<CredentialDialog> {
     }
 
     if (value != null && value.isNotEmpty) {
-      // 简单的私钥格式验证
       if (!value.contains('-----BEGIN') && !value.contains('PRIVATE KEY')) {
         return '私钥格式可能不正确';
       }

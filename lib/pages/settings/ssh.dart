@@ -251,8 +251,10 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
                             style: TextStyle(
                               fontFamily: font == 'maple' ? null : font,
                               fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black,
                             ),
                           ),
                         ),

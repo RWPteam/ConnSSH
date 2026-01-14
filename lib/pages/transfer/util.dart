@@ -1,3 +1,4 @@
+import 'package:connssh/pages/tcpdebug.dart';
 import 'package:flutter/material.dart';
 import '../monitor.dart';
 import '../cerreader.dart';
@@ -25,7 +26,7 @@ class UtilityToolsPage extends StatelessWidget {
                       context: context,
                       icon: Icons.dashboard,
                       title: '服务器数据面板',
-                      subtitle: '实时监控服务器性能和资源使用情况',
+                      subtitle: '实时监控服务器使用情况',
                       onTap: () {
                         Navigator.push(
                           context,
@@ -61,6 +62,21 @@ class UtilityToolsPage extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (context) => const KeygenPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildToolTile(
+                      context: context,
+                      icon: Icons.transfer_within_a_station,
+                      title: 'TCP调试助手',
+                      subtitle: '发送、获取TCP数据包',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SocketDebugPage(),
                           ),
                         );
                       },
