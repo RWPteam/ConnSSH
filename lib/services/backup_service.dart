@@ -45,7 +45,7 @@ class BackupService {
       recentConnections: recentConnections,
       settings: settings,
       backupTime: DateTime.now(),
-      version: '1.2.3',
+      version: '1.3.0',
     );
   }
 

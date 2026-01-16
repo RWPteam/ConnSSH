@@ -1,3 +1,4 @@
+// connection_model.dart
 class ConnectionInfo {
   String id;
   String name;
@@ -10,6 +11,7 @@ class ConnectionInfo {
   DateTime lastUsed;
   String? sftpPath;
   String? archive;
+  bool needTwoFa; // 新增：是否需要2FA认证
 
   ConnectionInfo({
     required this.id,
@@ -21,7 +23,8 @@ class ConnectionInfo {
     required this.remember,
     this.isPinned = false,
     this.sftpPath,
-    this.archive, // 新增
+    this.archive,
+    this.needTwoFa = false, // 默认不需要2FA
     DateTime? lastUsed,
   }) : lastUsed = lastUsed ?? DateTime.now();
 
@@ -38,6 +41,7 @@ class ConnectionInfo {
       'lastUsed': lastUsed.toIso8601String(),
       'sftpPath': sftpPath,
       'archive': archive,
+      'needTwoFa': needTwoFa, // 保存2FA设置
     };
   }
 
@@ -63,6 +67,7 @@ class ConnectionInfo {
       isPinned: json['isPinned'] ?? false,
       sftpPath: json['sftpPath'],
       archive: json['archive'],
+      needTwoFa: json['needTwoFa'] ?? false, // 读取2FA设置
       lastUsed: json['lastUsed'] != null
           ? DateTime.parse(json['lastUsed'])
           : DateTime.now(),

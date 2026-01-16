@@ -10,7 +10,6 @@ import '../components/quick_connect_dialog.dart';
 import '../models/connection_model.dart';
 import '../services/setting_service.dart';
 import '../services/storage_service.dart';
-import '../services/ssh_service.dart';
 import 'help.dart';
 import 'terminal.dart';
 import 'sftpview.dart';
@@ -867,7 +866,6 @@ class _MainPageState extends State<MainPage> {
 
     try {
       final storageService = StorageService();
-      final sshService = SshService();
 
       final credentials = await storageService.getCredentials();
       final credential = credentials.firstWhere(
@@ -875,9 +873,9 @@ class _MainPageState extends State<MainPage> {
         orElse: () => throw Exception('找不到认证凭证'),
       );
 
-      await sshService.connect(connection, credential).timeout(
-            const Duration(seconds: 3),
-          ); //onTimeout: () {
+      //await sshService.connect(connection, credential).timeout(
+      //      const Duration(seconds: 3),
+      //    ); //onTimeout: () {
       //throw TimeoutException('连接超时，请检查网络或主机是否可达');
       //});
 

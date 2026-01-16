@@ -12,6 +12,7 @@ import '../services/ecdsa_key_service.dart';
 import '../services/storage_service.dart';
 import '../services/ssh_service.dart';
 import '../components/quick_connect_dialog.dart';
+import '../components/twofa_dialog.dart'; // 添加2FA对话框导入
 
 class KeygenPage extends StatefulWidget {
   const KeygenPage({super.key});
@@ -41,6 +42,8 @@ class _KeygenPageState extends State<KeygenPage> {
   bool _isGenerating = false;
   final TextEditingController _passwordController = TextEditingController();
 
+  Completer<String?>? _twoFactorCompleter = null;
+
   final List<int> _rsaKeySizeOptions = [512, 1024, 2048, 4096];
   final List<String> _ecdsaCurveOptions = [
     'p192',
@@ -64,6 +67,10 @@ class _KeygenPageState extends State<KeygenPage> {
   void dispose() {
     _passwordController.dispose();
     _sshClient?.close();
+    // 清理2FA Completer
+    if (_twoFactorCompleter != null && !_twoFactorCompleter!.isCompleted) {
+      _twoFactorCompleter!.complete(null);
+    }
     super.dispose();
   }
 
@@ -203,6 +210,38 @@ class _KeygenPageState extends State<KeygenPage> {
       }
     } catch (e) {
       _showError('保存失败: $e');
+    }
+  }
+
+  // 显示2FA验证码对话框
+  Future<String?> _showTwoFactorAuthDialog(
+    String connectionName,
+    String host,
+    String prompt,
+  ) async {
+    // 使用Completer来等待用户输入
+    final completer = Completer<String?>();
+    _twoFactorCompleter = completer;
+
+    setState(() {});
+
+    try {
+      final code = await TwoFactorAuthDialog.show(
+        context,
+        connectionName: connectionName,
+        host: host,
+        prompt: prompt,
+      );
+
+      _twoFactorCompleter = null;
+      setState(() {});
+
+      return code;
+    } catch (e) {
+      // 清理状态
+      _twoFactorCompleter = null;
+      setState(() {});
+      rethrow;
     }
   }
 
@@ -349,7 +388,13 @@ class _KeygenPageState extends State<KeygenPage> {
         orElse: () => throw Exception('找不到认证凭证'),
       );
 
-      _sshClient = await _sshService.connect(connection, credential);
+      // 修改：传入2FA回调函数
+      _sshClient = await _sshService.connect(
+        connection,
+        credential,
+        onTwoFactorAuth: _showTwoFactorAuthDialog, // 添加2FA回调
+      );
+
       _sftpClient = await _sshClient!.sftp();
 
       String expandedPath = path;

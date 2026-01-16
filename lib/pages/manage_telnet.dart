@@ -172,7 +172,7 @@ class _ManageTelnetConnectionsPageState
                     color: Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.blueGrey,
+                      color: Colors.grey,
                       width: 1,
                     ),
                   ),

@@ -47,6 +47,9 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
 
   final ScrollController _receiveScrollController = ScrollController();
 
+  // 用于控制异步操作
+  bool _isDisposed = false;
+
   @override
   void initState() {
     super.initState();
@@ -55,15 +58,36 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
 
   @override
   void dispose() {
-    _disconnect();
+    _isDisposed = true;
+
+    // 先取消所有定时器
+    _statTimer?.cancel();
+    _statTimer = null;
+
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+
+    // 关闭socket但不调用setState
+    _closeSocketSilently();
+
+    // 销毁控制器
     _ipController.dispose();
     _portController.dispose();
     _sendController.dispose();
     _receiveController.dispose();
     _receiveScrollController.dispose();
-    _statTimer?.cancel();
-    _reconnectTimer?.cancel();
+
     super.dispose();
+  }
+
+  // 静默关闭socket，不调用setState
+  void _closeSocketSilently() {
+    try {
+      _socket?.destroy();
+    } catch (e) {
+      // 忽略关闭时的错误
+    }
+    _socket = null;
   }
 
   Future<void> _loadLastSettings() async {
@@ -93,6 +117,8 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
       return;
     }
 
+    if (!mounted || _isDisposed) return;
+
     setState(() {
       _isConnecting = true;
       _errorMessage = '';
@@ -121,6 +147,11 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
         cancelOnError: true,
       );
 
+      if (!mounted || _isDisposed) {
+        _closeSocketSilently();
+        return;
+      }
+
       setState(() {
         _isConnected = true;
         _isConnecting = false;
@@ -130,13 +161,15 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
 
       // 启动统计定时器
       _statTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (mounted && _isConnected) {
+        if (mounted && !_isDisposed && _isConnected) {
           setState(() {});
         } else {
           timer.cancel();
         }
       });
     } catch (e) {
+      if (!mounted || _isDisposed) return;
+
       _logToBuffer('${_getTimestamp()} 连接失败: $e');
       setState(() {
         _isConnecting = false;
@@ -151,7 +184,7 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
   }
 
   void _handleReceivedData(List<int> data) {
-    if (!mounted || data.isEmpty) return;
+    if (!mounted || _isDisposed || data.isEmpty) return;
 
     try {
       String decodedData;
@@ -202,7 +235,7 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
   }
 
   void _handleSocketError(dynamic error) {
-    if (!mounted) return;
+    if (!mounted || _isDisposed) return;
 
     _logToBuffer('${_getTimestamp()} Socket错误: $error');
 
@@ -214,7 +247,7 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
   }
 
   void _handleDisconnected() {
-    if (!mounted) return;
+    if (!mounted || _isDisposed) return;
 
     _logToBuffer('${_getTimestamp()} 连接断开');
 
@@ -232,7 +265,7 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
 
       // 2秒后重连
       _reconnectTimer = Timer(const Duration(seconds: 2), () {
-        if (!_isConnected && !_isConnecting && mounted) {
+        if (!_isDisposed && mounted && !_isConnected && !_isConnecting) {
           _logToBuffer('${_getTimestamp()} 开始重连...');
           _connect();
         }
@@ -256,7 +289,7 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
 
     _socket = null;
 
-    if (mounted) {
+    if (mounted && !_isDisposed) {
       setState(() {
         _isConnected = false;
         _isConnecting = false;
@@ -306,14 +339,14 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
 
       _totalSent += bytesToSend.length;
 
-      if (mounted) {
+      if (mounted && !_isDisposed) {
         setState(() {
           _sendController.clear();
         });
       }
     } catch (e) {
       _logToBuffer('${_getTimestamp()} 发送失败: $e');
-      if (mounted) {
+      if (mounted && !_isDisposed) {
         setState(() {
           _errorMessage = '发送失败: $e';
         });
@@ -322,7 +355,7 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
   }
 
   void _logToBuffer(String message) {
-    if (!mounted) return;
+    if (!mounted || _isDisposed) return;
 
     _receiveBuffer.add(message);
 
@@ -336,7 +369,7 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
 
     if (_autoScroll) {
       Future.delayed(const Duration(milliseconds: 50), () {
-        if (_receiveScrollController.hasClients && mounted) {
+        if (_receiveScrollController.hasClients && mounted && !_isDisposed) {
           _receiveScrollController.animateTo(
             _receiveScrollController.position.maxScrollExtent,
             duration: const Duration(milliseconds: 300),
@@ -348,6 +381,8 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
   }
 
   void _clearReceive() {
+    if (!mounted || _isDisposed) return;
+
     setState(() {
       _receiveBuffer.clear();
       _receiveController.clear();
@@ -362,7 +397,8 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
   }
 
   void _showError(String message) {
-    if (!mounted) return;
+    if (!mounted || _isDisposed) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -514,7 +550,7 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
                         onChanged: _isConnected
                             ? null
                             : (value) {
-                                if (value != null) {
+                                if (value != null && mounted && !_isDisposed) {
                                   setState(() {
                                     _charset = value;
                                   });
@@ -591,9 +627,11 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
                   onChanged: _isConnected
                       ? null
                       : (value) {
-                          setState(() {
-                            _autoReconnect = value ?? false;
-                          });
+                          if (mounted && !_isDisposed) {
+                            setState(() {
+                              _autoReconnect = value ?? false;
+                            });
+                          }
                         },
                 ),
                 const Text('自动重连'),
@@ -601,9 +639,11 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
                 Checkbox(
                   value: _autoScroll,
                   onChanged: (value) {
-                    setState(() {
-                      _autoScroll = value ?? true;
-                    });
+                    if (mounted && !_isDisposed) {
+                      setState(() {
+                        _autoScroll = value ?? true;
+                      });
+                    }
                   },
                 ),
                 const Text('自动滚动'),
@@ -748,9 +788,11 @@ class _SocketDebugPageState extends State<SocketDebugPage> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () {
-                      setState(() {
-                        _sendController.clear();
-                      });
+                      if (mounted && !_isDisposed) {
+                        setState(() {
+                          _sendController.clear();
+                        });
+                      }
                     },
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),

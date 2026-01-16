@@ -175,6 +175,59 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
     }
   }
 
+  // 统一的文本框样式
+  InputDecoration _textFieldDecoration(String labelText,
+      {String? hintText, Widget? suffixIcon}) {
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      suffixIcon: suffixIcon,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide:
+            BorderSide(color: Theme.of(context).primaryColor, width: 1.0),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.red, width: 1.0),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.red, width: 1.0),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    );
+  }
+
+  // 统一的下拉菜单样式
+  InputDecoration _dropdownDecoration(String labelText) {
+    return InputDecoration(
+      labelText: labelText,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide:
+            BorderSide(color: Theme.of(context).primaryColor, width: 1.0),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -184,7 +237,8 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
           maxWidth: 500,
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding:
+              const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -212,10 +266,11 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        const SizedBox(height: 7),
                         TextFormField(
                           controller: _nameController,
-                          decoration: const InputDecoration(
-                            labelText: '连接名称',
+                          decoration: _textFieldDecoration(
+                            '连接名称',
                             hintText: '请输入连接名称',
                           ),
                           validator: (value) => (value == null || value.isEmpty)
@@ -225,8 +280,8 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _hostController,
-                          decoration: const InputDecoration(
-                            labelText: '主机地址',
+                          decoration: _textFieldDecoration(
+                            '主机地址',
                             hintText: '例如：192.168.1.1',
                           ),
                           validator: (value) => (value == null || value.isEmpty)
@@ -236,7 +291,7 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _portController,
-                          decoration: const InputDecoration(labelText: '端口号'),
+                          decoration: _textFieldDecoration('端口号'),
                           keyboardType: TextInputType.number,
                           validator: (value) {
                             if (value == null || value.isEmpty) return '请输入端口号';
@@ -249,16 +304,16 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _usernameController,
-                          decoration: const InputDecoration(
-                            labelText: '用户名 (可选)',
+                          decoration: _textFieldDecoration(
+                            '用户名 (可选)',
                             hintText: '如果需要认证请输入用户名',
                           ),
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _passwordController,
-                          decoration: InputDecoration(
-                            labelText: '密码 (可选)',
+                          decoration: _textFieldDecoration(
+                            '密码 (可选)',
                             hintText: '如果需要认证请输入密码',
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -278,7 +333,7 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
                         const SizedBox(height: 16),
                         DropdownButtonFormField<TelnetTerminalType>(
                           value: _selectedTerminalType,
-                          decoration: const InputDecoration(labelText: '终端类型'),
+                          decoration: _dropdownDecoration('终端类型'),
                           items: TelnetTerminalType.values.map((type) {
                             return DropdownMenuItem(
                               value: type,
@@ -291,7 +346,7 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
                         const SizedBox(height: 16),
                         DropdownButtonFormField<TelnetLineSeparator>(
                           value: _selectedLineSeparator,
-                          decoration: const InputDecoration(labelText: '行分隔符'),
+                          decoration: _dropdownDecoration('行分隔符'),
                           items: TelnetLineSeparator.values.map((separator) {
                             return DropdownMenuItem(
                               value: separator,
@@ -302,13 +357,32 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
                               setState(() => _selectedLineSeparator = value!),
                         ),
                         const SizedBox(height: 16),
-                        CheckboxListTile(
+                        // 添加编码选择下拉菜单
+                        DropdownButtonFormField<TelnetEncoding>(
+                          value: _selectedEncoding,
+                          decoration: _dropdownDecoration('字符编码'),
+                          items: TelnetEncoding.values.map((encoding) {
+                            return DropdownMenuItem(
+                              value: encoding,
+                              child: Text(encoding.displayName),
+                            );
+                          }).toList(),
+                          onChanged: (value) =>
+                              setState(() => _selectedEncoding = value!),
+                        ),
+                        const SizedBox(height: 16),
+                        // 将"保存此连接"改为SwitchListTile样式
+                        SwitchListTile(
                           contentPadding: EdgeInsets.zero,
                           title: const Text('保存此连接'),
+                          subtitle: const Text('将此连接保存到连接列表'),
                           value: _rememberConnection,
-                          onChanged: (value) =>
-                              setState(() => _rememberConnection = value!),
-                          controlAffinity: ListTileControlAffinity.leading,
+                          onChanged: (value) {
+                            setState(() {
+                              _rememberConnection = value;
+                            });
+                          },
+                          secondary: const Icon(Icons.bookmark),
                         ),
                       ],
                     ),

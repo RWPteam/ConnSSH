@@ -30,18 +30,17 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
   // 焦点控制
   final FocusNode _terminalFocusNode = FocusNode();
 
-  // 字体大小控制
   double _fontSize = 14.0;
   OverlayEntry? _fontSliderOverlay;
   Timer? _hideSliderTimer;
   bool _isSliderVisible = false;
   bool _menuIsOpen = false;
 
-  // 主题设置
   bool _isThemeSelectorVisible = false;
   Timer? _hideThemeSelectorTimer;
   TerminalTheme _currentTheme = TerminalThemes.defaultTheme;
   String _selectedThemeName = 'dark';
+  String _defaultFonts = 'maple';
 
   // 设置服务
   final SettingsService _settingsService = SettingsService();
@@ -182,6 +181,7 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
 
       // 设置字体大小
       _fontSize = settings.defaultFontSize;
+      _defaultFonts = settings.defaultFonts;
 
       // 设置主题
       final themeName = settings.defaultTermTheme;
@@ -196,12 +196,20 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
         case 'light':
           _currentTheme = TerminalThemes.LightTheme;
           break;
+        case 'xshell':
+          _currentTheme = TerminalThemes.xshell;
+          break;
+        case 'dracula':
+          _currentTheme = TerminalThemes.dracula;
+          break;
+        case 'gruvbox':
+          _currentTheme = TerminalThemes.gruvbox;
+          break;
         default:
           _currentTheme = TerminalThemes.defaultTheme;
           _selectedThemeName = 'dark';
       }
 
-      // 设置工具栏布局
       _toolbarLayout = settings.toolbarLayout;
 
       if (mounted) {
@@ -212,6 +220,7 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
       _currentTheme = TerminalThemes.defaultTheme;
       _selectedThemeName = 'dark';
       _fontSize = 14.0;
+      _defaultFonts = 'maple';
       _toolbarLayout = const [
         1,
         2,
@@ -545,6 +554,39 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
                 }
               },
             ),
+            RadioListTile<String>(
+              title: const Text('XShell'),
+              value: 'xshell',
+              groupValue: _selectedThemeName,
+              onChanged: (value) {
+                if (value != null) {
+                  Navigator.of(context).pop();
+                  _switchTheme(TerminalThemes.xshell, value);
+                }
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('Dracula Dark'),
+              value: 'dracula',
+              groupValue: _selectedThemeName,
+              onChanged: (value) {
+                if (value != null) {
+                  Navigator.of(context).pop();
+                  _switchTheme(TerminalThemes.dracula, value);
+                }
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('Gruvbox Dark'),
+              value: 'gruvbox',
+              groupValue: _selectedThemeName,
+              onChanged: (value) {
+                if (value != null) {
+                  Navigator.of(context).pop();
+                  _switchTheme(TerminalThemes.gruvbox, value);
+                }
+              },
+            ),
           ],
         ),
         actions: [
@@ -849,7 +891,7 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
             autofocus: true,
             textStyle: TerminalStyle(
               fontSize: _fontSize,
-              fontFamily: 'maple',
+              fontFamily: _defaultFonts,
             ),
             theme: _currentTheme,
             showToolbar: _showToolbar,

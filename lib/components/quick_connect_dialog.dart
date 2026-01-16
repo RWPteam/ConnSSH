@@ -1,3 +1,4 @@
+// quick_connect_dialog.dart
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -6,7 +7,6 @@ import 'package:uuid/uuid.dart';
 import '../models/connection_model.dart';
 import '../models/credential_model.dart';
 import '../services/storage_service.dart';
-import '../services/ssh_service.dart';
 import '../pages/terminal.dart';
 import '../pages/sftpview.dart';
 import 'telnet_connect_dialog.dart';
@@ -40,6 +40,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
   bool _isConnecting = false;
   bool _isEditing = false;
   bool _isNameChanged = false;
+  bool _needTwoFa = false; // 新增：是否需要2FA
 
   @override
   void initState() {
@@ -53,10 +54,12 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
       _selectedType = widget.connection!.type;
       _rememberConnection = widget.connection!.remember;
       _sftpPathController.text = widget.connection!.sftpPath ?? '/';
+      _needTwoFa = widget.connection!.needTwoFa; // 读取2FA设置
     } else {
       _nameController.text = '新连接';
       _sftpPathController.text = '/';
       _isNameChanged = false;
+      _needTwoFa = false; // 默认不启用2FA
     }
 
     _loadCredentials();
@@ -146,19 +149,12 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
 
     try {
       final storageService = StorageService();
-      final sshService = SshService();
 
       final credentials = await storageService.getCredentials();
       final credential = credentials.firstWhere(
         (c) => c.id == connection.credentialId,
         orElse: () => throw Exception('找不到认证凭证'),
       );
-
-      await sshService
-          .connect(connection, credential)
-          .timeout(const Duration(seconds: 3), onTimeout: () {
-        throw TimeoutException('连接超时，请检查网络或主机是否可达');
-      });
 
       unawaited(storageService.addRecentConnection(connection));
       if (connection.remember) {
@@ -258,6 +254,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
         credentialId: _selectedCredential!.id,
         type: _selectedType,
         remember: true,
+        needTwoFa: _needTwoFa, // 保存2FA设置
         sftpPath: _selectedType == ConnectionType.sftp
             ? _sftpPathController.text
             : null,
@@ -308,9 +305,10 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
         credentialId: _selectedCredential!.id,
         type: _selectedType,
         remember: true,
+        needTwoFa: _needTwoFa, // 保存2FA设置
         sftpPath: _selectedType == ConnectionType.sftp
             ? _sftpPathController.text
-            : null, // 保存SFTP路径
+            : null,
       );
 
       await _storageService.saveConnection(connection);
@@ -356,6 +354,59 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
     );
   }
 
+  // 统一的文本框样式
+  InputDecoration _textFieldDecoration(String labelText,
+      {String? hintText, Widget? suffixIcon}) {
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      suffixIcon: suffixIcon,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide:
+            BorderSide(color: Theme.of(context).primaryColor, width: 1.0),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.red, width: 1.0),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.red, width: 1.0),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    );
+  }
+
+  // 统一的下拉菜单样式
+  InputDecoration _dropdownDecoration(String labelText) {
+    return InputDecoration(
+      labelText: labelText,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide:
+            BorderSide(color: Theme.of(context).primaryColor, width: 1.0),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -365,7 +416,8 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
           maxWidth: 500,
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.only(
+              left: 16, right: 16, bottom: 16, top: 16), // 移除顶部内边距
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -393,10 +445,11 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        const SizedBox(height: 7),
                         TextFormField(
                           controller: _nameController,
-                          decoration: InputDecoration(
-                            labelText: '连接名称',
+                          decoration: _textFieldDecoration(
+                            '连接名称',
                             hintText: '请输入连接名称',
                             suffixIcon: IconButton(
                               icon: const Icon(Icons.refresh_outlined),
@@ -412,8 +465,8 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _hostController,
-                          decoration: const InputDecoration(
-                            labelText: '主机地址',
+                          decoration: _textFieldDecoration(
+                            '主机地址',
                             hintText: '例如：192.168.1.1',
                           ),
                           onChanged: !_isEditing
@@ -426,7 +479,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _portController,
-                          decoration: const InputDecoration(labelText: '端口号'),
+                          decoration: _textFieldDecoration('端口号'),
                           keyboardType: TextInputType.number,
                           onChanged: !_isEditing
                               ? (value) => _generateConnectionName()
@@ -440,37 +493,56 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Expanded(
-                              child: DropdownButtonFormField<Credential>(
-                                value: _selectedCredential,
-                                decoration:
-                                    const InputDecoration(labelText: '认证凭证'),
-                                items: _credentials.map((credential) {
-                                  return DropdownMenuItem(
-                                    value: credential,
-                                    child: Text(credential.name),
-                                  );
-                                }).toList(),
-                                onChanged: (value) =>
-                                    setState(() => _selectedCredential = value),
-                                validator: (value) =>
-                                    value == null ? '请选择认证凭证' : null,
+                        // 问题2：修复凭证选择行，让+号按钮垂直居中
+                        SizedBox(
+                          height: 60, // 设置固定高度确保垂直居中
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<Credential>(
+                                  value: _selectedCredential,
+                                  decoration: _dropdownDecoration('认证凭证'),
+                                  items: _credentials.map((credential) {
+                                    return DropdownMenuItem(
+                                      value: credential,
+                                      child: Text(credential.name),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) => setState(
+                                      () => _selectedCredential = value),
+                                  validator: (value) =>
+                                      value == null ? '请选择认证凭证' : null,
+                                ),
                               ),
-                            ),
-                            IconButton(
-                              onPressed: _addNewCredential,
-                              icon: const Icon(Icons.add),
-                              tooltip: '添加新凭证',
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              Container(
+                                height: 48, // 与下拉菜单高度匹配
+                                width: 48, // 确保圆形按钮
+                                child: IconButton(
+                                  onPressed: _addNewCredential,
+                                  icon: const Icon(Icons.add),
+                                  tooltip: '添加新凭证',
+                                  padding: const EdgeInsets.all(12), // 增加内边距
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Theme.of(context)
+                                        .primaryColor
+                                        .withOpacity(0.1),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      side: const BorderSide(
+                                          color: Colors.grey, width: 1),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 16),
                         DropdownButtonFormField<ConnectionType>(
                           value: _selectedType,
-                          decoration: const InputDecoration(labelText: '连接类型'),
+                          decoration: _dropdownDecoration('连接类型'),
                           items: ConnectionType.values.map((type) {
                             return DropdownMenuItem(
                               value: type,
@@ -480,12 +552,12 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                           onChanged: (value) =>
                               setState(() => _selectedType = value!),
                         ),
-                        const SizedBox(height: 16),
                         if (_selectedType == ConnectionType.sftp) ...[
+                          const SizedBox(height: 16),
                           TextFormField(
                             controller: _sftpPathController,
-                            decoration: const InputDecoration(
-                              labelText: 'SFTP默认访问目录',
+                            decoration: _textFieldDecoration(
+                              'SFTP默认访问目录',
                               hintText: '例如：/home/username',
                             ),
                             validator: (value) =>
@@ -502,16 +574,35 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                                   TextStyle(fontSize: 12, color: Colors.grey),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 8),
                         ],
+                        // 修改：将2FA选项移到SFTP路径下方
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('启用2FA认证'),
+                          subtitle: const Text('如需双因素认证请启用此选项'),
+                          value: _needTwoFa,
+                          onChanged: (value) {
+                            setState(() {
+                              _needTwoFa = value;
+                            });
+                          },
+                          secondary: const Icon(Icons.security),
+                        ),
+                        const SizedBox(height: 8),
+                        // 修改：将"记住该连接"改为SwitchListTile样式
                         if (!widget.isNewConnection && !_isEditing)
-                          CheckboxListTile(
+                          SwitchListTile(
                             contentPadding: EdgeInsets.zero,
                             title: const Text('记住该连接'),
+                            subtitle: const Text('将此连接保存到连接列表'),
                             value: _rememberConnection,
-                            onChanged: (value) =>
-                                setState(() => _rememberConnection = value!),
-                            controlAffinity: ListTileControlAffinity.leading,
+                            onChanged: (value) {
+                              setState(() {
+                                _rememberConnection = value;
+                              });
+                            },
+                            secondary: const Icon(Icons.bookmark),
                           ),
                       ],
                     ),
@@ -554,6 +645,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                                   credentialId: _selectedCredential!.id,
                                   type: _selectedType,
                                   remember: _rememberConnection,
+                                  needTwoFa: _needTwoFa, // 保存2FA设置
                                   sftpPath: _selectedType == ConnectionType.sftp
                                       ? _sftpPathController.text
                                       : null,

@@ -1,4 +1,3 @@
-// terminal_page.dart（完整修改）
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -9,6 +8,7 @@ import '../models/connection_model.dart';
 import '../models/credential_model.dart';
 import '../services/ssh_service.dart';
 import '../services/setting_service.dart';
+import '../components/twofa_dialog.dart';
 
 class TerminalPage extends StatefulWidget {
   final ConnectionInfo connection;
@@ -27,7 +27,7 @@ class TerminalPage extends StatefulWidget {
 const int _maxSessions = 2;
 
 class _TerminalPageState extends State<TerminalPage> {
-  late List<Terminal> _terminals; // 改为非空
+  late List<Terminal> _terminals;
   final List<SSHClient?> _sshClients = List.filled(_maxSessions, null);
   final List<SSHSession?> _sessions = List.filled(_maxSessions, null);
   final List<bool> _isConnecteds = List.filled(_maxSessions, false);
@@ -35,6 +35,10 @@ class _TerminalPageState extends State<TerminalPage> {
   final List<String> _statuses = List.filled(_maxSessions, '未连接');
   final List<StreamSubscription?> _stdoutSubs = List.filled(_maxSessions, null);
   final List<StreamSubscription?> _stderrSubs = List.filled(_maxSessions, null);
+
+  final List<Completer<String?>?> _twoFactorCompleters =
+      List.filled(_maxSessions, null);
+  final List<bool> _needsTwoFactorAuth = List.filled(_maxSessions, false);
 
   int _activeIndex = 0;
   bool _isMultiWindowMode = false;
@@ -223,8 +227,18 @@ class _TerminalPageState extends State<TerminalPage> {
       });
 
       final sshService = SshService();
-      final client =
-          await sshService.connect(widget.connection, widget.credential);
+
+      // 连接时传入 2FA 回调函数
+      final client = await sshService.connect(
+        widget.connection,
+        widget.credential,
+        onTwoFactorAuth: (connectionName, host, prompt) async {
+          // 在需要 2FA 时弹出对话框
+          return await _showTwoFactorAuthDialog(
+              index, connectionName, host, prompt);
+        },
+      );
+
       _sshClients[index] = client;
 
       final t = _terminals[index];
@@ -292,6 +306,48 @@ class _TerminalPageState extends State<TerminalPage> {
     }
   }
 
+  // 显示 2FA 验证码对话框
+  Future<String?> _showTwoFactorAuthDialog(
+    int sessionIndex,
+    String connectionName,
+    String host,
+    String prompt,
+  ) async {
+    // 如果当前不是活动的会话，需要切换过去
+    if (sessionIndex != _activeIndex && _isMultiWindowMode) {
+      // 切换到需要 2FA 的会话
+      setState(() {
+        _activeIndex = sessionIndex;
+      });
+      // 给用户一点时间看到切换
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
+
+    // 在终端显示提示信息
+    _terminals[sessionIndex].write('\r\n$prompt\r\n');
+
+    // 使用 Completer 来等待用户输入
+    final completer = Completer<String?>();
+    _twoFactorCompleters[sessionIndex] = completer;
+    setState(() {
+      _needsTwoFactorAuth[sessionIndex] = true;
+    });
+
+    {
+      final code = await TwoFactorAuthDialog.show(
+        context,
+        connectionName: connectionName,
+        host: host,
+        prompt: prompt,
+      );
+      _twoFactorCompleters[sessionIndex] = null;
+      setState(() {
+        _needsTwoFactorAuth[sessionIndex] = false;
+      });
+      return code;
+    }
+  }
+
   void _enableMultiWindow() {
     setState(() {
       _isMultiWindowMode = true;
@@ -331,6 +387,8 @@ class _TerminalPageState extends State<TerminalPage> {
         _isConnecteds[1] = false;
         _isConnectings[1] = false;
         _statuses[1] = '未连接';
+        _needsTwoFactorAuth[1] = false;
+        _twoFactorCompleters[1] = null;
       });
       _terminalFocusNode.requestFocus();
     }
@@ -362,6 +420,12 @@ class _TerminalPageState extends State<TerminalPage> {
     for (var c in _sshClients) {
       c?.close();
     }
+    // 清理 2FA Completers
+    for (var completer in _twoFactorCompleters) {
+      if (completer != null && !completer.isCompleted) {
+        completer.complete(null);
+      }
+    }
     _terminalFocusNode.dispose();
     _hideSliderTimer?.cancel();
     _hideThemeSelectorTimer?.cancel();
@@ -374,6 +438,7 @@ class _TerminalPageState extends State<TerminalPage> {
   Color _getAppBarColor() {
     if (_isConnecting) return Colors.grey.shade700;
     if (_isConnected) return Theme.of(context).primaryColor;
+    if (_needsTwoFactorAuth[_activeIndex]) return Colors.orange;
     return Colors.red;
   }
 
@@ -525,13 +590,11 @@ class _TerminalPageState extends State<TerminalPage> {
     });
   }
 
-  // 修改：只更新当前页面主题，不保存到设置
   void _switchTheme(TerminalTheme newTheme, String themeName) {
     setState(() {
       _currentTheme = newTheme;
       _selectedThemeName = themeName;
     });
-    // 恢复焦点到终端
     if (_isConnected) _terminalFocusNode.requestFocus();
   }
 
@@ -548,10 +611,17 @@ class _TerminalPageState extends State<TerminalPage> {
   void _reconnect() {
     _sessions[_activeIndex]?.close();
     _sshClients[_activeIndex]?.close();
+    // 清理 2FA 状态
+    if (_twoFactorCompleters[_activeIndex] != null &&
+        !_twoFactorCompleters[_activeIndex]!.isCompleted) {
+      _twoFactorCompleters[_activeIndex]!.complete(null);
+    }
     setState(() {
       _isConnecteds[_activeIndex] = false;
       _isConnectings[_activeIndex] = true;
       _statuses[_activeIndex] = '重新连接中...';
+      _needsTwoFactorAuth[_activeIndex] = false;
+      _twoFactorCompleters[_activeIndex] = null;
       _terminals[_activeIndex].buffer.clear();
     });
     _connectToHost(_activeIndex);
@@ -776,6 +846,10 @@ class _TerminalPageState extends State<TerminalPage> {
                           color: Colors.white70,
                         ),
                       ),
+                      if (_needsTwoFactorAuth[_activeIndex])
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                        ),
                     ],
                   ),
                 ],

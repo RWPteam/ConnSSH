@@ -1,5 +1,4 @@
 // ignore_for_file: use_build_context_synchronously
-
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
@@ -18,6 +17,7 @@ import '../services/setting_service.dart';
 import '../models/app_settings_model.dart';
 import '../services/ssh_service.dart';
 import 'package:path/path.dart' as path;
+import '../components/twofa_dialog.dart';
 
 enum ViewMode { list, icon }
 
@@ -74,6 +74,8 @@ class _SftpPageState extends State<SftpPage> {
   DateTime? _lastBackPressedTime;
   bool _isProgressDialogOpen = false;
   bool _isSudoPromptOpen = false;
+  bool _needsTwoFactorAuth = false;
+  Completer<String?>? _twoFactorCompleter;
 
   bool get _ismobile =>
       defaultTargetPlatform == TargetPlatform.android ||
@@ -130,8 +132,14 @@ class _SftpPageState extends State<SftpPage> {
         _status = '连接中...';
       });
 
-      _sshClient =
-          await _sshService.connect(widget.connection, widget.credential);
+      _sshClient = await _sshService.connect(
+        widget.connection,
+        widget.credential,
+        onTwoFactorAuth: (connectionName, host, prompt) async {
+          return await _showTwoFactorAuthDialog(connectionName, host, prompt);
+        },
+      );
+
       _sftpClient = await _sshClient!.sftp();
 
       if (mounted) {
@@ -158,6 +166,31 @@ class _SftpPageState extends State<SftpPage> {
         _showErrorDialog('SFTP连接失败', e.toString());
       }
     }
+  }
+
+  Future<String?> _showTwoFactorAuthDialog(
+    String connectionName,
+    String host,
+    String prompt,
+  ) async {
+    final completer = Completer<String?>();
+    _twoFactorCompleter = completer;
+
+    final code = await TwoFactorAuthDialog.show(
+      context,
+      connectionName: connectionName,
+      host: host,
+      prompt: prompt,
+    );
+
+    _twoFactorCompleter = null;
+    if (mounted) {
+      setState(() {
+        _needsTwoFactorAuth = false;
+      });
+    }
+
+    return code;
   }
 
   Future<bool> _checkConnection() async {
@@ -1215,9 +1248,6 @@ class _SftpPageState extends State<SftpPage> {
     _cancelOperation = false;
   }
 
-// 同时删除 _requestStoragePermission 方法的调用，因为不再需要权限检查
-// 注意：_requestStoragePermission 方法本身可以保留，因为可能在代码其他地方被调用
-// 但我们已经移除了在 _downloadSelectedFiles 中的调用
   Future<void> _downloadForOhos(List<String> filesToDownload) async {
     if (filesToDownload.isEmpty) return;
 
@@ -2913,6 +2943,10 @@ class _SftpPageState extends State<SftpPage> {
     try {
       _sshClient?.close();
     } catch (_) {}
+    // 清理2FA Completer
+    if (_twoFactorCompleter != null && !_twoFactorCompleter!.isCompleted) {
+      _twoFactorCompleter!.complete(null);
+    }
     super.dispose();
   }
 
@@ -3005,6 +3039,10 @@ class _SftpPageState extends State<SftpPage> {
                           color: Colors.white70,
                         ),
                       ),
+                      if (_needsTwoFactorAuth)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 8.0),
+                        ),
                     ],
                   ),
                 ],

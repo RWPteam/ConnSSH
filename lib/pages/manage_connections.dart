@@ -5,7 +5,6 @@ import 'package:uuid/uuid.dart';
 import '../models/connection_model.dart';
 import '../services/storage_service.dart';
 import '../components/quick_connect_dialog.dart';
-import '../services/ssh_service.dart';
 import 'sftpview.dart';
 
 class ManageConnectionsPage extends StatefulWidget {
@@ -270,7 +269,7 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
 
     try {
       final storageService = StorageService();
-      final sshService = SshService();
+      //final sshService = SshService();
 
       final credentials = await storageService.getCredentials();
       final credential = credentials.firstWhere(
@@ -278,11 +277,11 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
         orElse: () => throw Exception('找不到认证凭证'),
       );
 
-      await sshService
-          .connect(connection, credential)
-          .timeout(const Duration(seconds: 3), onTimeout: () {
-        throw TimeoutException('连接超时，请检查网络或主机是否可达');
-      });
+      //await sshService
+      //    .connect(connection, credential)
+      //    .timeout(const Duration(seconds: 3), onTimeout: () {
+      //  throw TimeoutException('连接超时，请检查网络或主机是否可达');
+      //});
 
       unawaited(storageService.addRecentConnection(connection));
 

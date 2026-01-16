@@ -6,6 +6,7 @@ import '../models/credential_model.dart';
 import '../services/storage_service.dart';
 import '../services/ssh_service.dart';
 import '../components/quick_connect_dialog.dart';
+import '../components/twofa_dialog.dart';
 
 class ServerMetrics {
   final double cpuUsage;
@@ -160,6 +161,9 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
   double _rxSpeed = 0.0;
   double _txSpeed = 0.0;
 
+  bool _needsTwoFactorAuth = false;
+  Completer<String?>? _twoFactorCompleter;
+
   final String _monitorScript = r'''
     #!/bin/bash
     export LC_ALL=C
@@ -272,7 +276,46 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
     _cleanupRemoteScript();
     _firstDataTimeoutTimer?.cancel();
     _sshService.disconnect();
+    if (_twoFactorCompleter != null && !_twoFactorCompleter!.isCompleted) {
+      _twoFactorCompleter!.complete(null);
+    }
     super.dispose();
+  }
+
+  Future<String?> _showTwoFactorAuthDialog(
+    String connectionName,
+    String host,
+    String prompt,
+  ) async {
+    if (mounted) {
+      setState(() {
+        _errorMessage = '$prompt\n请在对话框中输入验证码';
+        _needsTwoFactorAuth = true;
+      });
+    }
+
+    _twoFactorCompleter = Completer<String?>();
+
+    final code = await TwoFactorAuthDialog.show(
+      context,
+      connectionName: connectionName,
+      host: host,
+      prompt: prompt,
+    );
+
+    _twoFactorCompleter = null;
+    if (mounted) {
+      setState(() {
+        _needsTwoFactorAuth = false;
+        if (code == null || code.isEmpty) {
+          _errorMessage = '2FA 验证已取消';
+        } else {
+          _errorMessage = '正在验证 2FA 码...';
+        }
+      });
+    }
+
+    return code;
   }
 
   Future<void> _loadSavedConnections() async {
@@ -311,6 +354,7 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
       _lastNetworkTime = null;
       _rxSpeed = 0.0;
       _txSpeed = 0.0;
+      _needsTwoFactorAuth = false;
     });
 
     try {
@@ -320,9 +364,17 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
         orElse: () => throw Exception('找不到认证凭证'),
       );
 
-      await _sshService
-          .connect(_selectedConnection!, credential)
-          .timeout(const Duration(seconds: 10));
+      await _sshService.connect(
+        _selectedConnection!,
+        credential,
+        onTwoFactorAuth: (connectionName, host, prompt) async {
+          return await _showTwoFactorAuthDialog(
+            connectionName,
+            host,
+            prompt,
+          );
+        },
+      ).timeout(const Duration(seconds: 30));
 
       final setupCmd =
           "cat << 'EOF' > $_monitorScriptPath\n$_monitorScript\nEOF\nchmod +x $_monitorScriptPath";
@@ -336,11 +388,13 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
 
       _startMonitoring();
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _isMonitoring = false;
-        _errorMessage = '服务设置失败: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isMonitoring = false;
+          _errorMessage = '连接失败: $e';
+        });
+      }
       _cleanupRemoteScript();
       _sshService.disconnect();
     }
@@ -358,17 +412,25 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
     _stopMonitoring();
     _cleanupRemoteScript();
     _sshService.disconnect();
-    setState(() {
-      _isMonitoring = false;
-      _serverMetrics = null;
-      _selectedCredential = null;
-      _errorMessage = '';
-      _lastRxBytes = 0;
-      _lastTxBytes = 0;
-      _lastNetworkTime = null;
-      _rxSpeed = 0.0;
-      _txSpeed = 0.0;
-    });
+
+    if (_twoFactorCompleter != null && !_twoFactorCompleter!.isCompleted) {
+      _twoFactorCompleter!.complete(null);
+    }
+
+    if (mounted) {
+      setState(() {
+        _isMonitoring = false;
+        _serverMetrics = null;
+        _selectedCredential = null;
+        _errorMessage = '';
+        _lastRxBytes = 0;
+        _lastTxBytes = 0;
+        _lastNetworkTime = null;
+        _rxSpeed = 0.0;
+        _txSpeed = 0.0;
+        _needsTwoFactorAuth = false;
+      });
+    }
   }
 
   void _startMonitoring() {
@@ -606,7 +668,29 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
                     },
             ),
             const SizedBox(height: 16),
-            if (_errorMessage.isNotEmpty)
+            if (_needsTwoFactorAuth)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.security, color: Colors.orange),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '需要双因素认证 (2FA)\n请在弹出的对话框中输入验证码',
+                        style: TextStyle(color: Colors.orange.shade900),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (_errorMessage.isNotEmpty && !_needsTwoFactorAuth)
               Container(
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),

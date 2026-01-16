@@ -1,4 +1,6 @@
 // toolbar_customization_page.dart
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import '../services/setting_service.dart';
 

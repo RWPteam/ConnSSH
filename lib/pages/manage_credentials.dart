@@ -375,6 +375,91 @@ class _CredentialDialogState extends State<CredentialDialog> {
     return null;
   }
 
+  // 统一的文本框样式
+  InputDecoration _textFieldDecoration(String labelText,
+      {String? hintText, Widget? suffixIcon}) {
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      suffixIcon: suffixIcon,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide:
+            BorderSide(color: Theme.of(context).primaryColor, width: 1.0),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.red, width: 1.0),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.red, width: 1.0),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    );
+  }
+
+  // 统一的多行文本框样式（用于私钥）
+  InputDecoration _multilineTextFieldDecoration(String labelText,
+      {String? hintText}) {
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      alignLabelWithHint: true,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide:
+            BorderSide(color: Theme.of(context).primaryColor, width: 1.0),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.red, width: 1.0),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.red, width: 1.0),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    );
+  }
+
+  // 统一的下拉菜单样式
+  InputDecoration _dropdownDecoration(String labelText) {
+    return InputDecoration(
+      labelText: labelText,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide:
+            BorderSide(color: Theme.of(context).primaryColor, width: 1.0),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -384,10 +469,13 @@ class _CredentialDialogState extends State<CredentialDialog> {
           maxWidth: 500,
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding:
+              const EdgeInsets.only(left: 16, right: 16, bottom: 16), // 移除顶部内边距
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // 添加5px顶部边距
+              const SizedBox(height: 5),
               Row(
                 children: [
                   Expanded(
@@ -412,8 +500,8 @@ class _CredentialDialogState extends State<CredentialDialog> {
                       children: [
                         TextFormField(
                           controller: _nameController,
-                          decoration: const InputDecoration(
-                            labelText: '凭证名称',
+                          decoration: _textFieldDecoration(
+                            '凭证名称',
                             hintText: '输入凭证的显示名称',
                           ),
                           textInputAction: TextInputAction.next,
@@ -427,8 +515,8 @@ class _CredentialDialogState extends State<CredentialDialog> {
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _usernameController,
-                          decoration: const InputDecoration(
-                            labelText: '用户名',
+                          decoration: _textFieldDecoration(
+                            '用户名',
                             hintText: '输入登录用户名',
                           ),
                           textInputAction: TextInputAction.next,
@@ -442,9 +530,7 @@ class _CredentialDialogState extends State<CredentialDialog> {
                         const SizedBox(height: 16),
                         DropdownButtonFormField<AuthType>(
                           value: _authType,
-                          decoration: const InputDecoration(
-                            labelText: '认证方式',
-                          ),
+                          decoration: _dropdownDecoration('认证方式'),
                           items: const [
                             DropdownMenuItem(
                               value: AuthType.password,
@@ -473,8 +559,8 @@ class _CredentialDialogState extends State<CredentialDialog> {
                         if (_authType == AuthType.password)
                           TextFormField(
                             controller: _passwordController,
-                            decoration: InputDecoration(
-                              labelText: '密码',
+                            decoration: _textFieldDecoration(
+                              '密码',
                               hintText: '输入登录密码',
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -504,10 +590,9 @@ class _CredentialDialogState extends State<CredentialDialog> {
                             children: [
                               TextFormField(
                                 controller: _privateKeyController,
-                                decoration: const InputDecoration(
-                                  labelText: '私钥内容',
+                                decoration: _multilineTextFieldDecoration(
+                                  '私钥内容',
                                   hintText: '粘贴私钥内容或从文件读取',
-                                  alignLabelWithHint: true,
                                 ),
                                 maxLines: 6,
                                 minLines: 4,
@@ -538,8 +623,8 @@ class _CredentialDialogState extends State<CredentialDialog> {
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _passphraseController,
-                                decoration: InputDecoration(
-                                  labelText: '私钥密码 (可选)',
+                                decoration: _textFieldDecoration(
+                                  '私钥密码 (可选)',
                                   hintText: '如果私钥有密码保护，请在此输入',
                                   suffixIcon: IconButton(
                                     icon: Icon(
