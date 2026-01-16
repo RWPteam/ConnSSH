@@ -228,12 +228,10 @@ class _TerminalPageState extends State<TerminalPage> {
 
       final sshService = SshService();
 
-      // 连接时传入 2FA 回调函数
       final client = await sshService.connect(
         widget.connection,
         widget.credential,
         onTwoFactorAuth: (connectionName, host, prompt) async {
-          // 在需要 2FA 时弹出对话框
           return await _showTwoFactorAuthDialog(
               index, connectionName, host, prompt);
         },
@@ -313,20 +311,13 @@ class _TerminalPageState extends State<TerminalPage> {
     String host,
     String prompt,
   ) async {
-    // 如果当前不是活动的会话，需要切换过去
     if (sessionIndex != _activeIndex && _isMultiWindowMode) {
-      // 切换到需要 2FA 的会话
       setState(() {
         _activeIndex = sessionIndex;
       });
-      // 给用户一点时间看到切换
       await Future.delayed(const Duration(milliseconds: 300));
     }
 
-    // 在终端显示提示信息
-    _terminals[sessionIndex].write('\r\n$prompt\r\n');
-
-    // 使用 Completer 来等待用户输入
     final completer = Completer<String?>();
     _twoFactorCompleters[sessionIndex] = completer;
     setState(() {
@@ -611,20 +602,37 @@ class _TerminalPageState extends State<TerminalPage> {
   void _reconnect() {
     _sessions[_activeIndex]?.close();
     _sshClients[_activeIndex]?.close();
-    // 清理 2FA 状态
+
+    _stdoutSubs[_activeIndex]?.cancel();
+    _stderrSubs[_activeIndex]?.cancel();
+
     if (_twoFactorCompleters[_activeIndex] != null &&
         !_twoFactorCompleters[_activeIndex]!.isCompleted) {
       _twoFactorCompleters[_activeIndex]!.complete(null);
     }
+
+    final t = _terminals[_activeIndex];
+
+    t.buffer.clear();
+
+    t.write('\x1B[2J\x1B[3J\x1B[H');
+
+    t.setCursor(0, 0);
+
     setState(() {
       _isConnecteds[_activeIndex] = false;
       _isConnectings[_activeIndex] = true;
       _statuses[_activeIndex] = '重新连接中...';
       _needsTwoFactorAuth[_activeIndex] = false;
       _twoFactorCompleters[_activeIndex] = null;
-      _terminals[_activeIndex].buffer.clear();
     });
-    _connectToHost(_activeIndex);
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        t.write('\r\n正在重新连接...\r\n');
+        _connectToHost(_activeIndex);
+      }
+    });
   }
 
   void _showCommandsSubMenu() {

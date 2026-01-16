@@ -47,9 +47,7 @@ class _TwoFactorAuthDialogState extends State<TwoFactorAuthDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          Icon(Icons.security, color: Theme.of(context).primaryColor),
-          const SizedBox(width: 8),
-          const Text('2FA验证'),
+          const Text('2FA 验证'),
         ],
       ),
       content: SingleChildScrollView(
@@ -63,19 +61,12 @@ class _TwoFactorAuthDialogState extends State<TwoFactorAuthDialog> {
             ),
             const SizedBox(height: 4),
             Text('主机: ${widget.host}'),
-            const SizedBox(height: 12),
-            Text(
-              widget.prompt,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
-              ),
-            ),
             const SizedBox(height: 16),
             TextField(
               controller: _codeController,
               decoration: const InputDecoration(
                 labelText: '验证码',
-                hintText: '请输入2FA验证码',
+                hintText: '请输入验证器app内的验证码',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.lock_clock),
               ),
