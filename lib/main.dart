@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+// 1. 必须导入这个包
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'pages/home.dart';
 import 'models/app_settings_model.dart';
 import 'services/setting_service.dart';
@@ -20,7 +22,6 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
-
   final SettingsService _settingsService = SettingsService();
 
   AppSettings _currentSettings = AppSettings.defaults;
@@ -61,14 +62,31 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    const List<LocalizationsDelegate<dynamic>> localizationsDelegates = [
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ];
+
+    const List<Locale> supportedLocales = [
+      Locale('zh', 'CH'),
+    ];
+
     if (_isLoading) {
       return const MaterialApp(
-          home: Scaffold(body: Center(child: CircularProgressIndicator())));
+        localizationsDelegates: localizationsDelegates,
+        supportedLocales: supportedLocales,
+        locale: Locale('zh', 'CH'),
+        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
     }
 
     return MaterialApp(
       navigatorKey: _navigatorKey,
       title: 'ConnSSH',
+      localizationsDelegates: localizationsDelegates,
+      supportedLocales: supportedLocales,
+      locale: const Locale('zh', 'CH'),
       theme: _buildTheme(Brightness.light),
       darkTheme: _buildTheme(Brightness.dark),
       themeMode: _getThemeMode(),
@@ -89,7 +107,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   ThemeData _buildTheme(Brightness brightness) {
     if (_currentSettings.defaultPageTheme == 'monochrome') {
       final isDark = brightness == Brightness.dark;
-
       ColorScheme colorScheme;
 
       if (isDark) {
@@ -166,7 +183,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
 
     Color seedColor;
-
     switch (_currentSettings.defaultPageTheme) {
       case 'orange':
         seedColor = Colors.orange;

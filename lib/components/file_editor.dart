@@ -5,6 +5,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:code_text_field/code_text_field.dart';
+
+// 导入高亮语言包
 import 'package:highlight/languages/dart.dart';
 import 'package:highlight/languages/javascript.dart';
 import 'package:highlight/languages/python.dart';
@@ -23,6 +25,9 @@ import 'package:highlight/languages/sql.dart';
 import 'package:highlight/languages/kotlin.dart';
 import 'package:highlight/languages/swift.dart';
 import 'package:highlight/languages/makefile.dart';
+import 'package:highlight/languages/plaintext.dart'; // 导入纯文本作为默认
+
+// 导入主题
 import 'package:flutter_highlight/themes/monokai-sublime.dart';
 import 'package:flutter_highlight/themes/github.dart';
 
@@ -50,9 +55,9 @@ class _FileEditorPageState extends State<FileEditorPage> {
   bool _isModified = false;
   bool _isSaving = false;
   bool _showSearch = false;
+
   bool get ismobile =>
       defaultTargetPlatform == TargetPlatform.android ||
-      defaultTargetPlatform == TargetPlatform.ohos ||
       defaultTargetPlatform == TargetPlatform.iOS;
 
   final TextEditingController _findController = TextEditingController();
@@ -63,7 +68,9 @@ class _FileEditorPageState extends State<FileEditorPage> {
   bool _isIgnoringListener = false;
   Timer? _historyTimer;
 
+  // 定义支持的语言映射
   final Map<String, dynamic> _languages = {
+    'Plain Text': plaintext,
     'Bash': bash,
     'C++': cpp,
     'CSS': css,
@@ -89,8 +96,11 @@ class _FileEditorPageState extends State<FileEditorPage> {
   @override
   void initState() {
     super.initState();
+    // 1. 根据文件名探测语言，若无匹配则返回 'Plain Text'
     _currentLangKey = _detectLanguage(widget.filename);
 
+    // 2. 初始化 CodeController
+    // 如果是 Plain Text，高亮引擎实际上是不介入复杂解析的
     _codeController = CodeController(
       text: widget.initialContent,
       language: _languages[_currentLangKey],
@@ -101,6 +111,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
     _codeController.addListener(_handleTextChange);
   }
 
+  /// 改进的语言检测逻辑
   String _detectLanguage(String filename) {
     String ext = filename.split('.').last.toLowerCase();
     switch (ext) {
@@ -109,6 +120,8 @@ class _FileEditorPageState extends State<FileEditorPage> {
       case 'py':
         return 'Python';
       case 'js':
+        return 'Javascript';
+      case 'ts':
         return 'Javascript';
       case 'json':
         return 'JSON';
@@ -136,8 +149,19 @@ class _FileEditorPageState extends State<FileEditorPage> {
         return 'Kotlin';
       case 'swift':
         return 'Swift';
+      case 'cpp':
+        return 'C++';
+      case 'cc':
+        return 'C++';
+      case 'h':
+        return 'C++';
+      case 'css':
+        return 'CSS';
+      case 'java':
+        return 'Java';
       default:
-        return 'null';
+        // 默认不启用代码高亮（使用纯文本模式）
+        return 'Plain Text';
     }
   }
 
@@ -195,7 +219,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
       child: Scaffold(
         backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         appBar: AppBar(
-          toolbarHeight: 40,
+          toolbarHeight: 45,
           backgroundColor: _getAppBarColor(),
           foregroundColor: Colors.white,
           titleSpacing: 0,
@@ -223,9 +247,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
                   children: [
                     Icon(
                       _isModified ? Icons.circle : Icons.circle_outlined,
-                      color: _isModified
-                          ? Theme.of(context).primaryColor
-                          : Colors.white70,
+                      color: _isModified ? Colors.orangeAccent : Colors.white70,
                       size: 8,
                     ),
                     const SizedBox(width: 4),
@@ -245,8 +267,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
           ),
           actions: [
             IconButton(
-              icon: Icon(_isSaving ? Icons.hourglass_empty : Icons.save,
-                  size: 20),
+              icon: Icon(_isSaving ? Icons.sync : Icons.save, size: 20),
               onPressed: _isSaving ? null : _saveFile,
               tooltip: '保存文件',
             ),
@@ -275,29 +296,28 @@ class _FileEditorPageState extends State<FileEditorPage> {
                     color: isDark
                         ? const Color(0xFF1E1E1E)
                         : const Color(0xFFFCFCFC),
-                    child: SingleChildScrollView(
-                      child: CodeField(
-                        controller: _codeController,
-                        textStyle: TextStyle(
-                          fontFamily: 'ohossans',
-                          fontSize: _fontSize,
-                          height: 1.5,
-                        ),
-                        lineNumberStyle: LineNumberStyle(
-                          width: 48,
-                          margin: 10,
-                          textStyle: TextStyle(
-                            color: isDark
-                                ? Colors.grey
-                                : Colors.blueGrey.withOpacity(0.5),
-                            fontSize: 12,
-                          ),
-                          background: isDark
-                              ? const Color(0xFF252525)
-                              : const Color(0xFFF0F0F0),
-                        ),
-                        cursorColor: Colors.blueAccent,
+                    child: CodeField(
+                      controller: _codeController,
+                      textStyle: TextStyle(
+                        fontFamily: 'monospace', // 使用等宽字体
+                        fontSize: _fontSize,
+                        height: 1.5,
                       ),
+                      lineNumberStyle: LineNumberStyle(
+                        width: 54,
+                        margin: 10,
+                        textStyle: TextStyle(
+                          color:
+                              isDark ? Colors.grey[600] : Colors.blueGrey[300],
+                          fontSize: 12,
+                        ),
+                        background: isDark
+                            ? const Color(0xFF252525)
+                            : const Color(0xFFF5F5F5),
+                      ),
+                      cursorColor: Colors.blueAccent,
+                      expands: true,
+                      maxLines: null,
                     ),
                   ),
                 ),
@@ -311,7 +331,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
 
   Widget _buildShortcutBar(bool isDark) {
     return Container(
-      height: 38,
+      height: 40,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF2D2D2D) : Colors.grey[100],
         border: Border(
@@ -328,7 +348,11 @@ class _FileEditorPageState extends State<FileEditorPage> {
               isDark),
           _toolBtn(Icons.text_decrease, "", () => setState(() => _fontSize--),
               isDark),
+          const VerticalDivider(width: 1, indent: 10, endIndent: 10),
+
+          // 语言切换下拉菜单
           PopupMenuButton<String>(
+            tooltip: "切换语言高亮",
             onSelected: (key) => setState(() {
               _currentLangKey = key;
               _codeController.language = _languages[key];
@@ -337,12 +361,19 @@ class _FileEditorPageState extends State<FileEditorPage> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 children: [
-                  Icon(Icons.code, size: 16, color: Colors.blue),
-                  const SizedBox(width: 4),
+                  Icon(Icons.code,
+                      size: 16,
+                      color: _currentLangKey == 'Plain Text'
+                          ? Colors.grey
+                          : Colors.blue),
+                  const SizedBox(width: 6),
                   Text(_currentLangKey,
                       style: TextStyle(
                           color: isDark ? Colors.white70 : Colors.black87,
-                          fontSize: 12)),
+                          fontSize: 12,
+                          fontWeight: _currentLangKey == 'Plain Text'
+                              ? FontWeight.normal
+                              : FontWeight.bold)),
                   Icon(Icons.arrow_drop_down,
                       size: 16,
                       color: isDark ? Colors.white70 : Colors.black87),
@@ -387,16 +418,20 @@ class _FileEditorPageState extends State<FileEditorPage> {
     if (!_showSearch) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.all(8),
-      color: isDark ? const Color(0xFF333333) : Colors.white,
+      decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF333333) : Colors.white,
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)
+          ]),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: _findController,
               decoration: const InputDecoration(
-                  hintText: "搜索",
+                  hintText: "查找内容",
                   isDense: true,
-                  contentPadding: EdgeInsets.all(8),
+                  contentPadding: EdgeInsets.all(10),
                   border: OutlineInputBorder()),
               style: TextStyle(
                   color: isDark ? Colors.white : Colors.black, fontSize: 13),
@@ -407,22 +442,29 @@ class _FileEditorPageState extends State<FileEditorPage> {
             child: TextField(
               controller: _replaceController,
               decoration: const InputDecoration(
-                  hintText: "替换",
+                  hintText: "替换为",
                   isDense: true,
-                  contentPadding: EdgeInsets.all(8),
+                  contentPadding: EdgeInsets.all(10),
                   border: OutlineInputBorder()),
               style: TextStyle(
                   color: isDark ? Colors.white : Colors.black, fontSize: 13),
             ),
           ),
+          const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.done_all, size: 20),
+            icon: const Icon(Icons.done_all, color: Colors.blue),
             onPressed: () {
               if (_findController.text.isEmpty) return;
               final text = _codeController.text
                   .replaceAll(_findController.text, _replaceController.text);
               _codeController.text = text;
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text("已完成全部替换"), duration: Duration(seconds: 1)));
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 20),
+            onPressed: () => setState(() => _showSearch = false),
           )
         ],
       ),
@@ -436,12 +478,20 @@ class _FileEditorPageState extends State<FileEditorPage> {
       final contentBytes = utf8.encode(_codeController.text);
       await widget.saveCallback(
           widget.remotePath, Uint8List.fromList(contentBytes), widget.filename);
-      setState(() {
-        _isModified = false;
-        _isSaving = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isModified = false;
+          _isSaving = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("保存成功"), backgroundColor: Colors.green));
+      }
     } catch (e) {
-      setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("保存失败: $e"), backgroundColor: Colors.red));
+      }
     }
   }
 
@@ -449,15 +499,16 @@ class _FileEditorPageState extends State<FileEditorPage> {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('未保存'),
-            content: const Text('确定要放弃已修改的内容吗'),
+            title: const Text('提醒'),
+            content: const Text('当前更改尚未保存，确定要退出编辑吗？'),
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('取消')),
+                  child: const Text('继续编辑')),
               TextButton(
                   onPressed: () => Navigator.pop(context, true),
-                  child: const Text('确定')),
+                  child:
+                      const Text('放弃保存', style: TextStyle(color: Colors.red))),
             ],
           ),
         ) ??
@@ -468,6 +519,8 @@ class _FileEditorPageState extends State<FileEditorPage> {
   void dispose() {
     _historyTimer?.cancel();
     _codeController.dispose();
+    _findController.dispose();
+    _replaceController.dispose();
     super.dispose();
   }
 }
