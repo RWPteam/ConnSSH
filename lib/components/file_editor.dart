@@ -137,7 +137,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
       case 'swift':
         return 'Swift';
       default:
-        return 'Bash'; // 默认
+        return 'null';
     }
   }
 
@@ -440,8 +440,6 @@ class _FileEditorPageState extends State<FileEditorPage> {
         _isModified = false;
         _isSaving = false;
       });
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('文件已保存')));
     } catch (e) {
       setState(() => _isSaving = false);
     }
@@ -452,7 +450,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('未保存'),
-            content: const Text('内容已修改，确定要离开吗？'),
+            content: const Text('确定要放弃已修改的内容吗'),
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(context, false),

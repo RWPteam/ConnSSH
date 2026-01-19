@@ -746,7 +746,6 @@ class _ArchiveGroupEditDialogState extends State<ArchiveGroupEditDialog> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
-            Divider(height: 1, color: Colors.grey[300]),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: TextField(
@@ -805,7 +804,7 @@ class _ArchiveGroupEditDialogState extends State<ArchiveGroupEditDialog> {
                                   height: 40,
                                   decoration: BoxDecoration(
                                     color: isSelected
-                                        ? Theme.of(context).primaryColor
+                                        ? Colors.white.withOpacity(0.7)
                                         : Colors.grey.withOpacity(0.1),
                                     shape: BoxShape.circle,
                                   ),
@@ -814,7 +813,7 @@ class _ArchiveGroupEditDialogState extends State<ArchiveGroupEditDialog> {
                                         ? Icons.terminal
                                         : Icons.folder,
                                     color: isSelected
-                                        ? Colors.white
+                                        ? Colors.black.withOpacity(0.7)
                                         : Theme.of(context).colorScheme.primary,
                                     size: 20,
                                   ),
@@ -829,20 +828,13 @@ class _ArchiveGroupEditDialogState extends State<ArchiveGroupEditDialog> {
                                       Text(
                                         connection.name,
                                         style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: isSelected
-                                              ? Theme.of(context).primaryColor
-                                              : null,
-                                        ),
+                                            fontWeight: FontWeight.bold,
+                                            color: null),
                                       ),
                                       Text(
                                         '${connection.host}:${connection.port}',
                                         style: TextStyle(
-                                          color: isSelected
-                                              ? Theme.of(context)
-                                                  .primaryColor
-                                                  .withOpacity(0.7)
-                                              : Colors.grey[600],
+                                          color: Colors.grey[600],
                                           fontSize: 12,
                                         ),
                                       ),
@@ -859,7 +851,6 @@ class _ArchiveGroupEditDialogState extends State<ArchiveGroupEditDialog> {
                 },
               ),
             ),
-            Divider(height: 1, color: Colors.grey[300]),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(

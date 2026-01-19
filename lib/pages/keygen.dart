@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:dartssh2/dartssh2.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:file_picker_ohos/file_picker_ohos.dart';
 import '../models/connection_model.dart';
 import '../services/rsa_key_service.dart';
 import '../services/ecdsa_key_service.dart';
@@ -179,6 +181,136 @@ class _KeygenPageState extends State<KeygenPage> {
     }
   }
 
+  // 生成文件名
+  String _getBaseFileName() {
+    if (_keyAlgorithm == 'rsa') {
+      return 'id_${_keyAlgorithm}_${_keySize}_${_keyFormat}';
+    } else {
+      return 'id_${_keyAlgorithm}_${_ecdsaCurve}_${_keyFormat}';
+    }
+  }
+
+  // 保存文件到指定路径
+  Future<void> _saveKeyPairToPath(String privatePath, String publicPath) async {
+    final privateFile = File(privatePath);
+    await privateFile.writeAsString(_privateKey!);
+
+    final publicFile = File(publicPath);
+    await publicFile.writeAsString(_publicKey!);
+
+    _showSuccess('密钥已保存到:\n$privatePath\n$publicPath');
+  }
+
+  // OHOS平台保存私钥
+  Future<String?> _savePrivateKeyOnOhos(String baseName) async {
+    try {
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final keyDir = Directory('${appDocDir.path}/Keys');
+      if (!await keyDir.exists()) {
+        await keyDir.create(recursive: true);
+      }
+
+      final tempPrivatePath = '${keyDir.path}/$baseName';
+      final tempPrivateFile = File(tempPrivatePath);
+      await tempPrivateFile.writeAsString(_privateKey!);
+
+      final savedPath = await FilePicker.platform.saveFile(
+        dialogTitle: '保存私钥文件',
+        fileName: baseName,
+        allowedExtensions: ['pem', 'key'],
+        initialDirectory: tempPrivatePath,
+        bytes: utf8.encode(_privateKey!),
+      );
+
+      if (savedPath != null && savedPath.isNotEmpty) {
+        if (savedPath != tempPrivatePath) {
+          try {
+            final savedPrivateFile = File(savedPath);
+            await savedPrivateFile.writeAsString(_privateKey!);
+            await tempPrivateFile.delete();
+            return savedPath;
+          } catch (e) {
+            // 保存到用户选择位置失败，保留在临时位置
+            return tempPrivatePath;
+          }
+        } else {
+          return tempPrivatePath;
+        }
+      } else {
+        final shouldKeep = await _showKeepTempFileDialog();
+        if (shouldKeep) {
+          return tempPrivatePath;
+        } else {
+          await tempPrivateFile.delete();
+          return null;
+        }
+      }
+    } catch (e) {
+      _showError('保存私钥失败: $e');
+      return null;
+    }
+  }
+
+  // OHOS平台保存公钥
+  Future<String?> _savePublicKeyOnOhos(
+      String baseName, String? privateKeyPath) async {
+    try {
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final keyDir = Directory('${appDocDir.path}/Keys');
+      if (!await keyDir.exists()) {
+        await keyDir.create(recursive: true);
+      }
+
+      final pubFileName = '$baseName.pub';
+      final tempPublicPath = '${keyDir.path}/$pubFileName';
+      final tempPublicFile = File(tempPublicPath);
+      await tempPublicFile.writeAsString(_publicKey!);
+
+      // 如果私钥已保存，则建议公钥保存到相同目录
+      String suggestedPath = tempPublicPath;
+      if (privateKeyPath != null && privateKeyPath.isNotEmpty) {
+        final privateDir = File(privateKeyPath).parent;
+        final suggestedPublicPath = '${privateDir.path}/$pubFileName';
+        suggestedPath = suggestedPublicPath;
+      }
+
+      final savedPath = await FilePicker.platform.saveFile(
+        dialogTitle: '保存公钥文件',
+        fileName: pubFileName,
+        allowedExtensions: ['pub'],
+        initialDirectory: suggestedPath,
+        bytes: utf8.encode(_publicKey!),
+      );
+
+      if (savedPath != null && savedPath.isNotEmpty) {
+        if (savedPath != tempPublicPath) {
+          try {
+            final savedPublicFile = File(savedPath);
+            await savedPublicFile.writeAsString(_publicKey!);
+            await tempPublicFile.delete();
+            return savedPath;
+          } catch (e) {
+            // 保存到用户选择位置失败，保留在临时位置
+            return tempPublicPath;
+          }
+        } else {
+          return tempPublicPath;
+        }
+      } else {
+        final shouldKeep = await _showKeepTempFileDialog();
+        if (shouldKeep) {
+          return tempPublicPath;
+        } else {
+          await tempPublicFile.delete();
+          return null;
+        }
+      }
+    } catch (e) {
+      _showError('保存公钥失败: $e');
+      return null;
+    }
+  }
+
   Future<void> _saveToLocal() async {
     if (_privateKey == null || _publicKey == null) {
       _showError('暂无生成的密钥对');
@@ -186,31 +318,107 @@ class _KeygenPageState extends State<KeygenPage> {
     }
 
     try {
-      String baseName;
-      if (_keyAlgorithm == 'rsa') {
-        baseName = 'id_${_keyAlgorithm}_${_keySize}_${_keyFormat}';
+      final baseName = _getBaseFileName();
+
+      if (Platform.isAndroid) {
+        // 安卓平台：保存到/sdcard/Download/ConnSSH/key/
+        const String basePath = '/sdcard/Download';
+        const String keyDirPath = '$basePath/ConnSSH/key';
+
+        final keyDir = Directory(keyDirPath);
+        if (!await keyDir.exists()) {
+          await keyDir.create(recursive: true);
+        }
+
+        final privatePath = '$keyDirPath/$baseName';
+        final publicPath = '$privatePath.pub';
+
+        await _saveKeyPairToPath(privatePath, publicPath);
+      } else if (Platform.operatingSystem == 'ohos') {
+        // OHOS平台：分别调用文件选择器保存私钥和公钥
+        String? privateKeyPath;
+        String? publicKeyPath;
+
+        // 先保存私钥
+        privateKeyPath = await _savePrivateKeyOnOhos(baseName);
+        if (privateKeyPath == null) {
+          // 用户取消保存私钥，不再保存公钥
+          return;
+        }
+
+        // 再保存公钥，传入私钥路径以便建议保存位置
+        publicKeyPath = await _savePublicKeyOnOhos(baseName, privateKeyPath);
+
+        if (publicKeyPath == null) {
+          _showSuccess('私钥已保存到: $privateKeyPath\n公钥保存已取消');
+        } else {
+          _showSuccess('密钥已保存到:\n私钥: $privateKeyPath\n公钥: $publicKeyPath');
+        }
+      } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+        // Windows/Linux/macOS：使用文件选择器
+        final privateKeyFile = await getSaveLocation(
+          suggestedName: baseName,
+        );
+
+        if (privateKeyFile != null) {
+          final privatePath = privateKeyFile.path;
+          final publicPath = privatePath + '.pub';
+
+          await _saveKeyPairToPath(privatePath, publicPath);
+        }
+      } else if (Platform.isIOS) {
+        // iOS平台：使用文件选择器
+        final appDocDir = await getApplicationDocumentsDirectory();
+        final privateKeyFile = await getSaveLocation(
+          suggestedName: baseName,
+          initialDirectory: appDocDir.path,
+        );
+
+        if (privateKeyFile != null) {
+          final privatePath = privateKeyFile.path;
+          final publicPath = privatePath + '.pub';
+
+          await _saveKeyPairToPath(privatePath, publicPath);
+        }
       } else {
-        baseName = 'id_${_keyAlgorithm}_${_ecdsaCurve}_${_keyFormat}';
-      }
+        // 其他平台：尝试使用文件选择器
+        final privateKeyFile = await getSaveLocation(
+          suggestedName: baseName,
+        );
 
-      final privateKeyFile = await getSaveLocation(
-        suggestedName: baseName,
-      );
+        if (privateKeyFile != null) {
+          final privatePath = privateKeyFile.path;
+          final publicPath = privatePath + '.pub';
 
-      if (privateKeyFile != null) {
-        final privatePath = privateKeyFile.path;
-        final privateFile = File(privatePath);
-        await privateFile.writeAsString(_privateKey!);
-
-        final publicPath = privatePath + '.pub';
-        final publicFile = File(publicPath);
-        await publicFile.writeAsString(_publicKey!);
-
-        _showSuccess('密钥已保存到:\n$privatePath\n$publicPath');
+          await _saveKeyPairToPath(privatePath, publicPath);
+        }
       }
     } catch (e) {
       _showError('保存失败: $e');
     }
+  }
+
+  // 显示是否保留临时文件的对话框
+  Future<bool> _showKeepTempFileDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('提示'),
+        content: const Text('您取消了文件选择，是否保留在临时目录？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('删除'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('保留'),
+          ),
+        ],
+      ),
+    );
+
+    return result ?? false;
   }
 
   // 显示2FA验证码对话框
@@ -406,14 +614,8 @@ class _KeygenPageState extends State<KeygenPage> {
 
       setState(() => _uploadStatus = '上传私钥...');
 
-      String privateKeyPath;
-      if (_keyAlgorithm == 'rsa') {
-        privateKeyPath =
-            '$expandedPath/id_${_keyAlgorithm}_${_keySize}_${_keyFormat}';
-      } else {
-        privateKeyPath =
-            '$expandedPath/id_${_keyAlgorithm}_${_ecdsaCurve}_${_keyFormat}';
-      }
+      final baseName = _getBaseFileName();
+      final privateKeyPath = '$expandedPath/$baseName';
 
       await _uploadFile(_privateKey!, privateKeyPath);
 

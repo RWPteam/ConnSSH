@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:file_picker_ohos/file_picker_ohos.dart';
 import 'package:flutter/services.dart';
 import 'package:basic_utils/basic_utils.dart';
 import 'package:path_provider/path_provider.dart'; // 添加这个导入
