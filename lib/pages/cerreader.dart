@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker_ohos/file_picker_ohos.dart';
 import 'package:flutter/services.dart';
 import 'package:basic_utils/basic_utils.dart';
-import 'package:path_provider/path_provider.dart'; // 添加这个导入
+import 'package:path_provider/path_provider.dart';
 
 class ReadCerInfoPage extends StatefulWidget {
   const ReadCerInfoPage({super.key});
@@ -97,7 +97,6 @@ class _ReadCerInfoPageState extends State<ReadCerInfoPage> {
         String getReadableName(Map<String, dynamic> dnMap) {
           List<String> parts = [];
 
-          // 按照常用顺序添加字段
           const orderedOids = ['C', 'O', 'OU', 'CN', 'L', 'S', 'EMAIL'];
           const oidToOrderedKey = {
             'C': '2.5.4.6',
@@ -144,7 +143,6 @@ class _ReadCerInfoPageState extends State<ReadCerInfoPage> {
         String sigOid = data.signatureAlgorithm;
         info["签名算法"] = oidMap[sigOid] ?? sigOid;
 
-        // 处理序列号，确保是16进制且格式正确
         BigInt serial = data.serialNumber;
         String hexString = serial.toRadixString(16).toUpperCase();
         if (hexString.length % 2 != 0) {

@@ -94,7 +94,11 @@ samuioto@outlook.com
   }
 
   void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    final duration = _currentPage == helpItems.length - 1
+        ? const Duration(seconds: 15)
+        : const Duration(seconds: 6);
+
+    _timer = Timer.periodic(duration, (timer) {
       if (_currentPage < helpItems.length - 1) {
         _currentPage++;
       } else {
@@ -116,6 +120,17 @@ samuioto@outlook.com
     _startTimer();
   }
 
+  void _jumpToLastPage() {
+    final lastPageIndex = helpItems.length - 1;
+    if (_pageController.hasClients) {
+      _pageController.animateToPage(
+        lastPageIndex,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   @override
   void dispose() {
     _timer.cancel();
@@ -134,20 +149,52 @@ samuioto@outlook.com
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'ConnSSH',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              '一个便捷的SSH和SFTP连接管理工具',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'ConnSSH',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '一个便捷的SSH和SFTP连接管理工具',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                OutlinedButton(
+                  onPressed: _jumpToLastPage,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    '更新日志',
+                    style: TextStyle(
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             Expanded(
@@ -158,7 +205,7 @@ samuioto@outlook.com
                   setState(() {
                     _currentPage = index;
                   });
-                  // 手动切换时重置计时器
+
                   _resetTimer();
                 },
                 itemBuilder: (context, index) {
@@ -204,7 +251,7 @@ samuioto@outlook.com
                             duration: const Duration(milliseconds: 500),
                             curve: Curves.easeInOut,
                           );
-                          // 手动切换时重置计时器
+
                           _resetTimer();
                         }
                       : null,
@@ -223,7 +270,7 @@ samuioto@outlook.com
                             duration: const Duration(milliseconds: 500),
                             curve: Curves.easeInOut,
                           );
-                          // 手动切换时重置计时器
+
                           _resetTimer();
                         }
                       : null,
