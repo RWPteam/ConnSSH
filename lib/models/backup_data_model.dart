@@ -7,6 +7,7 @@ class BackupData {
   final List<Credential> credentials;
   final List<ConnectionInfo> recentConnections;
   final AppSettings settings;
+  final List<ArchiveGroup> archiveGroups;
   final DateTime backupTime;
   final String version;
 
@@ -15,6 +16,7 @@ class BackupData {
     required this.credentials,
     required this.recentConnections,
     required this.settings,
+    required this.archiveGroups,
     required this.backupTime,
     required this.version,
   });
@@ -26,7 +28,8 @@ class BackupData {
       'connections': connections.map((c) => c.toJson()).toList(),
       'credentials': credentials.map((c) => c.toJson()).toList(),
       'recentConnections': recentConnections.map((c) => c.toJson()).toList(),
-      'settings': settings.toMap(), // 改为使用 toMap()
+      'settings': settings.toMap(),
+      'archiveGroups': archiveGroups.map((g) => g.toJson()).toList(),
     };
   }
 
@@ -43,7 +46,11 @@ class BackupData {
       recentConnections: (json['recentConnections'] as List)
           .map((c) => ConnectionInfo.fromJson(c))
           .toList(),
-      settings: AppSettings.fromMap(json['settings']), // 改为使用 fromMap()
+      settings: AppSettings.fromMap(json['settings']),
+      archiveGroups: (json['archiveGroups'] as List?)
+              ?.map((g) => ArchiveGroup.fromJson(g))
+              .toList() ??
+          [],
     );
   }
 }

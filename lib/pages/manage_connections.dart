@@ -489,78 +489,78 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Column(
         children: [
-          Container(
-            height: 56,
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: Icon(
+          GestureDetector(
+            onTap: () => _toggleGroupExpanded(group),
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
                         group.isExpanded
                             ? Icons.expand_less
                             : Icons.expand_more,
                         size: 20,
                         color: Theme.of(context).colorScheme.primary,
                       ),
-                      onPressed: () => _toggleGroupExpanded(group),
-                      padding: EdgeInsets.zero,
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            group.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Text(
+                            '${connections.length} 个连接',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          group.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                        GestureDetector(
+                          onTap: () => _editArchiveGroup(group),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            child: const Icon(Icons.edit, size: 20),
                           ),
                         ),
-                        Text(
-                          '${connections.length} 个连接',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => _deleteArchiveGroup(group),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            child: const Icon(Icons.delete, size: 20),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, size: 20),
-                        onPressed: () => _editArchiveGroup(group),
-                        padding: const EdgeInsets.all(4),
-                        constraints: const BoxConstraints(),
-                        tooltip: '编辑分组',
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, size: 20),
-                        onPressed: () => _deleteArchiveGroup(group),
-                        padding: const EdgeInsets.all(4),
-                        constraints: const BoxConstraints(),
-                        tooltip: '删除分组',
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

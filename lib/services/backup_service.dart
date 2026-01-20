@@ -21,13 +21,11 @@ class BackupService {
   })  : _storageService = storageService,
         _settingsService = settingsService;
 
-  // 生成加密密钥
   encrypt_package.Key _generateKey(String password) {
     final hash = crypto.sha256.convert(utf8.encode(password));
     return encrypt_package.Key(Uint8List.fromList(hash.bytes));
   }
 
-  // 生成固定IV
   encrypt_package.IV _generateIV(String password) {
     final hash = crypto.sha1.convert(utf8.encode(password));
     return encrypt_package.IV(Uint8List.fromList(hash.bytes.sublist(0, 16)));
@@ -38,14 +36,16 @@ class BackupService {
     final credentials = await _storageService.getCredentials();
     final recentConnections = await _storageService.getRecentConnections();
     final settings = await _settingsService.getSettings();
+    final archiveGroups = await _storageService.getArchiveGroups();
 
     return BackupData(
       connections: connections,
       credentials: credentials,
       recentConnections: recentConnections,
       settings: settings,
+      archiveGroups: archiveGroups,
       backupTime: DateTime.now(),
-      version: '1.3.0',
+      version: '1.3.1',
     );
   }
 
@@ -261,18 +261,20 @@ class BackupService {
       await prefs.remove('saved_connections');
       await prefs.remove('saved_credentials');
       await prefs.remove('recent_connections');
+      await prefs.remove('archive_groups'); // 清空现有分组
 
-      // 恢复连接
+      for (final group in backupData.archiveGroups) {
+        await _storageService.saveArchiveGroup(group);
+      }
+
       for (final connection in backupData.connections) {
         await _storageService.saveConnection(connection);
       }
 
-      // 恢复凭证
       for (final credential in backupData.credentials) {
         await _storageService.saveCredential(credential);
       }
 
-      // 恢复最近连接
       final recentConnectionsJson = json.encode(
         backupData.recentConnections.map((c) => c.toJson()).toList(),
       );
