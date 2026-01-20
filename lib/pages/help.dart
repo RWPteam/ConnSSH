@@ -54,7 +54,9 @@ class _HelpPageState extends State<HelpPage> {
     HelpItem(
       title: '关于 & 反馈',
       content: '''
-ConnSSH 版本 1.3.0
+ConnSSH 版本 1.3.1
+
+1.3.0更新存在重大问题，该版本已经撤销，更新内容已经合并至此版本
 
 此版本更新内容：
 
