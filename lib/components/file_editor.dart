@@ -5,8 +5,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:code_text_field/code_text_field.dart';
-
-// 导入高亮语言包
 import 'package:highlight/languages/dart.dart';
 import 'package:highlight/languages/javascript.dart';
 import 'package:highlight/languages/python.dart';
@@ -25,9 +23,7 @@ import 'package:highlight/languages/sql.dart';
 import 'package:highlight/languages/kotlin.dart';
 import 'package:highlight/languages/swift.dart';
 import 'package:highlight/languages/makefile.dart';
-import 'package:highlight/languages/plaintext.dart'; // 导入纯文本作为默认
-
-// 导入主题
+import 'package:highlight/languages/plaintext.dart';
 import 'package:flutter_highlight/themes/monokai-sublime.dart';
 import 'package:flutter_highlight/themes/github.dart';
 
@@ -68,9 +64,8 @@ class _FileEditorPageState extends State<FileEditorPage> {
   bool _isIgnoringListener = false;
   Timer? _historyTimer;
 
-  // 定义支持的语言映射
   final Map<String, dynamic> _languages = {
-    'Plain Text': plaintext,
+    '纯文本': plaintext,
     'Bash': bash,
     'C++': cpp,
     'CSS': css,
@@ -96,11 +91,8 @@ class _FileEditorPageState extends State<FileEditorPage> {
   @override
   void initState() {
     super.initState();
-    // 1. 根据文件名探测语言，若无匹配则返回 'Plain Text'
     _currentLangKey = _detectLanguage(widget.filename);
 
-    // 2. 初始化 CodeController
-    // 如果是 Plain Text，高亮引擎实际上是不介入复杂解析的
     _codeController = CodeController(
       text: widget.initialContent,
       language: _languages[_currentLangKey],
@@ -111,7 +103,6 @@ class _FileEditorPageState extends State<FileEditorPage> {
     _codeController.addListener(_handleTextChange);
   }
 
-  /// 改进的语言检测逻辑
   String _detectLanguage(String filename) {
     String ext = filename.split('.').last.toLowerCase();
     switch (ext) {
@@ -160,8 +151,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
       case 'java':
         return 'Java';
       default:
-        // 默认不启用代码高亮（使用纯文本模式）
-        return 'Plain Text';
+        return '纯文本';
     }
   }
 
@@ -299,7 +289,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
                     child: CodeField(
                       controller: _codeController,
                       textStyle: TextStyle(
-                        fontFamily: 'monospace', // 使用等宽字体
+                        fontFamily: 'hmossans',
                         fontSize: _fontSize,
                         height: 1.5,
                       ),
@@ -349,10 +339,8 @@ class _FileEditorPageState extends State<FileEditorPage> {
           _toolBtn(Icons.text_decrease, "", () => setState(() => _fontSize--),
               isDark),
           const VerticalDivider(width: 1, indent: 10, endIndent: 10),
-
-          // 语言切换下拉菜单
           PopupMenuButton<String>(
-            tooltip: "切换语言高亮",
+            tooltip: "切换语言",
             onSelected: (key) => setState(() {
               _currentLangKey = key;
               _codeController.language = _languages[key];
@@ -363,15 +351,14 @@ class _FileEditorPageState extends State<FileEditorPage> {
                 children: [
                   Icon(Icons.code,
                       size: 16,
-                      color: _currentLangKey == 'Plain Text'
-                          ? Colors.grey
-                          : Colors.blue),
+                      color:
+                          _currentLangKey == '纯文本' ? Colors.grey : Colors.blue),
                   const SizedBox(width: 6),
                   Text(_currentLangKey,
                       style: TextStyle(
                           color: isDark ? Colors.white70 : Colors.black87,
                           fontSize: 12,
-                          fontWeight: _currentLangKey == 'Plain Text'
+                          fontWeight: _currentLangKey == '纯文本'
                               ? FontWeight.normal
                               : FontWeight.bold)),
                   Icon(Icons.arrow_drop_down,
