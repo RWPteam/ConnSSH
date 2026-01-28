@@ -1,3 +1,4 @@
+import 'package:connssh/main.dart';
 import 'package:flutter/material.dart';
 import '../toolbar_customizer.dart';
 import '../../models/app_settings_model.dart';
@@ -145,6 +146,7 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
 
       await widget.settingsService.saveSettings(newSettings);
       widget.onSettingsChanged();
+      MyApp.of(this.context)?.loadSettings();
     } catch (e) {
       if (mounted) {
         showDialog(

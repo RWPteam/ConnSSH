@@ -1,7 +1,7 @@
 {
   "modelVersion": "5.1.0",
   "name": "ConnSSH",
-  "version": "1.3.0",
+  "version": "1.3.2",
   "description": "A lightweight SSH tool.",
   "main": "",
   "author": "",

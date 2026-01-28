@@ -483,8 +483,6 @@ class _FileEditorPageState extends State<FileEditorPage> {
           _isModified = false;
           _isSaving = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("保存成功"), backgroundColor: Colors.green));
       }
     } catch (e) {
       if (mounted) {
