@@ -182,9 +182,20 @@ class _FileEditorPageState extends State<FileEditorPage> {
       setState(() {
         _isIgnoringListener = true;
         _historyIndex--;
-        _codeController.text = _history[_historyIndex];
+        final newText = _history[_historyIndex];
+        _codeController.value = TextEditingValue(
+          text: newText,
+          selection: TextSelection.collapsed(offset: newText.length),
+        );
+        _isModified = newText != widget.initialContent;
         _isIgnoringListener = false;
       });
+    }
+  }
+
+  Future<void> _handleExit() async {
+    if (!_isModified || await _confirmExit()) {
+      if (mounted) Navigator.of(context).pop();
     }
   }
 
@@ -202,9 +213,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
       canPop: false,
       onPopInvoked: (didPop) async {
         if (didPop) return;
-        if (!_isModified || await _confirmExit()) {
-          if (mounted) Navigator.of(context).pop();
-        }
+        await _handleExit();
       },
       child: Scaffold(
         backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
@@ -218,7 +227,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
               ? null
               : IconButton(
                   icon: const Icon(Icons.arrow_back, size: 20),
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: _handleExit,
                 ),
           title: Padding(
             padding: EdgeInsets.only(left: ismobile ? 18.0 : 0),
@@ -237,7 +246,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
                   children: [
                     Icon(
                       _isModified ? Icons.circle : Icons.circle_outlined,
-                      color: _isModified ? Colors.orangeAccent : Colors.white70,
+                      color: _isModified ? Colors.greenAccent : Colors.white70,
                       size: 8,
                     ),
                     const SizedBox(width: 4),
@@ -288,6 +297,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
                         : const Color(0xFFFCFCFC),
                     child: CodeField(
                       controller: _codeController,
+                      keyboardType: TextInputType.multiline,
                       textStyle: TextStyle(
                         fontFamily: 'hmossans',
                         fontSize: _fontSize,
@@ -439,7 +449,8 @@ class _FileEditorPageState extends State<FileEditorPage> {
           ),
           const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.done_all, color: Colors.blue),
+            icon: Icon(Icons.done_all,
+                color: isDark ? Colors.white : Colors.black),
             onPressed: () {
               if (_findController.text.isEmpty) return;
               final text = _codeController.text
@@ -483,17 +494,18 @@ class _FileEditorPageState extends State<FileEditorPage> {
   Future<bool> _confirmExit() async {
     return await showDialog<bool>(
           context: context,
+          barrierDismissible: false,
           builder: (context) => AlertDialog(
-            title: const Text('提醒'),
-            content: const Text('当前更改尚未保存，确定要退出编辑吗？'),
+            title: const Text('未保存的更改'),
+            content: const Text('当前文件有未保存的更改，确定要退出吗？\n\n退出后将丢失所有修改。'),
             actions: [
-              TextButton(
+              OutlinedButton(
                   onPressed: () => Navigator.pop(context, false),
                   child: const Text('继续编辑')),
-              TextButton(
+              OutlinedButton(
                   onPressed: () => Navigator.pop(context, true),
-                  child:
-                      const Text('放弃保存', style: TextStyle(color: Colors.red))),
+                  child: const Text('放弃保存并退出',
+                      style: TextStyle(color: Colors.red))),
             ],
           ),
         ) ??

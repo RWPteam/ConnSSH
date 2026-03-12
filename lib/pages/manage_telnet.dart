@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../services/telnet_storage_service.dart';
@@ -179,7 +181,19 @@ class _ManageTelnetConnectionsPageState
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: ListTile(
-                      leading: const Icon(Icons.terminal),
+                      // 修改后的图标样式：圆形背景 + 主题色图标
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.terminal,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
                       title: Text(
                         connection.name,
                         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -188,16 +202,42 @@ class _ManageTelnetConnectionsPageState
                         '${connection.host}:${connection.port}',
                         style: TextStyle(color: Colors.grey[600]),
                       ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, size: 20),
-                            onPressed: () => _editConnection(connection),
+                      // 修改后的操作按钮：使用 PopupMenuButton 替代 Row
+                      trailing: PopupMenuButton<String>(
+                        onSelected: (value) {
+                          switch (value) {
+                            case 'connect':
+                              _connectTo(connection);
+                              break;
+                            case 'edit':
+                              _editConnection(connection);
+                              break;
+                            case 'delete':
+                              _deleteConnection(connection);
+                              break;
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'connect',
+                            child: ListTile(
+                              title: Text('连接'),
+                            ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, size: 20),
-                            onPressed: () => _deleteConnection(connection),
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: ListTile(
+                              title: Text('编辑'),
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: ListTile(
+                              title: Text(
+                                '删除',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
                           ),
                         ],
                       ),

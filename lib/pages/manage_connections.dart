@@ -43,6 +43,8 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
 
   Future<void> _loadConnections() async {
     final connections = await _storageService.getConnections();
+    connections
+        .sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     setState(() {
       _connections = connections;
     });
@@ -194,7 +196,6 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
     final targetType = connection.type == ConnectionType.ssh
         ? ConnectionType.sftp
         : ConnectionType.ssh;
-
     final typeName = targetType == ConnectionType.ssh ? 'SSH' : 'SFTP';
 
     final newConnection = ConnectionInfo(
@@ -209,7 +210,24 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
     );
 
     await _storageService.saveConnection(newConnection);
+
+    if (connection.archive != null && connection.archive!.isNotEmpty) {
+      final groups = await _storageService.getArchiveGroups();
+      final targetGroup = groups.firstWhere(
+        (g) => g.name == connection.archive,
+        orElse: () => throw Exception('分组不存在'),
+      );
+      final updatedGroup = ArchiveGroup(
+        id: targetGroup.id,
+        name: targetGroup.name,
+        connectionIds: [...targetGroup.connectionIds, newConnection.id],
+        isExpanded: targetGroup.isExpanded,
+      );
+      await _storageService.saveArchiveGroup(updatedGroup);
+    }
+
     await _loadConnections();
+    await _loadArchiveGroups();
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -705,6 +723,7 @@ class ArchiveGroupEditDialog extends StatefulWidget {
 class _ArchiveGroupEditDialogState extends State<ArchiveGroupEditDialog> {
   late TextEditingController _nameController;
   late List<ConnectionInfo> _selectedConnections;
+  late List<ConnectionInfo> _sortedConnections;
 
   @override
   void initState() {
@@ -713,6 +732,8 @@ class _ArchiveGroupEditDialogState extends State<ArchiveGroupEditDialog> {
     _selectedConnections = widget.connections
         .where((c) => widget.group.connectionIds.contains(c.id))
         .toList();
+    _sortedConnections = List<ConnectionInfo>.from(widget.connections)
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   }
 
   @override
@@ -804,7 +825,7 @@ class _ArchiveGroupEditDialogState extends State<ArchiveGroupEditDialog> {
                                   height: 40,
                                   decoration: BoxDecoration(
                                     color: isSelected
-                                        ? Colors.white.withOpacity(0.7)
+                                        ? Colors.white.withOpacity(0.3)
                                         : Colors.grey.withOpacity(0.1),
                                     shape: BoxShape.circle,
                                   ),
@@ -813,8 +834,10 @@ class _ArchiveGroupEditDialogState extends State<ArchiveGroupEditDialog> {
                                         ? Icons.terminal
                                         : Icons.folder,
                                     color: isSelected
-                                        ? Colors.black.withOpacity(0.7)
-                                        : Theme.of(context).colorScheme.primary,
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .secondary,
                                     size: 20,
                                   ),
                                 ),

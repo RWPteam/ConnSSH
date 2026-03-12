@@ -106,21 +106,18 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     }
   }
 
-  // 获取当前展示用的亮度
   Brightness _getDisplayBrightness() {
     if (_themeMode == 'light') {
       return Brightness.light;
     } else if (_themeMode == 'dark') {
       return Brightness.dark;
     } else {
-      // system 模式，使用当前系统亮度
       return MediaQuery.of(context).platformBrightness;
     }
   }
 
   ColorScheme _generateColorScheme(Color seedColor, Brightness brightness) {
     if (seedColor == _themeColors['monochrome']) {
-      // monochrome 特殊处理
       if (brightness == Brightness.dark) {
         return ColorScheme(
           brightness: Brightness.dark,

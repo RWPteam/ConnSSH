@@ -9,6 +9,9 @@ class SshService {
   SSHClient? _client;
   TwoFactorAuthService _twoFactorAuthService;
 
+  // 新增：定义心跳间隔，通常 20-30 秒为宜
+  static const _keepAliveInterval = Duration(seconds: 30);
+
   SshService({TwoFactorAuthService? twoFactorAuthService})
       : _twoFactorAuthService = twoFactorAuthService ?? TwoFactorAuthService();
 
@@ -168,6 +171,7 @@ class SshService {
         username: credential.username,
         onUserInfoRequest: keyboardInteractiveHandler,
         // 注意：不设置 onPasswordRequest
+        keepAliveInterval: _keepAliveInterval, // 注入保活机制
       );
     } else {
       print('使用私钥认证（2FA模式）...');
@@ -187,6 +191,7 @@ class SshService {
           username: credential.username,
           identities: keyPairs,
           onUserInfoRequest: keyboardInteractiveHandler,
+          keepAliveInterval: _keepAliveInterval, // 注入保活机制
         );
       } catch (e) {
         throw Exception('私钥解析失败，请检查私钥格式和密码: $e');
@@ -208,6 +213,7 @@ class SshService {
       throw Exception('认证成功但连接测试失败: $e');
     }
 
+    _listenToConnectionClosure(); // 监听连接断开
     print('认证成功！');
     return _client!;
   }
@@ -232,6 +238,7 @@ class SshService {
           return credential.password;
         },
         // 传统模式：不设置键盘交互处理器
+        keepAliveInterval: _keepAliveInterval, // 注入保活机制
       );
     } else {
       print('使用私钥认证...');
@@ -244,6 +251,7 @@ class SshService {
         username: credential.username,
         identities: keyPairs,
         // 传统模式：不设置键盘交互处理器
+        keepAliveInterval: _keepAliveInterval, // 注入保活机制
       );
     }
 
@@ -251,11 +259,23 @@ class SshService {
     // 不设置超时，让服务器决定
     await _client!.authenticated;
 
+    _listenToConnectionClosure(); // 监听连接断开
     print('认证成功！');
     return _client!;
   }
 
-  // 以下辅助方法保持不变...
+  // 新增：监听连接是否被系统或服务器关闭
+  void _listenToConnectionClosure() {
+    _client?.done.then((_) {
+      print('SSH 连接已关闭（可能是由于系统进入后台后资源被回收）');
+      _client = null;
+    }).catchError((e) {
+      print('SSH 连接异常中断: $e');
+      _client = null;
+    });
+  }
+
+  // 辅助方法：从请求中提取提示列表
   List<dynamic>? _getPromptsFromRequest(dynamic request) {
     if (request is Map) {
       if (request.containsKey('prompts')) {

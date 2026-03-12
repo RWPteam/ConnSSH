@@ -141,10 +141,10 @@ packages:
     dependency: transitive
     description:
       name: equatable
-      sha256: "567c64b3cb4cf82397aac55f4f0cbd3ca20d77c6c03bedbc4ceaddc08904aef7"
+      sha256: "3e0141505477fd8ad55d6eb4e7776d3fe8430be8e497ccb1521370c3f21a3e2b"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.7"
+    version: "2.0.8"
   fake_async:
     dependency: transitive
     description:
@@ -200,7 +200,7 @@ packages:
     description:
       path: "packages/file_selector/file_selector"
       ref: HEAD
-      resolved-ref: b06d063a9cf3c92850f013c3b4203054987c37d6
+      resolved-ref: "77228ef90aa39dbb01981e608056598be4aea03c"
       url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
     source: git
     version: "1.0.0"
@@ -241,7 +241,7 @@ packages:
     description:
       path: "packages/file_selector/file_selector_ohos"
       ref: HEAD
-      resolved-ref: b06d063a9cf3c92850f013c3b4203054987c37d6
+      resolved-ref: "77228ef90aa39dbb01981e608056598be4aea03c"
       url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
     source: git
     version: "0.5.0+2"
@@ -550,7 +550,7 @@ packages:
     description:
       path: "packages/path_provider/path_provider"
       ref: HEAD
-      resolved-ref: c8dcc27e8ea01326727075985207c77002b2bb8d
+      resolved-ref: "77228ef90aa39dbb01981e608056598be4aea03c"
       url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
     source: git
     version: "2.1.0"
@@ -583,7 +583,7 @@ packages:
     description:
       path: "packages/path_provider/path_provider_ohos"
       ref: HEAD
-      resolved-ref: c8dcc27e8ea01326727075985207c77002b2bb8d
+      resolved-ref: "77228ef90aa39dbb01981e608056598be4aea03c"
       url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
     source: git
     version: "2.2.1"
@@ -608,7 +608,7 @@ packages:
     description:
       path: permission_handler
       ref: HEAD
-      resolved-ref: "453788b37d0ac41b5f8ed77ffcf1732c4849a883"
+      resolved-ref: "8c86086b90dbb82c6cc8b249f02435f4368a3272"
       url: "https://gitcode.com/openharmony-sig/flutter_permission_handler.git"
     source: git
     version: "10.4.3"
@@ -633,8 +633,8 @@ packages:
     description:
       path: permission_handler_ohos
       ref: master
-      resolved-ref: "1e7c80f0720aff742d9f1e08017e1753bcad76ef"
-      url: "https://gitee.com/openharmony-sig/flutter_permission_handler.git"
+      resolved-ref: "8c86086b90dbb82c6cc8b249f02435f4368a3272"
+      url: "https://gitcode.com/openharmony-sig/flutter_permission_handler.git"
     source: git
     version: "10.3.2"
   permission_handler_platform_interface:
@@ -706,7 +706,7 @@ packages:
     description:
       path: "packages/shared_preferences/shared_preferences"
       ref: HEAD
-      resolved-ref: c8dcc27e8ea01326727075985207c77002b2bb8d
+      resolved-ref: "77228ef90aa39dbb01981e608056598be4aea03c"
       url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
     source: git
     version: "2.2.0"
@@ -739,7 +739,7 @@ packages:
     description:
       path: "packages/shared_preferences/shared_preferences_ohos"
       ref: HEAD
-      resolved-ref: c8dcc27e8ea01326727075985207c77002b2bb8d
+      resolved-ref: "77228ef90aa39dbb01981e608056598be4aea03c"
       url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
     source: git
     version: "2.2.0"
@@ -840,10 +840,10 @@ packages:
     dependency: "direct main"
     description:
       name: uuid
-      sha256: a11b666489b1954e01d992f3d601b1804a33937b5a8fe677bd26b8a9f96f96e8
+      sha256: "1fef9e8e11e2991bb773070d4656b7bd5d850967a2456cfc83cf47925ba79489"
       url: "https://pub.dev"
     source: hosted
-    version: "4.5.2"
+    version: "4.5.3"
   vector_math:
     dependency: transitive
     description:
@@ -889,7 +889,7 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: e61b0157eb8cd28fec582eba49eddb456b6aa2d5
+      resolved-ref: "683dfc19eaf424e78e67789ceb1f730c8431a6eb"
       url: "https://github.com/samu1oto/xterm.dart.git"
     source: git
     version: "4.0.0"
