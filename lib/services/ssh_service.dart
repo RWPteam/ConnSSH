@@ -161,15 +161,13 @@ class SshService {
       }
     }
 
-    // 2FA模式下，无论密码还是密钥认证，都使用键盘交互式处理器
     if (credential.authType == AuthType.password) {
       print('使用密码认证（2FA模式）...');
       _client = SSHClient(
         socket,
         username: credential.username,
         onUserInfoRequest: keyboardInteractiveHandler,
-        // 注意：不设置 onPasswordRequest
-        keepAliveInterval: _keepAliveInterval, // 注入保活机制
+        keepAliveInterval: _keepAliveInterval,
       );
     } else {
       print('使用私钥认证（2FA模式）...');
@@ -196,11 +194,8 @@ class SshService {
       }
     }
 
-    // 等待认证完成（不设置超时，让服务器决定）
     print('等待认证完成...');
     await _client!.authenticated;
-
-    // 验证连接是否真的可用
     try {
       final result =
           await _client!.run('echo "test"').timeout(Duration(seconds: 5));
@@ -211,12 +206,11 @@ class SshService {
       throw Exception('认证成功但连接测试失败: $e');
     }
 
-    _listenToConnectionClosure(); // 监听连接断开
+    _listenToConnectionClosure();
     print('认证成功！');
     return _client!;
   }
 
-  // 传统认证模式（无2FA）
   Future<SSHClient> _connectWithoutTwoFactorAuth(
     SSHSocket socket,
     ConnectionInfo connection,
@@ -235,8 +229,7 @@ class SshService {
           }
           return credential.password;
         },
-        // 传统模式：不设置键盘交互处理器
-        keepAliveInterval: _keepAliveInterval, // 注入保活机制
+        keepAliveInterval: _keepAliveInterval,
       );
     } else {
       print('使用私钥认证...');
@@ -248,21 +241,18 @@ class SshService {
         socket,
         username: credential.username,
         identities: keyPairs,
-        // 传统模式：不设置键盘交互处理器
-        keepAliveInterval: _keepAliveInterval, // 注入保活机制
+        keepAliveInterval: _keepAliveInterval,
       );
     }
 
     print('正在验证身份...');
-    // 不设置超时，让服务器决定
     await _client!.authenticated;
 
-    _listenToConnectionClosure(); // 监听连接断开
+    _listenToConnectionClosure();
     print('认证成功！');
     return _client!;
   }
 
-  // 新增：监听连接是否被系统或服务器关闭
   void _listenToConnectionClosure() {
     _client?.done.then((_) {
       print('SSH 连接已关闭（可能是由于系统进入后台后资源被回收）');
@@ -273,7 +263,6 @@ class SshService {
     });
   }
 
-  // 辅助方法：从请求中提取提示列表
   List<dynamic>? _getPromptsFromRequest(dynamic request) {
     if (request is Map) {
       if (request.containsKey('prompts')) {
