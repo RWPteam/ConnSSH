@@ -1,6 +1,9 @@
 // ssh_service.dart
 import 'dart:async';
+import 'dart:io';
 import 'package:dartssh2/dartssh2.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import '../models/connection_model.dart';
 import '../models/credential_model.dart';
 import '../services/twofa_service.dart';
@@ -8,10 +11,11 @@ import '../services/twofa_service.dart';
 class SshService {
   SSHClient? _client;
   TwoFactorAuthService _twoFactorAuthService;
+  static const platform =
+      MethodChannel('com.samuioto.connecter/background_task');
 
-  // 新增：定义心跳间隔，通常 20-30 秒为宜
   static const _keepAliveInterval = Duration(seconds: 30);
-
+  bool _isohos = defaultTargetPlatform == TargetPlatform.ohos;
   SshService({TwoFactorAuthService? twoFactorAuthService})
       : _twoFactorAuthService = twoFactorAuthService ?? TwoFactorAuthService();
 
@@ -21,10 +25,13 @@ class SshService {
     TwoFactorAuthHandler? onTwoFactorAuth,
   }) async {
     try {
+      print("$_isohos");
+      if (_isohos) {
+        await platform.invokeMethod('startBackgroundRunning');
+      }
       final socket = await SSHSocket.connect(connection.host, connection.port);
 
       if (connection.needTwoFa) {
-        // 2FA模式：使用键盘交互式认证
         return await _connectWithTwoFactorAuth(
           socket,
           connection,
@@ -32,7 +39,6 @@ class SshService {
           onTwoFactorAuth: onTwoFactorAuth,
         );
       } else {
-        // 传统模式：使用标准认证，不设置键盘交互处理器
         return await _connectWithoutTwoFactorAuth(
           socket,
           connection,
@@ -42,8 +48,6 @@ class SshService {
     } catch (e) {
       print('SSH连接失败: $e');
       disconnect();
-
-      // 根据错误类型返回友好的错误信息
       if (e.toString().contains('Authentication failed')) {
         throw Exception('认证失败：用户名、密码或密钥错误');
       } else if (e.toString().contains('Connection refused')) {
@@ -58,7 +62,6 @@ class SshService {
     }
   }
 
-  // 2FA认证模式
   Future<SSHClient> _connectWithTwoFactorAuth(
     SSHSocket socket,
     ConnectionInfo connection,
@@ -88,7 +91,6 @@ class SshService {
 
           print('处理提示: "$promptText", echo: $echo');
 
-          // 检查是否是2FA提示
           final lowerPrompt = promptText.toLowerCase();
           final isTwoFactorPrompt = lowerPrompt.contains('verification') ||
               lowerPrompt.contains('code') ||
@@ -98,7 +100,6 @@ class SshService {
               lowerPrompt.contains('two-factor') ||
               lowerPrompt.contains('mfa');
 
-          // 检查是否是密码提示
           final isPasswordPrompt = !echo &&
               (lowerPrompt.contains('password') ||
                   lowerPrompt.contains('passphrase') ||
@@ -106,7 +107,6 @@ class SshService {
                   lowerPrompt.contains('password:'));
 
           if (isTwoFactorPrompt && !hasProvidedTwoFactorCode) {
-            // 第一次出现2FA提示，请求验证码
             print('请求2FA验证码...');
             final code = onTwoFactorAuth != null
                 ? await onTwoFactorAuth(
@@ -122,7 +122,6 @@ class SshService {
             hasProvidedTwoFactorCode = true;
             print('已提供2FA验证码: $code');
           } else if (isPasswordPrompt && !hasProvidedPassword) {
-            // 第一次出现密码提示，提供密码
             print('提供密码...');
             final password = credential.password ?? '';
             if (password.isEmpty) {
@@ -132,7 +131,6 @@ class SshService {
             hasProvidedPassword = true;
             print('已提供密码');
           } else if (isTwoFactorPrompt && hasProvidedTwoFactorCode) {
-            // 第二次出现2FA提示，可能是验证码错误，重新请求
             print('重新请求2FA验证码...');
             final code = onTwoFactorAuth != null
                 ? await onTwoFactorAuth(connection.name, connection.host,
@@ -394,6 +392,9 @@ class SshService {
   }
 
   void disconnect() {
+    if (_isohos) {
+      platform.invokeMethod('stopBackgroundRunning');
+    }
     _client?.close();
     _client = null;
   }

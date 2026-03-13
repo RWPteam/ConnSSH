@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 // 1. 必须导入这个包
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'pages/home.dart';
@@ -7,6 +8,11 @@ import 'services/setting_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  const platform = MethodChannel('com.samuioto.connecter/background_task');
+  platform.setMethodCallHandler((call) async {
+    return null;
+  });
   runApp(const MyApp());
 }
 

@@ -76,6 +76,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
   Completer<String?>? _twoFactorCompleter;
 
   String? _rememberedSudoPassword;
+  // ignore: unused_field
   bool _rememberSudoPassword = false;
 
   static const int _largeFileThreshold = 1024 * 1024;
@@ -2339,9 +2340,10 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _saveFile(
+// 1. 修改 _saveFile 方法签名和实现
+  Future<bool> _saveFile(
       String remotePath, Uint8List data, String filename) async {
-    if (!await _checkConnection()) return;
+    if (!await _checkConnection()) return false; // 连接失败返回 false
 
     try {
       _showProgressDialog('保存文件', showCancel: false);
@@ -2354,7 +2356,6 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       );
 
       await remote.writeBytes(data);
-
       await remote.close();
 
       if (mounted) {
@@ -2362,16 +2363,89 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('文件保存成功')));
       }
+      return true; // 明确返回成功
     } catch (e) {
       // 权限不足时尝试sudo保存
       if (_isPermissionDeniedError(e)) {
-        await _trySudoSaveFile(remotePath, data, filename);
+        // 返回 sudo 保存的结果（可能是 true 或 false）
+        return await _trySudoSaveFile(remotePath, data, filename);
       } else if (mounted) {
         try {
           Navigator.of(context).pop();
         } catch (_) {}
         _showErrorDialog('保存文件失败', e.toString());
       }
+      return false; // 其他错误返回 false
+    }
+  }
+
+// 2. 修改 _trySudoSaveFile 方法签名和实现
+  Future<bool> _trySudoSaveFile(
+      String remotePath, Uint8List data, String filename) async {
+    final password = await _showSudoPasswordDialog('保存文件');
+    if (password == null || password.isEmpty) {
+      // 用户取消输入密码，关闭进度对话框并返回 false
+      if (mounted) {
+        try {
+          Navigator.of(context).pop();
+        } catch (_) {}
+      }
+      return false; // 关键：明确返回 false，让 FileEditorPage 知道保存被取消
+    }
+
+    final tempPath = '/tmp/${DateTime.now().millisecondsSinceEpoch}_$filename';
+    try {
+      final remote = await _sftpClient.open(
+        tempPath,
+        mode: SftpFileOpenMode.create |
+            SftpFileOpenMode.write |
+            SftpFileOpenMode.truncate,
+      );
+
+      await remote.writeBytes(data);
+      await remote.close();
+
+      final command = 'mv "$tempPath" "$remotePath"';
+      final success = await _executeSudoCommand(command, password);
+
+      if (mounted) {
+        try {
+          Navigator.of(context).pop();
+        } catch (_) {}
+
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('文件保存成功 ')),
+          );
+          return true; // sudo 保存成功
+        } else {
+          // 检查文件是否真的保存了（有时退出码异常但操作成功）
+          try {
+            await _sftpClient.stat(remotePath);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('文件保存成功 ')),
+            );
+            return true; // 虽然命令返回失败，但文件存在，视为成功
+          } catch (e) {
+            // 清理临时文件
+            try {
+              await _sftpClient.remove(tempPath);
+            } catch (_) {}
+            _showErrorDialog('保存失败', '移动文件失败');
+            return false; // 明确返回失败
+          }
+        }
+      }
+      return success; // mounted 为 false 时返回命令执行结果
+    } catch (e) {
+      debugPrint('sudo保存失败: $e');
+      if (mounted) {
+        try {
+          Navigator.of(context).pop();
+        } catch (_) {}
+        _showErrorDialog('保存失败', e.toString());
+      }
+      return false; // 异常时返回 false
     }
   }
 
@@ -2654,7 +2728,6 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
         errorStr.contains('拒绝访问');
   }
 
-  // 修改：支持记住sudo密码的对话框
   Future<String?> _showSudoPasswordDialog(String operation) async {
     // 如果已经记住了密码，直接返回记住的密码
     if (_rememberedSudoPassword != null &&
@@ -2667,7 +2740,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     _isSudoPromptOpen = true;
 
     final passwordController = TextEditingController();
-    bool rememberPassword = false; // 临时变量存储本次选择
+    bool rememberPassword = false;
 
     String? result = await showDialog<String>(
       context: context,
@@ -3084,67 +3157,6 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _trySudoSaveFile(
-      String remotePath, Uint8List data, String filename) async {
-    final password = await _showSudoPasswordDialog('保存文件');
-    if (password == null || password.isEmpty) {
-      if (mounted) {
-        try {
-          Navigator.of(context).pop();
-        } catch (_) {}
-      }
-      return;
-    }
-
-    final tempPath = '/tmp/${DateTime.now().millisecondsSinceEpoch}_$filename';
-    try {
-      final remote = await _sftpClient.open(
-        tempPath,
-        mode: SftpFileOpenMode.create |
-            SftpFileOpenMode.write |
-            SftpFileOpenMode.truncate,
-      );
-
-      await remote.writeBytes(data);
-      await remote.close();
-
-      final command = 'mv "$tempPath" "$remotePath"';
-      final success = await _executeSudoCommand(command, password);
-
-      if (mounted) {
-        try {
-          Navigator.of(context).pop();
-        } catch (_) {}
-
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('文件保存成功 ')),
-          );
-        } else {
-          try {
-            await _sftpClient.stat(remotePath);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('文件保存成功 ')),
-            );
-          } catch (e) {
-            try {
-              await _sftpClient.remove(tempPath);
-            } catch (_) {}
-            _showErrorDialog('保存失败', '移动文件失败');
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('sudo保存失败: $e');
-      if (mounted) {
-        try {
-          Navigator.of(context).pop();
-        } catch (_) {}
-        _showErrorDialog('保存失败', e.toString());
-      }
-    }
-  }
-
   @override
   void dispose() {
     _loadingAnimationController.dispose();
@@ -3284,9 +3296,6 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(hintText),
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-              margin: const EdgeInsets.all(16),
             ),
           );
         } else {

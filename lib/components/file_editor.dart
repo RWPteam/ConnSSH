@@ -31,7 +31,8 @@ class FileEditorPage extends StatefulWidget {
   final String filename;
   final String remotePath;
   final String initialContent;
-  final Future<void> Function(String, Uint8List, String) saveCallback;
+  // 修改：改为返回 Future<bool>，true 表示保存成功，false 表示取消或失败
+  final Future<bool> Function(String, Uint8List, String) saveCallback;
 
   const FileEditorPage({
     super.key,
@@ -469,20 +470,41 @@ class _FileEditorPageState extends State<FileEditorPage> {
     );
   }
 
+  // 核心修复：_saveFile 方法
   Future<void> _saveFile() async {
     if (_isSaving) return;
     setState(() => _isSaving = true);
+
     try {
       final contentBytes = utf8.encode(_codeController.text);
-      await widget.saveCallback(
+      // 调用回调并等待结果
+      final success = await widget.saveCallback(
           widget.remotePath, Uint8List.fromList(contentBytes), widget.filename);
-      if (mounted) {
+
+      if (!mounted) return;
+
+      if (success) {
+        // 只有在明确返回 true（保存成功）时才重置修改状态
         setState(() {
           _isModified = false;
           _isSaving = false;
         });
+      } else {
+        // 保存被取消或失败，保持 _isModified 为 true
+        setState(() {
+          _isSaving = false;
+        });
+        // 可选：显示保存被取消的提示
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("保存已取消"),
+            duration: Duration(seconds: 1),
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
     } catch (e) {
+      // 异常情况（如网络错误等）
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(

@@ -54,16 +54,9 @@ class _HelpPageState extends State<HelpPage> {
     HelpItem(
       title: '关于 & 反馈',
       content: '''
-ConnSSH 版本 1.4.0
-
-功能改进
-• 改进心跳包发送机制
-• 移除文本编辑器的拓展名限制，同时尝试修复意外调用安全键盘的问题
-• SFTP功能中，单次会话的sudo密码输入现在会被记住，直到会话结束
+ConnSSH 版本 1.4.0+1
 
 问题修复
-• 修复后台运行问题，若问题依旧请反馈
-• 修复管理连接页面存在的排序问题
 • 修正部分界面显示和文字提示
 
 如有问题或建议，请前往本项目GitHub仓库提交issue
