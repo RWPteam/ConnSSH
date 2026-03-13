@@ -62,7 +62,6 @@ class _ManageTelnetConnectionsPageState
               if (mounted) {
                 _loadConnections();
               }
-              // ignore: use_build_context_synchronously
               Navigator.of(context).pop();
             },
             child: const Text('删除'),

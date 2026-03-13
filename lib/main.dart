@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// 1. 必须导入这个包
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'pages/home.dart';
 import 'models/app_settings_model.dart';
