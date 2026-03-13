@@ -18,8 +18,8 @@ A lightweight & cross-platform SSH/SFTP client built with Flutter.
 ### 下载
 | 平台 | 下载 | 备注 |
 |------|------|------|
-| Android | [APK](https://github.com/RWPteam/ConnSSH/releases/download/1.4.0/ConnSSH_1.4.0_arm64.apk) | arm64 |
-| Windows | [exe](https://github.com/RWPteam/ConnSSH/releases/download/1.4.0/ConnSSH.1.4.0.Installer.exe) | 仅支持64位设备 |
+| Android | [APK](https://github.com/RWPteam/ConnSSH/releases/download/1.4.1/ConnSSH_1.4.1_arm64.apk) | arm64 |
+| Windows | [exe](https://github.com/RWPteam/ConnSSH/releases/download/1.4.1/ConnSSH.1.4.1.Installer.exe) | 仅支持64位设备 |
 | OHOS | [AppGallery](https://appgallery.huawei.com/app/detail?id=com.samuioto.connecter&channelId=SHARE&source=appshare) | 已上架至华为应用市场，欢迎体验
 
 
