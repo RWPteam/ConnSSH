@@ -470,41 +470,28 @@ class _FileEditorPageState extends State<FileEditorPage> {
     );
   }
 
-  // 核心修复：_saveFile 方法
   Future<void> _saveFile() async {
     if (_isSaving) return;
     setState(() => _isSaving = true);
 
     try {
       final contentBytes = utf8.encode(_codeController.text);
-      // 调用回调并等待结果
       final success = await widget.saveCallback(
           widget.remotePath, Uint8List.fromList(contentBytes), widget.filename);
 
       if (!mounted) return;
 
       if (success) {
-        // 只有在明确返回 true（保存成功）时才重置修改状态
         setState(() {
           _isModified = false;
           _isSaving = false;
         });
       } else {
-        // 保存被取消或失败，保持 _isModified 为 true
         setState(() {
           _isSaving = false;
         });
-        // 可选：显示保存被取消的提示
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("保存已取消"),
-            duration: Duration(seconds: 1),
-            backgroundColor: Colors.orange,
-          ),
-        );
       }
     } catch (e) {
-      // 异常情况（如网络错误等）
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(

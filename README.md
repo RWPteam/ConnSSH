@@ -48,7 +48,7 @@ flutter build app
 已迁移至 [GitHub Issues](https://github.com/RWPteam/ConnSSH) 
 
 ### 开源协议
-BSD 3-Clause © 2025 RWPteam
+BSD 3-Clause © 2026 RWPteam
 
 ### 感谢
 - [xterm.dart](https://github.com/TerminalStudio/xterm.dart) – terminal UI
