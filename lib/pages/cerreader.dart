@@ -2,9 +2,10 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'package:file_picker/file_picker.dart'
+    show FilePicker, FileType, FilePickerResult;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:file_picker_ohos/file_picker_ohos.dart';
 import 'package:flutter/services.dart';
 import 'package:basic_utils/basic_utils.dart';
 import 'package:path_provider/path_provider.dart';
@@ -20,7 +21,7 @@ class _ReadCerInfoPageState extends State<ReadCerInfoPage> {
   String? _fileName;
   String? _keyContent;
   bool _isProcessing = false;
-  bool _isOhos = defaultTargetPlatform == TargetPlatform.ohos;
+
   Map<String, String> _parsedInfo = {};
   bool _showPasteField = false;
   final TextEditingController _pasteController = TextEditingController();
@@ -161,11 +162,17 @@ class _ReadCerInfoPageState extends State<ReadCerInfoPage> {
         info["建议"] = "请上传证书文件(.crt/.cer/.pem)";
       } else {
         try {
-          List<int> bytes =
-              base64.decode(trimmed.replaceAll(RegExp(r'\s'), ''));
-          String pem = "-----BEGIN CERTIFICATE-----\n" +
-              base64.encode(bytes).replaceAllMapped(
-                  RegExp(r'.{64}'), (match) => '${match.group(0)}\n') +
+          List<int> bytes = base64.decode(
+            trimmed.replaceAll(RegExp(r'\s'), ''),
+          );
+          String pem =
+              "-----BEGIN CERTIFICATE-----\n" +
+              base64
+                  .encode(bytes)
+                  .replaceAllMapped(
+                    RegExp(r'.{64}'),
+                    (match) => '${match.group(0)}\n',
+                  ) +
               "\n-----END CERTIFICATE-----";
 
           _parseSingleCertificate(pem);
@@ -214,12 +221,13 @@ class _ReadCerInfoPageState extends State<ReadCerInfoPage> {
 
   void _copyToClipboard() {
     if (_parsedInfo.isEmpty) return;
-    String summary =
-        _parsedInfo.entries.map((e) => "${e.key}: ${e.value}").join("\n");
+    String summary = _parsedInfo.entries
+        .map((e) => "${e.key}: ${e.value}")
+        .join("\n");
     Clipboard.setData(ClipboardData(text: summary)).then((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('解析结果已复制')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('解析结果已复制')));
     });
   }
 
@@ -232,15 +240,12 @@ class _ReadCerInfoPageState extends State<ReadCerInfoPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildActionButton(
-              onPressed: _pickKeyFile,
-              title: '选择本地文件',
-            ),
+            _buildActionButton(onPressed: _pickKeyFile, title: '选择本地文件'),
             const SizedBox(height: 16),
             _buildActionButton(
               onPressed: () => {
                 setState(() => _showPasteField = !_showPasteField),
-                if (_showPasteField) {_pasteController.clear()}
+                if (_showPasteField) {_pasteController.clear()},
               },
               title: '从剪贴板粘贴',
             ),
@@ -274,13 +279,14 @@ class _ReadCerInfoPageState extends State<ReadCerInfoPage> {
                     : null,
               ),
               Text(
-                  '${_currentCertificateIndex + 1}/${_multipleCertificates.length}'),
+                '${_currentCertificateIndex + 1}/${_multipleCertificates.length}',
+              ),
               IconButton(
                 icon: const Icon(Icons.chevron_right),
                 onPressed:
                     _currentCertificateIndex < _multipleCertificates.length - 1
-                        ? () => _switchCertificate(_currentCertificateIndex + 1)
-                        : null,
+                    ? () => _switchCertificate(_currentCertificateIndex + 1)
+                    : null,
               ),
             ],
           ),
@@ -305,7 +311,9 @@ class _ReadCerInfoPageState extends State<ReadCerInfoPage> {
             maxLines: 4,
             style: const TextStyle(fontFamily: 'maple', fontSize: 12),
             decoration: const InputDecoration(
-                hintText: '在此粘贴内容...', border: InputBorder.none),
+              hintText: '在此粘贴内容...',
+              border: InputBorder.none,
+            ),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -332,10 +340,10 @@ class _ReadCerInfoPageState extends State<ReadCerInfoPage> {
               '解析结果${_multipleCertificates.length > 1 ? " (证书${_currentCertificateIndex + 1})" : ""}',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            if (!_isOhos)
-              IconButton(
-                  onPressed: _copyToClipboard,
-                  icon: const Icon(Icons.copy, size: 18)),
+            IconButton(
+              onPressed: _copyToClipboard,
+              icon: const Icon(Icons.copy, size: 18),
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -367,14 +375,18 @@ class _ReadCerInfoPageState extends State<ReadCerInfoPage> {
           padding: const EdgeInsets.all(12),
           width: double.infinity,
           decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(8)),
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
           child: Text(
             _keyContent!.length > 200
                 ? "${_keyContent!.substring(0, 200)}..."
                 : _keyContent!,
             style: const TextStyle(
-                fontFamily: 'maple', fontSize: 11, color: Colors.grey),
+              fontFamily: 'maple',
+              fontSize: 11,
+              color: Colors.grey,
+            ),
           ),
         ),
       ],
@@ -392,8 +404,9 @@ class _ReadCerInfoPageState extends State<ReadCerInfoPage> {
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           side: const BorderSide(color: Colors.grey, width: 0.5),
         ),
         child: Row(
@@ -404,11 +417,13 @@ class _ReadCerInfoPageState extends State<ReadCerInfoPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      )),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -441,7 +456,7 @@ class _ReadCerInfoPageState extends State<ReadCerInfoPage> {
   Future<void> _pickKeyFile() async {
     setState(() => _isProcessing = true);
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      FilePickerResult? result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pem', 'crt', 'cer', 'der'],
         allowMultiple: false,

@@ -159,13 +159,11 @@ class _SFTPSettingsPageState extends State<SFTPSettingsPage> {
                 onPressed: () async {
                   try {
                     String? selectedDirectory =
-                        await FilePicker.platform.getDirectoryPath(
-                      dialogTitle: '选择默认下载目录',
-                    );
+                        await FilePicker.getDirectoryPath(
+                          dialogTitle: '选择默认下载目录',
+                        );
 
-                    if (selectedDirectory != null) {
-                      controller.text = selectedDirectory;
-                    }
+                    controller.text = selectedDirectory!;
                   } catch (e) {
                     debugPrint('选择目录失败: $e');
                   }
@@ -286,10 +284,7 @@ class _SFTPSettingsPageState extends State<SFTPSettingsPage> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
       decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.grey,
-          width: 1.0,
-        ),
+        border: Border.all(color: Colors.grey, width: 1.0),
         borderRadius: BorderRadius.circular(12.0),
         color: Colors.transparent,
       ),
@@ -301,24 +296,15 @@ class _SFTPSettingsPageState extends State<SFTPSettingsPage> {
             color: Colors.grey.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+          child: Icon(icon, color: Theme.of(context).colorScheme.primary),
         ),
         title: Text(
           title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
@@ -329,20 +315,12 @@ class _SFTPSettingsPageState extends State<SFTPSettingsPage> {
               Padding(
                 padding: const EdgeInsets.only(right: 8.0),
                 child: IconButton(
-                  icon: const Icon(
-                    Icons.clear,
-                    color: Colors.red,
-                    size: 20,
-                  ),
+                  icon: const Icon(Icons.clear, color: Colors.red, size: 20),
                   onPressed: _clearDownloadPath,
                   tooltip: '清除下载路径',
                 ),
               ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.grey,
-            ),
+            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
           ],
         ),
         onTap: onTap,
@@ -360,9 +338,7 @@ class _SFTPSettingsPageState extends State<SFTPSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('SFTP设置'),
-      ),
+      appBar: AppBar(title: const Text('SFTP设置')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(

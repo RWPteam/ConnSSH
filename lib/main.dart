@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 import 'pages/home.dart';
 import 'models/app_settings_model.dart';
 import 'services/setting_service.dart';
@@ -73,9 +74,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       GlobalCupertinoLocalizations.delegate,
     ];
 
-    const List<Locale> supportedLocales = [
-      Locale('zh', 'CH'),
-    ];
+    const List<Locale> supportedLocales = [Locale('zh', 'CH')];
 
     if (_isLoading) {
       return const MaterialApp(
@@ -86,30 +85,53 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       );
     }
 
-    return MaterialApp(
-      navigatorKey: _navigatorKey,
-      title: 'ConnSSH',
-      localizationsDelegates: localizationsDelegates,
-      supportedLocales: supportedLocales,
-      locale: const Locale('zh', 'CH'),
-      theme: _buildTheme(Brightness.light),
-      darkTheme: _buildTheme(Brightness.dark),
-      themeMode: _getThemeMode(),
-      home: MainPage(
-        settingsService: _settingsService,
-        onSettingsChanged: loadSettings,
-      ),
-      debugShowCheckedModeBanner: false,
-      builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(),
-          child: child!,
+    return DynamicColorBuilder(
+      builder: (lightDynamic, darkDynamic) {
+        return MaterialApp(
+          navigatorKey: _navigatorKey,
+          title: 'ConnSSH',
+          localizationsDelegates: localizationsDelegates,
+          supportedLocales: supportedLocales,
+          locale: const Locale('zh', 'CH'),
+          theme:
+              _currentSettings.defaultPageTheme == 'materialyou' &&
+                  lightDynamic != null
+              ? _buildTheme(
+                  Brightness.light,
+                ).copyWith(colorScheme: lightDynamic)
+              : _buildTheme(Brightness.light),
+          darkTheme:
+              _currentSettings.defaultPageTheme == 'materialyou' &&
+                  darkDynamic != null
+              ? _buildTheme(Brightness.dark).copyWith(colorScheme: darkDynamic)
+              : _buildTheme(Brightness.dark),
+          themeMode: _getThemeMode(),
+          home: MainPage(
+            settingsService: _settingsService,
+            onSettingsChanged: loadSettings,
+          ),
+          debugShowCheckedModeBanner: false,
+          builder: (context, child) {
+            return MediaQuery(
+              data: MediaQuery.of(context).copyWith(),
+              child: child!,
+            );
+          },
         );
       },
     );
   }
 
   ThemeData _buildTheme(Brightness brightness) {
+    if (_currentSettings.defaultPageTheme == 'materialyou') {
+      // Material You 使用系统颜色方案
+      return ThemeData(
+        fontFamily: 'hmossans',
+        useMaterial3: true,
+        brightness: brightness,
+      );
+    }
+
     if (_currentSettings.defaultPageTheme == 'monochrome') {
       final isDark = brightness == Brightness.dark;
       ColorScheme colorScheme;

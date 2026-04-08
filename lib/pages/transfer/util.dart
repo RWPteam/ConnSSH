@@ -120,7 +120,7 @@ class UtilityToolsPage extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: Colors.grey.withAlpha(25),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(

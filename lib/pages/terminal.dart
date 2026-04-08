@@ -36,8 +36,10 @@ class _TerminalPageState extends State<TerminalPage> {
   final List<StreamSubscription?> _stdoutSubs = List.filled(_maxSessions, null);
   final List<StreamSubscription?> _stderrSubs = List.filled(_maxSessions, null);
 
-  final List<Completer<String?>?> _twoFactorCompleters =
-      List.filled(_maxSessions, null);
+  final List<Completer<String?>?> _twoFactorCompleters = List.filled(
+    _maxSessions,
+    null,
+  );
   final List<bool> _needsTwoFactorAuth = List.filled(_maxSessions, false);
 
   int _activeIndex = 0;
@@ -57,8 +59,8 @@ class _TerminalPageState extends State<TerminalPage> {
 
   bool _isSliderVisible = false;
   bool _menuIsOpen = false;
-  bool _ismobile = defaultTargetPlatform == TargetPlatform.android ||
-      defaultTargetPlatform == TargetPlatform.ohos ||
+  bool _ismobile =
+      defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS;
   bool _showToolbar = false;
 
@@ -84,7 +86,7 @@ class _TerminalPageState extends State<TerminalPage> {
     13,
     14,
     15,
-    16
+    16,
   ];
 
   final SettingsService _settingsService = SettingsService();
@@ -116,8 +118,12 @@ class _TerminalPageState extends State<TerminalPage> {
       };
 
       t.onResize = (width, height, pixelWidth, pixelHeight) {
-        _sessions[index]
-            ?.resizeTerminal(width, height, pixelWidth, pixelHeight);
+        _sessions[index]?.resizeTerminal(
+          width,
+          height,
+          pixelWidth,
+          pixelHeight,
+        );
       };
 
       return t;
@@ -203,7 +209,7 @@ class _TerminalPageState extends State<TerminalPage> {
         13,
         14,
         15,
-        16
+        16,
       ];
     }
   }
@@ -233,7 +239,11 @@ class _TerminalPageState extends State<TerminalPage> {
         widget.credential,
         onTwoFactorAuth: (connectionName, host, prompt) async {
           return await _showTwoFactorAuthDialog(
-              index, connectionName, host, prompt);
+            index,
+            connectionName,
+            host,
+            prompt,
+          );
         },
       );
 
@@ -245,11 +255,7 @@ class _TerminalPageState extends State<TerminalPage> {
       final height = t.viewHeight > 0 ? t.viewHeight : 24;
 
       final session = await client.shell(
-        pty: SSHPtyConfig(
-          width: width,
-          height: height,
-          type: _termType,
-        ),
+        pty: SSHPtyConfig(width: width, height: height, type: _termType),
       );
       _sessions[index] = session;
 
@@ -357,11 +363,13 @@ class _TerminalPageState extends State<TerminalPage> {
         content: const Text('即将关闭第二个连接，请确认工作已保存'),
         actions: [
           OutlinedButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
           OutlinedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('确认关闭', style: TextStyle(color: Colors.red))),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确认关闭', style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
@@ -645,10 +653,14 @@ class _TerminalPageState extends State<TerminalPage> {
 
     final position = RelativeRect.fromRect(
       Rect.fromPoints(
-        button.localToGlobal(button.size.topRight(Offset.zero),
-            ancestor: overlay),
-        button.localToGlobal(button.size.bottomRight(Offset.zero),
-            ancestor: overlay),
+        button.localToGlobal(
+          button.size.topRight(Offset.zero),
+          ancestor: overlay,
+        ),
+        button.localToGlobal(
+          button.size.bottomRight(Offset.zero),
+          ancestor: overlay,
+        ),
       ),
       Offset.zero & overlay.size,
     );
@@ -723,11 +735,14 @@ class _TerminalPageState extends State<TerminalPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('字体大小',
-                                    style: TextStyle(color: Colors.white)),
-                                Text('${_fontSize.toInt()}',
-                                    style:
-                                        const TextStyle(color: Colors.white)),
+                                const Text(
+                                  '字体大小',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                Text(
+                                  '${_fontSize.toInt()}',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
                               ],
                             ),
                             Slider(
@@ -789,7 +804,8 @@ class _TerminalPageState extends State<TerminalPage> {
         if (didPop) return;
 
         final now = DateTime.now();
-        final bool shouldExit = _lastBackPressedTime == null ||
+        final bool shouldExit =
+            _lastBackPressedTime == null ||
             now.difference(_lastBackPressedTime!) > const Duration(seconds: 2);
 
         if (shouldExit) {
@@ -849,15 +865,10 @@ class _TerminalPageState extends State<TerminalPage> {
                       const SizedBox(width: 4),
                       Text(
                         _status,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.white70,
-                        ),
+                        style: TextStyle(fontSize: 10, color: Colors.white70),
                       ),
                       if (_needsTwoFactorAuth[_activeIndex])
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8.0),
-                        ),
+                        Padding(padding: const EdgeInsets.only(left: 8.0)),
                     ],
                   ),
                 ],
@@ -923,14 +934,17 @@ class _TerminalPageState extends State<TerminalPage> {
               },
               itemBuilder: (context) => [
                 ..._buildMenuItems().where(
-                    (item) => (item as PopupMenuItem).value != 'disconnect'),
+                  (item) => (item as PopupMenuItem).value != 'disconnect',
+                ),
                 PopupMenuItem<String>(
                   value: 'multi_window',
                   child: Text(_isMultiWindowMode ? '关闭多会话' : '多会话（Beta）'),
                 ),
                 const PopupMenuDivider(),
                 const PopupMenuItem<String>(
-                    value: 'disconnect', child: Text('断开连接并返回')),
+                  value: 'disconnect',
+                  child: Text('断开连接并返回'),
+                ),
               ],
             ),
           ],
@@ -941,8 +955,10 @@ class _TerminalPageState extends State<TerminalPage> {
             key: ValueKey(_activeIndex),
             focusNode: _terminalFocusNode,
             autofocus: true,
-            textStyle:
-                TerminalStyle(fontSize: _fontSize, fontFamily: _defaultfonts),
+            textStyle: TerminalStyle(
+              fontSize: _fontSize,
+              fontFamily: _defaultfonts,
+            ),
             theme: _currentTheme,
             showToolbar: _showToolbar,
             toolbarLayout: _toolbarLayout,

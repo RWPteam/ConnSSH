@@ -10,10 +10,7 @@ import '../../services/setting_service.dart';
 class TelnetTerminalPage extends StatefulWidget {
   final TelnetConnectionInfo connection;
 
-  const TelnetTerminalPage({
-    super.key,
-    required this.connection,
-  });
+  const TelnetTerminalPage({super.key, required this.connection});
 
   @override
   State<TelnetTerminalPage> createState() => _TelnetTerminalPageState();
@@ -63,15 +60,15 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
     13,
     14,
     15,
-    16
+    16,
   ];
 
   // 返回按钮处理
   DateTime? _lastBackPressedTime;
 
   // 是否为移动端
-  bool _ismobile = defaultTargetPlatform == TargetPlatform.android ||
-      defaultTargetPlatform == TargetPlatform.ohos ||
+  bool _ismobile =
+      defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS;
 
   // 是否只读
@@ -90,8 +87,6 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
       case TelnetLineSeparator.lf:
         return '\n';
       case TelnetLineSeparator.crlf:
-        return '\r\n';
-      default:
         return '\r\n';
     }
   }
@@ -237,7 +232,7 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
         13,
         14,
         15,
-        16
+        16,
       ];
     }
   }
@@ -264,7 +259,8 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
       });
 
       _terminal.write(
-          '正在连接到 ${widget.connection.host}:${widget.connection.port}...\r\n');
+        '正在连接到 ${widget.connection.host}:${widget.connection.port}...\r\n',
+      );
 
       // 先断开旧的连接
       _telnetService?.disconnect();
@@ -452,11 +448,14 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('字体大小',
-                                    style: TextStyle(color: Colors.white)),
-                                Text('${_fontSize.toInt()}',
-                                    style:
-                                        const TextStyle(color: Colors.white)),
+                                const Text(
+                                  '字体大小',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                Text(
+                                  '${_fontSize.toInt()}',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
                               ],
                             ),
                             Slider(
@@ -620,9 +619,9 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
     } catch (e) {
       debugPrint('切换主题失败: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('切换主题失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('切换主题失败: $e')));
       }
     }
   }
@@ -715,10 +714,14 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
 
     final position = RelativeRect.fromRect(
       Rect.fromPoints(
-        button.localToGlobal(button.size.topRight(Offset.zero),
-            ancestor: overlay),
-        button.localToGlobal(button.size.bottomRight(Offset.zero),
-            ancestor: overlay),
+        button.localToGlobal(
+          button.size.topRight(Offset.zero),
+          ancestor: overlay,
+        ),
+        button.localToGlobal(
+          button.size.bottomRight(Offset.zero),
+          ancestor: overlay,
+        ),
       ),
       Offset.zero & overlay.size,
     );
@@ -808,7 +811,8 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
         if (didPop) return;
 
         final now = DateTime.now();
-        final bool shouldExit = _lastBackPressedTime == null ||
+        final bool shouldExit =
+            _lastBackPressedTime == null ||
             now.difference(_lastBackPressedTime!) > const Duration(seconds: 2);
 
         if (shouldExit) {
@@ -866,10 +870,7 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
                       const SizedBox(width: 4),
                       Text(
                         _status,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.white70,
-                        ),
+                        style: TextStyle(fontSize: 10, color: Colors.white70),
                       ),
                     ],
                   ),

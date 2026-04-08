@@ -24,12 +24,7 @@ A lightweight & cross-platform SSH/SFTP client built with Flutter.
 
 
 ### 构建&打包
-* 需注意，本项目使用了修改过的[xterm.dart](https://github.com/samu1oto/xterm.dart)以添加快捷操作栏等功能
-* 本项目使用了[openharmony-tpc/flutter_flutter/tree/br_3.22.0-ohos-1.0.4](https://gitcode.com/openharmony-tpc/flutter_flutter/tree/br_3.22.0-ohos-1.0.4)而非正常版本的flutter，不保证正常版本下可用
-* 经过测试，使用[openharmony-tpc/flutter_flutter](https://gitcode.com/openharmony-tpc/flutter_flutter)的3.27分支无法正常编译此项目。
-
 ```bash
-# 源码运行（Flutter = 3.22）
 git clone https://github.com/RWPteam/connssh.git
 cd connssh
 flutter pub get
@@ -41,6 +36,20 @@ flutter run -d <device_id>
 flutter build apk #--split-per-abi(Recommend)
 # Windows
 flutter build windows
+```
+#### 若您想构建ohos版本：
+* 需注意，本项目使用了修改过的[xterm.dart](https://github.com/samu1oto/xterm.dart)以添加快捷操作栏等功能
+* 本项目使用了[openharmony-tpc/flutter_flutter/tree/br_3.22.0-ohos-1.0.4](https://gitcode.com/openharmony-tpc/flutter_flutter/tree/br_3.22.0-ohos-1.0.4)而非正常版本的flutter，不保证正常版本下可用
+* 经过测试，使用[openharmony-tpc/flutter_flutter](https://gitcode.com/openharmony-tpc/flutter_flutter)的3.27分支无法正常编译此项目。
+
+```bash
+# 源码运行（Flutter = 3.22）
+git clone https://github.com/RWPteam/connssh.git
+cd connssh
+flutter pub get
+flutter run -d <device_id>
+```
+```bash
 # HarmonyOS NEXT
 flutter build app
 ```

@@ -54,11 +54,12 @@ class _HelpPageState extends State<HelpPage> {
     HelpItem(
       title: '关于 & 反馈',
       content: '''
-ConnSSH 版本 1.4.1
+ConnSSH 版本 2.0.0
 
-问题修复
-• 修正部分界面显示和文字提示
-• 修复ohos的后台保活逻辑
+* 除ohos外的平台正式迁移至flutter3.35，重构了界面和部分功能，修复了多个已知问题，提升了稳定性和性能。
+* 支持了material You取色
+* 修复 #24 不支持不加密的私钥，ohos分支稍后在1.4.2版本中更新此内容
+* samuiord已可用
 
 如有问题或建议，请前往本项目GitHub仓库提交issue
 若您访问不便，可发送邮件至：
@@ -128,9 +129,7 @@ samuioto@outlook.com
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('帮助'),
-      ),
+      appBar: AppBar(title: const Text('帮助')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -154,10 +153,7 @@ samuioto@outlook.com
                       const SizedBox(height: 8),
                       const Text(
                         '一个便捷的SSH和SFTP连接管理工具',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -174,12 +170,7 @@ samuioto@outlook.com
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    '更新日志',
-                    style: TextStyle(
-                      fontSize: 14,
-                    ),
-                  ),
+                  child: const Text('更新日志', style: TextStyle(fontSize: 14)),
                 ),
               ],
             ),
@@ -276,11 +267,7 @@ class HelpItem {
   final String content;
   final String? imagePath;
 
-  HelpItem({
-    required this.title,
-    required this.content,
-    this.imagePath,
-  });
+  HelpItem({required this.title, required this.content, this.imagePath});
 }
 
 class HelpCard extends StatelessWidget {
@@ -295,9 +282,7 @@ class HelpCard extends StatelessWidget {
     if (isAboutFeedback) {
       return Card(
         elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           margin: const EdgeInsets.all(8),
           child: SingleChildScrollView(
@@ -316,10 +301,7 @@ class HelpCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(
                     helpItem.content,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      height: 1.5,
-                    ),
+                    style: const TextStyle(fontSize: 16, height: 1.5),
                   ),
                 ],
               ),
@@ -330,9 +312,7 @@ class HelpCard extends StatelessWidget {
     } else {
       return Card(
         elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           margin: const EdgeInsets.all(8),
           child: LayoutBuilder(
@@ -352,7 +332,8 @@ class HelpCard extends StatelessWidget {
                         const padding = 16.0;
                         const imageTextSpacing = 8.0;
                         const textBottomMargin = 16.0;
-                        final maxImageHeight = totalHeight -
+                        final maxImageHeight =
+                            totalHeight -
                             textHeight -
                             padding * 2 -
                             imageTextSpacing -
@@ -411,10 +392,7 @@ class HelpCard extends StatelessWidget {
                             const SizedBox(height: 8),
                             Text(
                               helpItem.content,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                height: 1.5,
-                              ),
+                              style: const TextStyle(fontSize: 16, height: 1.5),
                               maxLines: null,
                               overflow: TextOverflow.visible,
                             ),
@@ -436,10 +414,7 @@ class HelpCard extends StatelessWidget {
     final titlePainter = TextPainter(
       text: TextSpan(
         text: title,
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
       maxLines: null,
       textDirection: TextDirection.ltr,
@@ -450,10 +425,7 @@ class HelpCard extends StatelessWidget {
     final contentPainter = TextPainter(
       text: TextSpan(
         text: content,
-        style: const TextStyle(
-          fontSize: 16,
-          height: 1.5,
-        ),
+        style: const TextStyle(fontSize: 16, height: 1.5),
       ),
       maxLines: null,
       textDirection: TextDirection.ltr,
@@ -471,18 +443,11 @@ class HelpCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.image_not_supported,
-              size: 30,
-              color: Colors.grey,
-            ),
+            const Icon(Icons.image_not_supported, size: 30, color: Colors.grey),
             const SizedBox(height: 8),
             Text(
               '图片加载失败',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),

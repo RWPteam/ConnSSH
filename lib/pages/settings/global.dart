@@ -1,8 +1,7 @@
 // global_settings_page.dart
 import 'dart:async';
 import 'dart:io';
-
-import 'package:file_picker_ohos/file_picker_ohos.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:connssh/main.dart';
 import '../../models/app_settings_model.dart';
@@ -80,11 +79,14 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                           borderRadius: BorderRadius.circular(12.0),
                         ),
                         suffixIcon: IconButton(
-                          icon: Icon(passwordObscure
-                              ? Icons.visibility
-                              : Icons.visibility_off),
+                          icon: Icon(
+                            passwordObscure
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
                           onPressed: () => setState(
-                              () => passwordObscure = !passwordObscure),
+                            () => passwordObscure = !passwordObscure,
+                          ),
                         ),
                       ),
                     ),
@@ -98,11 +100,15 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                           borderRadius: BorderRadius.circular(12.0),
                         ),
                         suffixIcon: IconButton(
-                          icon: Icon(confirmPasswordObscure
-                              ? Icons.visibility
-                              : Icons.visibility_off),
-                          onPressed: () => setState(() =>
-                              confirmPasswordObscure = !confirmPasswordObscure),
+                          icon: Icon(
+                            confirmPasswordObscure
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () => setState(
+                            () => confirmPasswordObscure =
+                                !confirmPasswordObscure,
+                          ),
                         ),
                       ),
                     ),
@@ -123,14 +129,16 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                 OutlinedButton(
                   onPressed: () async {
                     if (passwordController.text.isEmpty) {
-                      ScaffoldMessenger.of(pageContext)
-                          .showSnackBar(const SnackBar(content: Text('请输入密码')));
+                      ScaffoldMessenger.of(
+                        pageContext,
+                      ).showSnackBar(const SnackBar(content: Text('请输入密码')));
                       return;
                     }
                     if (passwordController.text !=
                         confirmPasswordController.text) {
                       ScaffoldMessenger.of(pageContext).showSnackBar(
-                          const SnackBar(content: Text('两次输入的密码不一致')));
+                        const SnackBar(content: Text('两次输入的密码不一致')),
+                      );
                       return;
                     }
 
@@ -156,8 +164,9 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
 
                     Future<void> backupOperation() async {
                       try {
-                        final filePath = await _backupService
-                            .backupData(passwordController.text);
+                        final filePath = await _backupService.backupData(
+                          passwordController.text,
+                        );
 
                         if (!mounted) return;
 
@@ -165,15 +174,20 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
 
                         await Future.delayed(const Duration(milliseconds: 100));
 
-                        if (Navigator.of(pageContext, rootNavigator: true)
-                            .canPop()) {
+                        if (Navigator.of(
+                          pageContext,
+                          rootNavigator: true,
+                        ).canPop()) {
                           Navigator.of(pageContext, rootNavigator: true).pop();
                         }
 
                         await loadingDialogFuture;
 
                         _showResultDialog(
-                            pageContext, '备份成功', '备份文件已保存到:\n$filePath');
+                          pageContext,
+                          '备份成功',
+                          '备份文件已保存到:\n$filePath',
+                        );
                       } catch (e) {
                         if (!mounted) return;
 
@@ -181,15 +195,20 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
 
                         await Future.delayed(const Duration(milliseconds: 100));
 
-                        if (Navigator.of(pageContext, rootNavigator: true)
-                            .canPop()) {
+                        if (Navigator.of(
+                          pageContext,
+                          rootNavigator: true,
+                        ).canPop()) {
                           Navigator.of(pageContext, rootNavigator: true).pop();
                         }
 
                         await loadingDialogFuture;
 
                         _showResultDialog(
-                            pageContext, '备份失败', '错误: $e\n请检查存储空间');
+                          pageContext,
+                          '备份失败',
+                          '错误: $e\n请检查存储空间',
+                        );
                       }
                     }
 
@@ -241,11 +260,11 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                     onPressed: () async {
                       try {
                         final FilePickerResult? result =
-                            await FilePicker.platform.pickFiles(
-                          type: FileType.any,
-                          dialogTitle: '选择备份文件',
-                          allowMultiple: false,
-                        );
+                            await FilePicker.pickFiles(
+                              type: FileType.any,
+                              dialogTitle: '选择备份文件',
+                              allowMultiple: false,
+                            );
 
                         if (result != null && result.files.isNotEmpty) {
                           PlatformFile file = result.files.first;
@@ -264,9 +283,7 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                       maxLines: 1,
                     ),
                   ),
-                  if (selectedFilePath != null) ...[
-                    const SizedBox(height: 8),
-                  ],
+                  if (selectedFilePath != null) ...[const SizedBox(height: 8)],
                   const SizedBox(height: 12),
                   TextField(
                     controller: passwordController,
@@ -309,8 +326,8 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                 child: const Text('取消'),
               ),
               OutlinedButton(
-                onPressed: selectedFilePath == null ||
-                        passwordController.text.isEmpty
+                onPressed:
+                    selectedFilePath == null || passwordController.text.isEmpty
                     ? null
                     : () async {
                         // 确认恢复
@@ -318,10 +335,13 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                           context: context,
                           builder: (context) => AlertDialog(
                             title: const Text('这是最后一次确认'),
-                            content: const Text('此操作将覆盖所有现有数据，且不可撤销，确定要恢复吗？',
-                                style: TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.bold)),
+                            content: const Text(
+                              '此操作将覆盖所有现有数据，且不可撤销，确定要恢复吗？',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             actions: [
                               OutlinedButton(
                                 onPressed: () => Navigator.of(context).pop(),
@@ -330,14 +350,19 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                               OutlinedButton(
                                 onPressed: () async {
                                   Navigator.of(context).pop();
-                                  if (Navigator.of(context, rootNavigator: true)
-                                      .canPop()) {
-                                    Navigator.of(context, rootNavigator: true)
-                                        .pop();
+                                  if (Navigator.of(
+                                    context,
+                                    rootNavigator: true,
+                                  ).canPop()) {
+                                    Navigator.of(
+                                      context,
+                                      rootNavigator: true,
+                                    ).pop();
                                   }
                                   final NavigatorState navigator = Navigator.of(
-                                      this.context,
-                                      rootNavigator: true);
+                                    this.context,
+                                    rootNavigator: true,
+                                  );
                                   showDialog(
                                     context: context,
                                     barrierDismissible: false,
@@ -355,11 +380,11 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                                   );
 
                                   try {
-                                    final backupData =
-                                        await _backupService.restoreData(
-                                      selectedFilePath!,
-                                      passwordController.text,
-                                    );
+                                    final backupData = await _backupService
+                                        .restoreData(
+                                          selectedFilePath!,
+                                          passwordController.text,
+                                        );
 
                                     await _backupService.applyRestoredData(
                                       backupData,
@@ -397,11 +422,14 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                                     );
                                   } catch (e) {
                                     // 关闭加载对话框
-                                    if (Navigator.of(context,
-                                            rootNavigator: true)
-                                        .canPop()) {
-                                      Navigator.of(context, rootNavigator: true)
-                                          .pop();
+                                    if (Navigator.of(
+                                      context,
+                                      rootNavigator: true,
+                                    ).canPop()) {
+                                      Navigator.of(
+                                        context,
+                                        rootNavigator: true,
+                                      ).pop();
                                     }
 
                                     showDialog(
@@ -454,11 +482,9 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
               widget.onSettingsChanged();
               MyApp.of(context)?.loadSettings();
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('已恢复默认设置'),
-                  ),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('已恢复默认设置')));
               }
             },
             child: const Text('确定'),
@@ -477,10 +503,7 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
       decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.grey,
-          width: 1.0,
-        ),
+        border: Border.all(color: Colors.grey, width: 1.0),
         borderRadius: BorderRadius.circular(12.0),
         color: Colors.transparent,
       ),
@@ -492,24 +515,15 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
             color: Colors.grey.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+          child: Icon(icon, color: Theme.of(context).colorScheme.primary),
         ),
         title: Text(
           title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
@@ -533,9 +547,7 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('全局设置'),
-      ),
+      appBar: AppBar(title: const Text('全局设置')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(

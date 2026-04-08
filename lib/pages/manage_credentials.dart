@@ -35,19 +35,15 @@ class _ManageCredentialsPageState extends State<ManageCredentialsPage> {
   void _showAddCredentialDialog() {
     showDialog(
       context: context,
-      builder: (context) => CredentialDialog(
-        onSaved: _loadCredentials,
-      ),
+      builder: (context) => CredentialDialog(onSaved: _loadCredentials),
     );
   }
 
   void _editCredential(Credential credential) {
     showDialog(
       context: context,
-      builder: (context) => CredentialDialog(
-        credential: credential,
-        onSaved: _loadCredentials,
-      ),
+      builder: (context) =>
+          CredentialDialog(credential: credential, onSaved: _loadCredentials),
     );
   }
 
@@ -110,15 +106,14 @@ class _ManageCredentialsPageState extends State<ManageCredentialsPage> {
               itemBuilder: (context, index) {
                 final credential = _credentials[index];
                 return Container(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.grey,
-                      width: 1,
-                    ),
+                    border: Border.all(color: Colors.grey, width: 1),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
@@ -165,15 +160,15 @@ class _ManageCredentialsPageState extends State<ManageCredentialsPage> {
                         itemBuilder: (context) => [
                           const PopupMenuItem(
                             value: 'edit',
-                            child: ListTile(
-                              title: Text('编辑'),
-                            ),
+                            child: ListTile(title: Text('编辑')),
                           ),
                           const PopupMenuItem(
                             value: 'delete',
                             child: ListTile(
-                              title: Text('删除',
-                                  style: TextStyle(color: Colors.red)),
+                              title: Text(
+                                '删除',
+                                style: TextStyle(color: Colors.red),
+                              ),
                             ),
                           ),
                         ],
@@ -203,11 +198,7 @@ class CredentialDialog extends StatefulWidget {
   final Credential? credential;
   final VoidCallback? onSaved;
 
-  const CredentialDialog({
-    super.key,
-    this.credential,
-    this.onSaved,
-  });
+  const CredentialDialog({super.key, this.credential, this.onSaved});
 
   @override
   State<CredentialDialog> createState() => _CredentialDialogState();
@@ -254,7 +245,7 @@ class _CredentialDialogState extends State<CredentialDialog> {
 
   Future<void> _pickPrivateKeyFile() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      FilePickerResult? result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pem', 'key', 'ppk', 'txt'],
         allowMultiple: false,
@@ -306,11 +297,9 @@ class _CredentialDialogState extends State<CredentialDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('读取文件失败: $e'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('读取文件失败: $e')));
       }
     }
   }
@@ -329,12 +318,15 @@ class _CredentialDialogState extends State<CredentialDialog> {
       name: _nameController.text.trim(),
       username: _usernameController.text.trim(),
       authType: _authType,
-      password:
-          _authType == AuthType.password ? _passwordController.text : null,
-      privateKey:
-          _authType == AuthType.privateKey ? _privateKeyController.text : null,
-      passphrase:
-          _authType == AuthType.privateKey ? _passphraseController.text : null,
+      password: _authType == AuthType.password
+          ? _passwordController.text
+          : null,
+      privateKey: _authType == AuthType.privateKey
+          ? _privateKeyController.text
+          : null,
+      passphrase: _authType == AuthType.privateKey
+          ? _passphraseController.text
+          : null,
     );
 
     try {
@@ -344,19 +336,15 @@ class _CredentialDialogState extends State<CredentialDialog> {
         Navigator.of(context).pop();
         widget.onSaved?.call();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_isEditing ? '凭证已更新' : '凭证已创建'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_isEditing ? '凭证已更新' : '凭证已创建')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('保存失败: $e'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
       }
     }
   }
@@ -376,8 +364,11 @@ class _CredentialDialogState extends State<CredentialDialog> {
   }
 
   // 统一的文本框样式
-  InputDecoration _textFieldDecoration(String labelText,
-      {String? hintText, Widget? suffixIcon}) {
+  InputDecoration _textFieldDecoration(
+    String labelText, {
+    String? hintText,
+    Widget? suffixIcon,
+  }) {
     return InputDecoration(
       labelText: labelText,
       hintText: hintText,
@@ -392,8 +383,10 @@ class _CredentialDialogState extends State<CredentialDialog> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.0),
-        borderSide:
-            BorderSide(color: Theme.of(context).primaryColor, width: 1.0),
+        borderSide: BorderSide(
+          color: Theme.of(context).primaryColor,
+          width: 1.0,
+        ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.0),
@@ -408,8 +401,10 @@ class _CredentialDialogState extends State<CredentialDialog> {
   }
 
   // 统一的多行文本框样式（用于私钥）
-  InputDecoration _multilineTextFieldDecoration(String labelText,
-      {String? hintText}) {
+  InputDecoration _multilineTextFieldDecoration(
+    String labelText, {
+    String? hintText,
+  }) {
     return InputDecoration(
       labelText: labelText,
       hintText: hintText,
@@ -424,8 +419,10 @@ class _CredentialDialogState extends State<CredentialDialog> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.0),
-        borderSide:
-            BorderSide(color: Theme.of(context).primaryColor, width: 1.0),
+        borderSide: BorderSide(
+          color: Theme.of(context).primaryColor,
+          width: 1.0,
+        ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.0),
@@ -453,8 +450,10 @@ class _CredentialDialogState extends State<CredentialDialog> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.0),
-        borderSide:
-            BorderSide(color: Theme.of(context).primaryColor, width: 1.0),
+        borderSide: BorderSide(
+          color: Theme.of(context).primaryColor,
+          width: 1.0,
+        ),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     );
@@ -465,12 +464,13 @@ class _CredentialDialogState extends State<CredentialDialog> {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: 500,
-        ),
+        constraints: const BoxConstraints(maxWidth: 500),
         child: Padding(
-          padding:
-              const EdgeInsets.only(left: 16, right: 16, bottom: 16), // 移除顶部内边距
+          padding: const EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: 16,
+          ), // 移除顶部内边距
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -605,8 +605,10 @@ class _CredentialDialogState extends State<CredentialDialog> {
                                   Expanded(
                                     child: OutlinedButton.icon(
                                       onPressed: _pickPrivateKeyFile,
-                                      icon:
-                                          const Icon(Icons.file_open, size: 18),
+                                      icon: const Icon(
+                                        Icons.file_open,
+                                        size: 18,
+                                      ),
                                       label: const Text('从文件读取'),
                                     ),
                                   ),

@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:basic_utils/basic_utils.dart';
+import 'package:file_picker/file_picker.dart' show FilePicker;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:file_picker_ohos/file_picker_ohos.dart';
 import '../models/connection_model.dart';
 import '../services/rsa_key_service.dart';
 import '../services/ecdsa_key_service.dart';
@@ -214,7 +214,7 @@ class _KeygenPageState extends State<KeygenPage> {
       final tempPrivateFile = File(tempPrivatePath);
       await tempPrivateFile.writeAsString(_privateKey!);
 
-      final savedPath = await FilePicker.platform.saveFile(
+      final savedPath = await FilePicker.saveFile(
         dialogTitle: '保存私钥文件',
         fileName: baseName,
         allowedExtensions: ['pem', 'key'],
@@ -274,7 +274,7 @@ class _KeygenPageState extends State<KeygenPage> {
         suggestedPath = suggestedPublicPath;
       }
 
-      final savedPath = await FilePicker.platform.saveFile(
+      final savedPath = await FilePicker.saveFile(
         dialogTitle: '保存公钥文件',
         fileName: pubFileName,
         allowedExtensions: ['pub'],
