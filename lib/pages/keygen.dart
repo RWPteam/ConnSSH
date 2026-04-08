@@ -52,7 +52,7 @@ class _KeygenPageState extends State<KeygenPage> {
     'p224',
     'p256',
     'p384',
-    'p521'
+    'p521',
   ];
 
   final List<String> _formatOptions = ['pkcs1', 'pkcs8'];
@@ -143,10 +143,7 @@ class _KeygenPageState extends State<KeygenPage> {
           _ecdsaCurve,
         );
 
-        ECDSAKeyService.encodePublicKeyToOpenSSH(
-          publicKeyObj,
-          _ecdsaCurve,
-        );
+        ECDSAKeyService.encodePublicKeyToOpenSSH(publicKeyObj, _ecdsaCurve);
       }
 
       if (_passwordController.text.isNotEmpty) {
@@ -253,7 +250,9 @@ class _KeygenPageState extends State<KeygenPage> {
 
   // OHOS平台保存公钥
   Future<String?> _savePublicKeyOnOhos(
-      String baseName, String? privateKeyPath) async {
+    String baseName,
+    String? privateKeyPath,
+  ) async {
     try {
       final appDocDir = await getApplicationDocumentsDirectory();
       final keyDir = Directory('${appDocDir.path}/Keys');
@@ -356,9 +355,7 @@ class _KeygenPageState extends State<KeygenPage> {
         }
       } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
         // Windows/Linux/macOS：使用文件选择器
-        final privateKeyFile = await getSaveLocation(
-          suggestedName: baseName,
-        );
+        final privateKeyFile = await getSaveLocation(suggestedName: baseName);
 
         if (privateKeyFile != null) {
           final privatePath = privateKeyFile.path;
@@ -382,9 +379,7 @@ class _KeygenPageState extends State<KeygenPage> {
         }
       } else {
         // 其他平台：尝试使用文件选择器
-        final privateKeyFile = await getSaveLocation(
-          suggestedName: baseName,
-        );
+        final privateKeyFile = await getSaveLocation(suggestedName: baseName);
 
         if (privateKeyFile != null) {
           final privatePath = privateKeyFile.path;
@@ -651,7 +646,8 @@ class _KeygenPageState extends State<KeygenPage> {
   Future<void> _uploadFile(String content, String remotePath) async {
     final remoteFile = await _sftpClient.open(
       remotePath,
-      mode: SftpFileOpenMode.create |
+      mode:
+          SftpFileOpenMode.create |
           SftpFileOpenMode.write |
           SftpFileOpenMode.truncate,
     );
@@ -684,19 +680,13 @@ class _KeygenPageState extends State<KeygenPage> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.fixed,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.fixed),
     );
   }
 
   void _showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.fixed,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.fixed),
     );
   }
 
@@ -707,9 +697,7 @@ class _KeygenPageState extends State<KeygenPage> {
         MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('密钥生成'),
-      ),
+      appBar: AppBar(title: const Text('密钥生成')),
       body: isLandscape
           ? _buildLandscapeLayout(colorScheme)
           : _buildPortraitLayout(colorScheme),
@@ -729,10 +717,7 @@ class _KeygenPageState extends State<KeygenPage> {
                 children: [
                   const Text(
                     '生成参数',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -773,8 +758,9 @@ class _KeygenPageState extends State<KeygenPage> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: DropdownButtonFormField<dynamic>(
-                          value:
-                              _keyAlgorithm == 'rsa' ? _keySize : _ecdsaCurve,
+                          value: _keyAlgorithm == 'rsa'
+                              ? _keySize
+                              : _ecdsaCurve,
                           decoration: InputDecoration(
                             labelText: _keyAlgorithm == 'rsa' ? '密钥长度' : '椭圆曲线',
                             border: OutlineInputBorder(
@@ -906,10 +892,7 @@ class _KeygenPageState extends State<KeygenPage> {
                           ),
                         )
                       : null,
-                  label: const Text(
-                    '上传',
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  label: const Text('上传', style: TextStyle(fontSize: 16)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -919,10 +902,7 @@ class _KeygenPageState extends State<KeygenPage> {
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 50),
                   ),
-                  label: const Text(
-                    '保存',
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  label: const Text('保存', style: TextStyle(fontSize: 16)),
                 ),
               ),
             ],
@@ -1055,8 +1035,9 @@ class _KeygenPageState extends State<KeygenPage> {
                         const SizedBox(height: 12),
                         // 密钥长度/曲线选择
                         DropdownButtonFormField<dynamic>(
-                          value:
-                              _keyAlgorithm == 'rsa' ? _keySize : _ecdsaCurve,
+                          value: _keyAlgorithm == 'rsa'
+                              ? _keySize
+                              : _ecdsaCurve,
                           isExpanded: true,
                           decoration: InputDecoration(
                             labelText: _keyAlgorithm == 'rsa' ? '密钥长度' : '椭圆曲线',
@@ -1189,10 +1170,7 @@ class _KeygenPageState extends State<KeygenPage> {
                                 ),
                               )
                             : null,
-                        label: const Text(
-                          '上传',
-                          style: TextStyle(fontSize: 16),
-                        ),
+                        label: const Text('上传', style: TextStyle(fontSize: 16)),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -1203,10 +1181,7 @@ class _KeygenPageState extends State<KeygenPage> {
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(0, 50),
                         ),
-                        label: const Text(
-                          '保存',
-                          style: TextStyle(fontSize: 16),
-                        ),
+                        label: const Text('保存', style: TextStyle(fontSize: 16)),
                       ),
                     ),
                   ],
@@ -1283,10 +1258,7 @@ class _KeygenPageState extends State<KeygenPage> {
     );
   }
 
-  Widget _buildKeyCard({
-    required String title,
-    required String keyContent,
-  }) {
+  Widget _buildKeyCard({required String title, required String keyContent}) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
@@ -1329,10 +1301,7 @@ class _KeygenPageState extends State<KeygenPage> {
                 ),
                 child: SelectableText(
                   keyContent,
-                  style: const TextStyle(
-                    fontFamily: 'maple',
-                    fontSize: 11,
-                  ),
+                  style: const TextStyle(fontFamily: 'maple', fontSize: 11),
                 ),
               ),
             ),

@@ -31,10 +31,11 @@ class NativeBridge {
 }
 
 class MainPage extends StatefulWidget {
-  const MainPage(
-      {super.key,
-      required void Function() onSettingsChanged,
-      required SettingsService settingsService});
+  const MainPage({
+    super.key,
+    required void Function() onSettingsChanged,
+    required SettingsService settingsService,
+  });
 
   @override
   State<MainPage> createState() => _MainPageState();
@@ -72,8 +73,10 @@ class _MainPageState extends State<MainPage> {
   Future<void> _checkAndRequestPermissions() async {
     final storageStatus = await Permission.storage.status;
     final storageStatusHigh = await Permission.manageExternalStorage.status;
-
-    if (storageStatus.isGranted || storageStatusHigh.isGranted) {
+    final notificationStatus = await Permission.notification.request();
+    if (storageStatus.isGranted ||
+        storageStatusHigh.isGranted ||
+        notificationStatus.isGranted) {
       setState(() {
         _permissionsGranted = true;
       });
@@ -93,7 +96,7 @@ class _MainPageState extends State<MainPage> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text('权限申请'),
-            content: const Text('请授予存储权限，用于凭据存储和SFTP文件上传、下载功能'),
+            content: const Text('请授予相关权限，用于凭据存储、SFTP文件上传下载和后台运行功能'),
             actions: [
               OutlinedButton(
                 onPressed: () {
@@ -123,8 +126,13 @@ class _MainPageState extends State<MainPage> {
   Future<void> _requestPermissions() async {
     final storageStatus = await Permission.storage.request();
     final storageStatusHigh = await Permission.manageExternalStorage.request();
+    final notificationStatus = await Permission.notification.request();
     await Permission.ignoreBatteryOptimizations.request();
-    if (storageStatus.isGranted || storageStatusHigh.isGranted) {
+    await Permission.backgroundRefresh.request();
+
+    if (storageStatus.isGranted ||
+        storageStatusHigh.isGranted ||
+        notificationStatus.isGranted) {
       setState(() {
         _permissionsGranted = true;
       });
@@ -144,10 +152,7 @@ class _MainPageState extends State<MainPage> {
           title: const Text('权限未授予'),
           content: const Text('应用需要存储和后台运行权限才能正常工作'),
           actions: [
-            OutlinedButton(
-              onPressed: _exitApp,
-              child: const Text('退出应用'),
-            ),
+            OutlinedButton(onPressed: _exitApp, child: const Text('退出应用')),
           ],
         );
       },
@@ -189,9 +194,7 @@ class _MainPageState extends State<MainPage> {
                   onTap: _showHelp,
                   child: const Text(
                     '点击查看帮助',
-                    style: TextStyle(
-                      color: Colors.blueAccent,
-                    ),
+                    style: TextStyle(color: Colors.blueAccent),
                   ),
                 ),
               ),
@@ -209,11 +212,9 @@ class _MainPageState extends State<MainPage> {
   }
 
   void _showHelp() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const HelpPage(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const HelpPage()));
   }
 
   Future<void> _loadRecentConnections() async {
@@ -242,10 +243,7 @@ class _MainPageState extends State<MainPage> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('读取最近连接失败：$e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('读取最近连接失败：$e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -257,10 +255,7 @@ class _MainPageState extends State<MainPage> {
       _loadRecentConnections();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('删除最近连接失败：$e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('删除最近连接失败：$e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -269,32 +264,26 @@ class _MainPageState extends State<MainPage> {
     try {
       // 检查连接是否已存在
       final savedConnections = await _storageService.getConnections();
-      final bool connectionExists =
-          savedConnections.any((c) => c.id == connection.id);
+      final bool connectionExists = savedConnections.any(
+        (c) => c.id == connection.id,
+      );
 
       if (connectionExists) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('连接已存在'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('连接已存在')));
         return;
       }
 
       // 保存连接
       await _storageService.saveConnection(connection);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('保存连接${connection.name}成功'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('保存连接${connection.name}成功')));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('保存连接失败：$e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('保存连接失败：$e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -305,10 +294,7 @@ class _MainPageState extends State<MainPage> {
       _loadRecentConnections();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: Colors.orange,
-        ),
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.orange),
       );
     }
   }
@@ -319,19 +305,17 @@ class _MainPageState extends State<MainPage> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('ConnSSH'),
-          //backgroundColor: Colors.transparent,
+          backgroundColor: Colors.transparent,
           //elevation: 0,
           //foregroundColor: Theme.of(context).colorScheme.onSurface,
         ),
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
     return Scaffold(
       appBar: AppBar(
         title: const Text('ConnSSH'),
-        //backgroundColor: Colors.transparent,
+        backgroundColor: Colors.transparent,
         //elevation: 0,
         //foregroundColor: Theme.of(context).colorScheme.onSurface,
       ),
@@ -359,11 +343,7 @@ class _MainPageState extends State<MainPage> {
     double screenHeight,
     double screenWidth,
   ) {
-    final buttons = _buildButtons(
-      context,
-      showButtonSubtitle,
-      screenHeight,
-    );
+    final buttons = _buildButtons(context, showButtonSubtitle, screenHeight);
 
     if (!showRecentConnections) {
       return Padding(
@@ -382,16 +362,19 @@ class _MainPageState extends State<MainPage> {
                     if (_recentConnections.isNotEmpty)
                       Column(
                         children: [
-                          for (int i = 0;
-                              i < _recentConnections.take(4).length;
-                              i++)
+                          for (
+                            int i = 0;
+                            i < _recentConnections.take(4).length;
+                            i++
+                          )
                             Container(
                               height: 50,
                               margin: EdgeInsets.only(
-                                  bottom:
-                                      i < _recentConnections.take(4).length - 1
-                                          ? 12
-                                          : 0),
+                                bottom:
+                                    i < _recentConnections.take(4).length - 1
+                                    ? 12
+                                    : 0,
+                              ),
                               decoration: BoxDecoration(
                                 border: Border.all(
                                   color: Colors.grey,
@@ -400,7 +383,9 @@ class _MainPageState extends State<MainPage> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: _buildSmallConnectionTile(
-                                  context, _recentConnections[i]),
+                                context,
+                                _recentConnections[i],
+                              ),
                             ),
                         ],
                       )
@@ -408,10 +393,7 @@ class _MainPageState extends State<MainPage> {
                       Container(
                         height: 50,
                         decoration: BoxDecoration(
-                          border: Border.all(
-                            color: Colors.grey,
-                            width: 0.2,
-                          ),
+                          border: Border.all(color: Colors.grey, width: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Align(
@@ -450,10 +432,8 @@ class _MainPageState extends State<MainPage> {
                     padding: const EdgeInsets.only(bottom: 24.0),
                     child: Text(
                       '连接管理',
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ),
                   Expanded(
@@ -478,38 +458,39 @@ class _MainPageState extends State<MainPage> {
                   Text(
                     '最近连接',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   _isLoading
                       ? const Expanded(
-                          child: Center(
-                            child: CircularProgressIndicator(),
-                          ),
+                          child: Center(child: CircularProgressIndicator()),
                         )
                       : _recentConnections.isEmpty
-                          ? const Expanded(
-                              child: Center(
-                                child: Text(
-                                  '无最近连接',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 16,
-                                  ),
-                                ),
+                      ? const Expanded(
+                          child: Center(
+                            child: Text(
+                              '无最近连接',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 16,
                               ),
-                            )
-                          : Expanded(
-                              child: ListView.builder(
-                                itemCount: _recentConnections.length,
-                                itemBuilder: (context, index) {
-                                  final connection = _recentConnections[index];
-                                  return _buildConnectionTile(
-                                      context, connection, showButtonSubtitle);
-                                },
-                              ),
-                            )
+                            ),
+                          ),
+                        )
+                      : Expanded(
+                          child: ListView.builder(
+                            itemCount: _recentConnections.length,
+                            itemBuilder: (context, index) {
+                              final connection = _recentConnections[index];
+                              return _buildConnectionTile(
+                                context,
+                                connection,
+                                showButtonSubtitle,
+                              );
+                            },
+                          ),
+                        ),
                 ],
               ),
             ),
@@ -520,7 +501,9 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _buildSmallConnectionTile(
-      BuildContext context, ConnectionInfo connection) {
+    BuildContext context,
+    ConnectionInfo connection,
+  ) {
     final isConnectingThis =
         _isConnecting && _connectingConnection?.id == connection.id;
 
@@ -535,10 +518,7 @@ class _MainPageState extends State<MainPage> {
           },
           child: Container(
             decoration: BoxDecoration(
-              border: Border.all(
-                color: Colors.grey,
-                width: 1,
-              ),
+              border: Border.all(color: Colors.grey, width: 1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -573,19 +553,18 @@ class _MainPageState extends State<MainPage> {
                       ),
                     ),
                     PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert,
-                          color: Color.fromARGB(255, 117, 117, 117), size: 20),
+                      icon: const Icon(
+                        Icons.more_vert,
+                        color: Color.fromARGB(255, 117, 117, 117),
+                        size: 20,
+                      ),
                       onSelected: (value) {
                         _handleMenuAction(value, connection);
                       },
                       itemBuilder: (BuildContext context) => [
                         const PopupMenuItem<String>(
                           value: 'connect',
-                          child: Row(
-                            children: [
-                              Text('连接'),
-                            ],
-                          ),
+                          child: Row(children: [Text('连接')]),
                         ),
                         PopupMenuItem<String>(
                           value: 'pin',
@@ -597,11 +576,7 @@ class _MainPageState extends State<MainPage> {
                         ),
                         const PopupMenuItem<String>(
                           value: 'save',
-                          child: Row(
-                            children: [
-                              Text('保存该连接'),
-                            ],
-                          ),
+                          child: Row(children: [Text('保存该连接')]),
                         ),
                         const PopupMenuItem<String>(
                           value: 'delete',
@@ -624,7 +599,10 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _buildConnectionTile(
-      BuildContext context, ConnectionInfo connection, bool isLargeHeight) {
+    BuildContext context,
+    ConnectionInfo connection,
+    bool isLargeHeight,
+  ) {
     final isConnectingThis =
         _isConnecting && _connectingConnection?.id == connection.id;
 
@@ -638,10 +616,7 @@ class _MainPageState extends State<MainPage> {
       height: containerHeight,
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.grey,
-          width: 1,
-        ),
+        border: Border.all(color: Colors.grey, width: 1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Material(
@@ -724,12 +699,7 @@ class _MainPageState extends State<MainPage> {
                   itemBuilder: (BuildContext context) => [
                     const PopupMenuItem<String>(
                       value: 'connect',
-                      child: Row(
-                        children: [
-                          SizedBox(width: 8),
-                          Text('连接'),
-                        ],
-                      ),
+                      child: Row(children: [SizedBox(width: 8), Text('连接')]),
                     ),
                     PopupMenuItem<String>(
                       value: 'pin',
@@ -742,12 +712,7 @@ class _MainPageState extends State<MainPage> {
                     ),
                     const PopupMenuItem<String>(
                       value: 'save',
-                      child: Row(
-                        children: [
-                          SizedBox(width: 8),
-                          Text('保存该连接'),
-                        ],
-                      ),
+                      child: Row(children: [SizedBox(width: 8), Text('保存该连接')]),
                     ),
                     const PopupMenuItem<String>(
                       value: 'delete',
@@ -801,10 +766,7 @@ class _MainPageState extends State<MainPage> {
               Navigator.of(context).pop();
               _deleteRecentConnection(connection);
             },
-            child: const Text(
-              '删除',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -855,9 +817,7 @@ class _MainPageState extends State<MainPage> {
             elevation: 0,
             content: Column(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('正在测试连接...'),
-              ],
+              children: [Text('正在测试连接...')],
             ),
           );
         },
@@ -888,19 +848,15 @@ class _MainPageState extends State<MainPage> {
         if (connection.type == ConnectionType.sftp) {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => SftpPage(
-                connection: connection,
-                credential: credential,
-              ),
+              builder: (context) =>
+                  SftpPage(connection: connection, credential: credential),
             ),
           );
         } else {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => TerminalPage(
-                connection: connection,
-                credential: credential,
-              ),
+              builder: (context) =>
+                  TerminalPage(connection: connection, credential: credential),
             ),
           );
         }
@@ -990,9 +946,7 @@ class _MainPageState extends State<MainPage> {
               borderRadius: BorderRadius.circular(12),
             ),
             alignment: Alignment.centerLeft,
-            side: const BorderSide(
-              color: Colors.grey,
-            ),
+            side: const BorderSide(color: Colors.grey),
           ),
           child: buttonChild,
         ),
@@ -1017,9 +971,7 @@ class _MainPageState extends State<MainPage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const ManageInfoPage(),
-            ),
+            MaterialPageRoute(builder: (context) => const ManageInfoPage()),
           ).then((_) {
             _loadRecentConnections();
           });
@@ -1032,9 +984,7 @@ class _MainPageState extends State<MainPage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const UtilityToolsPage(),
-            ),
+            MaterialPageRoute(builder: (context) => const UtilityToolsPage()),
           );
         },
         title: '实用工具',

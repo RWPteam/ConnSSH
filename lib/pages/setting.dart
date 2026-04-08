@@ -1,4 +1,3 @@
-// settings_main.dart
 import 'package:flutter/material.dart';
 import 'help.dart';
 import 'settings/ssh.dart';
@@ -17,31 +16,11 @@ class PageState extends State<SettingsPage> {
   final SettingsService Service = SettingsService();
 
   final List<Map<String, dynamic>> _menuItems = [
-    {
-      'title': 'SSH设置',
-      'subtitle': '字体大小、终端主题、快捷栏等',
-      'icon': Icons.terminal,
-    },
-    {
-      'title': 'SFTP设置',
-      'subtitle': '默认路径、下载目录等',
-      'icon': Icons.folder,
-    },
-    {
-      'title': '全局设置',
-      'subtitle': '页面主题、恢复默认设置',
-      'icon': Icons.settings,
-    },
-    {
-      'title': '帮助',
-      'subtitle': '帮助文档、版本信息',
-      'icon': Icons.help,
-    },
-    {
-      'title': '开放源代码许可',
-      'subtitle': '查看应用使用的许可证',
-      'icon': Icons.description,
-    },
+    {'title': 'SSH设置', 'subtitle': '字体大小、终端主题、快捷栏等', 'icon': Icons.terminal},
+    {'title': 'SFTP设置', 'subtitle': '默认路径、下载目录等', 'icon': Icons.folder},
+    {'title': '全局设置', 'subtitle': '页面主题、恢复默认设置', 'icon': Icons.settings},
+    {'title': '帮助', 'subtitle': '帮助文档、版本信息', 'icon': Icons.help},
+    {'title': '开放源代码许可', 'subtitle': '查看应用使用的许可证', 'icon': Icons.description},
   ];
 
   void _navigateToSettingsPage(int index, BuildContext context) {
@@ -82,17 +61,13 @@ class PageState extends State<SettingsPage> {
       case 3:
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => const HelpPage(),
-          ),
+          MaterialPageRoute(builder: (context) => const HelpPage()),
         );
         break;
       case 4:
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => const LicensePage(),
-          ),
+          MaterialPageRoute(builder: (context) => const LicensePage()),
         );
         break;
     }
@@ -102,10 +77,7 @@ class PageState extends State<SettingsPage> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
       decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.grey,
-          width: 1.0,
-        ),
+        border: Border.all(color: Colors.grey, width: 1.0),
         borderRadius: BorderRadius.circular(12.0),
         color: Colors.transparent,
       ),
@@ -125,17 +97,11 @@ class PageState extends State<SettingsPage> {
         ),
         title: Text(
           item['title'],
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         subtitle: Text(
           item['subtitle'],
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
@@ -161,6 +127,7 @@ class PageState extends State<SettingsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('设置'),
+        backgroundColor: Colors.transparent,
       ),
       body: Column(
         children: [
@@ -171,8 +138,8 @@ class PageState extends State<SettingsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ..._menuItems.asMap().entries.map(
-                        (entry) => _buildMenuItem(entry.value, entry.key),
-                      ),
+                    (entry) => _buildMenuItem(entry.value, entry.key),
+                  ),
                   const SizedBox(height: 20),
                 ],
               ),
@@ -181,14 +148,11 @@ class PageState extends State<SettingsPage> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16.0),
-            color: Theme.of(context).colorScheme.surface,
+            color: Colors.transparent,
             child: Text(
               '鲁ICP备2024127829号-5A',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ),
         ],

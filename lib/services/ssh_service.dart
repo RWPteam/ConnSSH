@@ -1,10 +1,10 @@
-// ssh_service.dart
 import 'dart:async';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/services.dart';
 import '../models/connection_model.dart';
 import '../models/credential_model.dart';
 import '../services/twofa_service.dart';
+import '../services/notification_service.dart';
 
 class SshService {
   SSHClient? _client;
@@ -13,7 +13,7 @@ class SshService {
     'com.samuioto.connecter/background_task',
   );
 
-  static const _keepAliveInterval = Duration(seconds: 30);
+  static const _keepAliveInterval = Duration(seconds: 10);
   SshService({TwoFactorAuthService? twoFactorAuthService})
     : _twoFactorAuthService = twoFactorAuthService ?? TwoFactorAuthService();
 
@@ -182,12 +182,7 @@ class SshService {
 
       try {
         final cleanedPrivateKey = _cleanPrivateKey(privateKey);
-        // 检查私钥是否被加密，如果未加密则不传递密码
-        final isEncrypted = cleanedPrivateKey.contains('ENCRYPTED PRIVATE KEY');
-        final keyPairs = SSHKeyPair.fromPem(
-          cleanedPrivateKey,
-          isEncrypted ? passPhrase : null,
-        );
+        final keyPairs = _loadPrivateKeyPairs(cleanedPrivateKey, passPhrase);
 
         if (keyPairs.isEmpty) {
           throw Exception('无法解析私钥');
@@ -198,7 +193,7 @@ class SshService {
           username: credential.username,
           identities: keyPairs,
           onUserInfoRequest: keyboardInteractiveHandler,
-          keepAliveInterval: _keepAliveInterval, // 注入保活机制
+          keepAliveInterval: _keepAliveInterval,
         );
       } catch (e) {
         throw Exception('私钥解析失败，请检查私钥格式和密码: $e');
@@ -220,6 +215,26 @@ class SshService {
 
     _listenToConnectionClosure();
     print('认证成功！');
+
+    // 显示连接通知
+    try {
+      await NotificationService().showConnectionNotification(
+        connectionName: connection.name,
+        host: connection.host,
+        port: connection.port,
+      );
+
+      // 更新为已连接状态
+      await NotificationService().updateConnectionNotification(
+        connectionName: connection.name,
+        host: connection.host,
+        port: connection.port,
+        status: '已连接',
+      );
+    } catch (e) {
+      print('显示通知时出错: $e');
+    }
+
     return _client!;
   }
 
@@ -246,11 +261,9 @@ class SshService {
     } else {
       print('使用私钥认证...');
       final cleanedPrivateKey = _cleanPrivateKey(credential.privateKey!);
-      // 检查私钥是否被加密，如果未加密则不传递密码
-      final isEncrypted = cleanedPrivateKey.contains('ENCRYPTED PRIVATE KEY');
-      final keyPairs = SSHKeyPair.fromPem(
+      final keyPairs = _loadPrivateKeyPairs(
         cleanedPrivateKey,
-        isEncrypted ? credential.passphrase : null,
+        credential.passphrase,
       );
 
       _client = SSHClient(
@@ -266,17 +279,49 @@ class SshService {
 
     _listenToConnectionClosure();
     print('认证成功！');
+
+    // 显示连接通知
+    try {
+      await NotificationService().showConnectionNotification(
+        connectionName: connection.name,
+        host: connection.host,
+        port: connection.port,
+      );
+
+      // 更新为已连接状态
+      await NotificationService().updateConnectionNotification(
+        connectionName: connection.name,
+        host: connection.host,
+        port: connection.port,
+        status: '已连接',
+      );
+    } catch (e) {
+      print('显示通知时出错: $e');
+    }
+
     return _client!;
   }
 
   void _listenToConnectionClosure() {
     _client?.done
-        .then((_) {
-          print('SSH 连接已关闭（可能是由于系统进入后台后资源被回收）');
+        .then((_) async {
+          print('SSH 连接已关闭');
+          // 连接关闭时取消通知
+          try {
+            await NotificationService().cancelConnectionNotification();
+          } catch (e) {
+            print('取消通知失败: $e');
+          }
           _client = null;
         })
-        .catchError((e) {
+        .catchError((e) async {
           print('SSH 连接异常中断: $e');
+          // 连接异常时也取消通知
+          try {
+            await NotificationService().cancelConnectionNotification();
+          } catch (e2) {
+            print('取消通知失败: $e2');
+          }
           _client = null;
         });
   }
@@ -340,10 +385,42 @@ class SshService {
     return true;
   }
 
+  List<SSHKeyPair> _loadPrivateKeyPairs(String privateKey, String? passPhrase) {
+    try {
+      final keyPairs = SSHKeyPair.fromPem(privateKey, null);
+      if (keyPairs.isNotEmpty) {
+        print('私钥未加密，成功解析得到 ${keyPairs.length} 个密钥对');
+        return keyPairs;
+      }
+    } catch (e) {
+      print('无密码解析失败: $e');
+      if (e is SSHKeyDecryptError || e.toString().contains('encrypted')) {
+        if (passPhrase == null || passPhrase.isEmpty) {
+          throw Exception('私钥已加密，但未提供密码或密码为空');
+        }
+        try {
+          final keyPairs = SSHKeyPair.fromPem(privateKey, passPhrase);
+          if (keyPairs.isNotEmpty) {
+            print('使用密码成功解析加密私钥，得到 ${keyPairs.length} 个密钥对');
+            return keyPairs;
+          } else {
+            throw Exception('无法从私钥解析出密钥对');
+          }
+        } catch (e2) {
+          print('使用密码解析加密私钥失败: $e2');
+          throw Exception('私钥密码错误或密钥格式不正确: $e2');
+        }
+      } else {
+        throw Exception('无法解析私钥，请检查私钥格式: $e');
+      }
+    }
+    throw Exception('无法从私钥解析出密钥对');
+  }
+
   String _cleanPrivateKey(String privateKey) {
     final lines = privateKey.split('\n');
     final cleanedLines = <String>[];
-    bool inHeader = false;
+    bool inKeyData = false;
     bool foundBegin = false;
 
     for (var line in lines) {
@@ -356,7 +433,7 @@ class SshService {
       if (trimmedLine.startsWith('-----BEGIN')) {
         cleanedLines.add(trimmedLine);
         foundBegin = true;
-        inHeader = true;
+        inKeyData = false;
         continue;
       }
 
@@ -365,16 +442,20 @@ class SshService {
         break;
       }
 
-      if (inHeader &&
-          (trimmedLine.startsWith('Proc-Type:') ||
-              trimmedLine.startsWith('DEK-Info:'))) {
+      if (trimmedLine.startsWith('Proc-Type:') ||
+          trimmedLine.startsWith('DEK-Info:')) {
+        cleanedLines.add(trimmedLine);
         continue;
       }
 
-      if (inHeader) {
-        inHeader = false;
+      if (!inKeyData &&
+          !trimmedLine.startsWith('Proc-Type:') &&
+          !trimmedLine.startsWith('DEK-Info:') &&
+          !_isBase64Line(trimmedLine)) {
+        continue;
       }
 
+      inKeyData = true;
       cleanedLines.add(trimmedLine);
     }
 
@@ -383,6 +464,11 @@ class SshService {
     }
 
     return cleanedLines.join('\n');
+  }
+
+  bool _isBase64Line(String line) {
+    if (line.isEmpty) return false;
+    return RegExp(r'^[A-Za-z0-9+/=]+$').hasMatch(line);
   }
 
   Future<String> executeCommand(String command) async {
@@ -398,7 +484,13 @@ class SshService {
     }
   }
 
-  void disconnect() {
+  void disconnect() async {
+    try {
+      await NotificationService().cancelConnectionNotification();
+    } catch (e) {
+      print('取消通知失败: $e');
+    }
+
     _client?.close();
     _client = null;
   }

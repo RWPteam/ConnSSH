@@ -63,6 +63,9 @@ dependencies:
   flutter_launcher_icons: ^0.14.0
   flutter_highlight: any
   crypto: any
+  flutter_local_notifications: ^17.1.0
+  flutter_foreground_task: ^8.8.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

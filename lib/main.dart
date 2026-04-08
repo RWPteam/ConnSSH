@@ -5,6 +5,7 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'pages/home.dart';
 import 'models/app_settings_model.dart';
 import 'services/setting_service.dart';
+import 'services/notification_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,6 +14,10 @@ void main() {
   platform.setMethodCallHandler((call) async {
     return null;
   });
+
+  // 初始化通知服务
+  NotificationService().initialize();
+
   runApp(const MyApp());
 }
 
@@ -129,6 +134,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         fontFamily: 'hmossans',
         useMaterial3: true,
         brightness: brightness,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
       );
     }
 
@@ -206,6 +215,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         fontFamily: 'hmossans',
         colorScheme: colorScheme,
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
       );
     }
 
@@ -247,6 +260,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         brightness: brightness,
       ),
       useMaterial3: true,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
     );
   }
 }

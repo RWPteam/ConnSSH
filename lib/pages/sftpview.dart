@@ -13,6 +13,7 @@ import '../models/connection_model.dart';
 import '../models/credential_model.dart';
 import '../services/setting_service.dart';
 import '../services/ssh_service.dart';
+import '../services/notification_service.dart';
 import 'package:path/path.dart' as path;
 import '../components/twofa_dialog.dart';
 
@@ -47,6 +48,7 @@ class SftpPage extends StatefulWidget {
 class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
   final SshService _sshService = SshService();
   final SettingsService _settingsService = SettingsService();
+  final NotificationService _notificationService = NotificationService();
 
   SSHClient? _sshClient;
   dynamic _sftpClient;
@@ -86,6 +88,9 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
+    // 初始化通知服务
+    _notificationService.initialize();
 
     _loadingAnimationController = AnimationController(
       vsync: this,
@@ -161,6 +166,13 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
           _isConnecting = false;
           _status = '已连接';
         });
+        // 显示保持后台活动的通知
+        _notificationService.updateConnectionNotification(
+          connectionName: widget.connection.name,
+          host: widget.connection.host,
+          port: widget.connection.port,
+          status: '已连接 (SFTP)',
+        );
       }
 
       try {
@@ -176,6 +188,8 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
           _isLoading = false;
           _status = '连接失败: $e';
         });
+        // 取消通知
+        await _notificationService.cancelConnectionNotification();
         _showErrorDialog('SFTP连接失败', e.toString());
       }
     }
@@ -710,9 +724,6 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       }
     }
   }
-
-  // 已移除：不再需要的 _isTextFile 方法
-  // 所有文件现在都可以编辑，大小检查在 _editSelectedFile 中处理
 
   Future<void> _loadDirectory(String dirPath) async {
     if (!await _checkConnection()) return;
@@ -2210,7 +2221,6 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     }
   }
 
-  // 1. 修改 _saveFile 方法签名和实现
   Future<bool> _saveFile(
     String remotePath,
     Uint8List data,
@@ -2238,11 +2248,10 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
           context,
         ).showSnackBar(const SnackBar(content: Text('文件保存成功')));
       }
-      return true; // 明确返回成功
+      return true;
     } catch (e) {
       // 权限不足时尝试sudo保存
       if (_isPermissionDeniedError(e)) {
-        // 返回 sudo 保存的结果（可能是 true 或 false）
         return await _trySudoSaveFile(remotePath, data, filename);
       } else if (mounted) {
         try {
@@ -2250,11 +2259,10 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
         } catch (_) {}
         _showErrorDialog('保存文件失败', e.toString());
       }
-      return false; // 其他错误返回 false
+      return false;
     }
   }
 
-  // 2. 修改 _trySudoSaveFile 方法签名和实现
   Future<bool> _trySudoSaveFile(
     String remotePath,
     Uint8List data,
@@ -2262,13 +2270,12 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
   ) async {
     final password = await _showSudoPasswordDialog('保存文件');
     if (password == null || password.isEmpty) {
-      // 用户取消输入密码，关闭进度对话框并返回 false
       if (mounted) {
         try {
           Navigator.of(context).pop();
         } catch (_) {}
       }
-      return false; // 关键：明确返回 false，让 FileEditorPage 知道保存被取消
+      return false;
     }
 
     final tempPath = '/tmp/${DateTime.now().millisecondsSinceEpoch}_$filename';
@@ -2296,26 +2303,24 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('文件保存成功 ')));
-          return true; // sudo 保存成功
+          return true;
         } else {
-          // 检查文件是否真的保存了（有时退出码异常但操作成功）
           try {
             await _sftpClient.stat(remotePath);
             ScaffoldMessenger.of(
               context,
             ).showSnackBar(const SnackBar(content: Text('文件保存成功 ')));
-            return true; // 虽然命令返回失败，但文件存在，视为成功
+            return true;
           } catch (e) {
-            // 清理临时文件
             try {
               await _sftpClient.remove(tempPath);
             } catch (_) {}
             _showErrorDialog('保存失败', '移动文件失败');
-            return false; // 明确返回失败
+            return false;
           }
         }
       }
-      return success; // mounted 为 false 时返回命令执行结果
+      return success;
     } catch (e) {
       debugPrint('sudo保存失败: $e');
       if (mounted) {
@@ -2324,7 +2329,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
         } catch (_) {}
         _showErrorDialog('保存失败', e.toString());
       }
-      return false; // 异常时返回 false
+      return false;
     }
   }
 
@@ -2657,7 +2662,6 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
               },
             ),
             const SizedBox(height: 12),
-            // 复选框：记住密码
             StatefulBuilder(
               builder: (context, setState) {
                 return CheckboxListTile(
@@ -2691,7 +2695,6 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
     _isSudoPromptOpen = false;
 
-    // 如果用户输入了密码且选择了记住，保存到状态
     if (result!.isNotEmpty && rememberPassword) {
       setState(() {
         _rememberedSudoPassword = result;
@@ -2703,7 +2706,6 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     return result;
   }
 
-  // 新增：清除记住的sudo密码（可以在菜单中添加调用）
   void _clearRememberedSudoPassword() {
     setState(() {
       _rememberedSudoPassword = null;
@@ -3058,6 +3060,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
   }
 
   @override
+  @override
   void dispose() {
     _loadingAnimationController.dispose();
     _cancelCurrentOperation();
@@ -3072,6 +3075,10 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     if (_twoFactorCompleter != null && !_twoFactorCompleter!.isCompleted) {
       _twoFactorCompleter!.complete(null);
     }
+    // 退出时取消通知
+    _notificationService.cancelConnectionNotification().catchError((e) {
+      print('dispose中取消通知失败: $e');
+    });
     super.dispose();
   }
 

@@ -56,9 +56,12 @@ class _HelpPageState extends State<HelpPage> {
       content: '''
 ConnSSH 版本 2.0.0
 
-* 除ohos外的平台正式迁移至flutter3.35，重构了界面和部分功能，修复了多个已知问题，提升了稳定性和性能。
-* 支持了material You取色
+除ohos外，源码正式迁移至flutter3.35，修复了多个已知问题，提升了稳定性和性能。
+由于ohos和其他平台代码差距据较大，ohos分支暂时不更新flutter版本
+
+* [Android]支持了material You取色
 * 修复 #24 不支持不加密的私钥，ohos分支稍后在1.4.2版本中更新此内容
+* [Android]现在连接时会创建通知，显示连接状态 
 * samuiord已可用
 
 如有问题或建议，请前往本项目GitHub仓库提交issue

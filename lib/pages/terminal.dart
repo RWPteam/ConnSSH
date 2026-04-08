@@ -8,6 +8,7 @@ import '../models/connection_model.dart';
 import '../models/credential_model.dart';
 import '../services/ssh_service.dart';
 import '../services/setting_service.dart';
+import '../services/notification_service.dart';
 import '../components/twofa_dialog.dart';
 
 class TerminalPage extends StatefulWidget {
@@ -90,6 +91,7 @@ class _TerminalPageState extends State<TerminalPage> {
   ];
 
   final SettingsService _settingsService = SettingsService();
+  final NotificationService _notificationService = NotificationService();
 
   DateTime? _lastBackPressedTime;
 
@@ -105,7 +107,8 @@ class _TerminalPageState extends State<TerminalPage> {
     super.initState();
     _showToolbar = _ismobile;
 
-    // 立即初始化终端列表
+    // 初始化通知服务
+    _notificationService.initialize();
     _terminals = List.generate(_maxSessions, (index) {
       final t = Terminal(maxLines: 10000);
 
@@ -283,6 +286,8 @@ class _TerminalPageState extends State<TerminalPage> {
           _isConnectings[index] = false;
           _statuses[index] = '连接已断开';
         });
+        // 取消通知
+        _notificationService.cancelConnectionNotification();
         t.write('\r\n连接已断开\r\n');
       });
 
@@ -292,6 +297,13 @@ class _TerminalPageState extends State<TerminalPage> {
           _isConnectings[index] = false;
           _statuses[index] = '已连接';
         });
+        // 显示保持后台活动的通知
+        _notificationService.updateConnectionNotification(
+          connectionName: widget.connection.name,
+          host: widget.connection.host,
+          port: widget.connection.port,
+          status: '已连接',
+        );
         if (_activeIndex == index) _terminalFocusNode.requestFocus();
       }
 
@@ -305,6 +317,8 @@ class _TerminalPageState extends State<TerminalPage> {
           _isConnectings[index] = false;
           _statuses[index] = '连接失败: $e';
         });
+        // 取消通知
+        _notificationService.cancelConnectionNotification();
         _terminals[index].write('连接失败: $e\r\n');
       }
     }
@@ -406,6 +420,7 @@ class _TerminalPageState extends State<TerminalPage> {
   void _sendTab() => _session?.write(Uint8List.fromList([9]));
 
   @override
+  @override
   void dispose() {
     for (var sub in _stdoutSubs) {
       sub?.cancel();
@@ -425,6 +440,8 @@ class _TerminalPageState extends State<TerminalPage> {
         completer.complete(null);
       }
     }
+    // 退出时取消通知
+    _notificationService.cancelConnectionNotification();
     _terminalFocusNode.dispose();
     _hideSliderTimer?.cancel();
     _hideThemeSelectorTimer?.cancel();
