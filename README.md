@@ -19,8 +19,8 @@ A lightweight & cross-platform SSH/SFTP client built with Flutter.
 ### 下载
 | 平台 | 下载 | 备注 |
 |------|------|------|
-| Android | [APK](https://github.com/RWPteam/ConnSSH/releases/download/1.4.1/ConnSSH_1.4.1_arm64.apk) | arm64 |
-| Windows | [exe](https://github.com/RWPteam/ConnSSH/releases/download/1.4.1/ConnSSH.1.4.1.Installer.exe) | 仅支持64位设备 |
+| Android | [APK](https://github.com/RWPteam/ConnSSH/releases/download/2.0.0/ConnSSH_2.0.0_arm64.apk) | arm64 |
+| Windows | [exe](https://github.com/RWPteam/ConnSSH/releases/download/1.4.2/ConnSSH.1.4.2.Installer.exe) | 仅支持64位设备 |
 | OHOS | [AppGallery](https://appgallery.huawei.com/app/detail?id=com.samuioto.connecter&channelId=SHARE&source=appshare) | 已上架至华为应用市场，欢迎体验
 
 
@@ -35,17 +35,13 @@ flutter run -d <device_id>
 ```bash
 # Android
 flutter build apk #--split-per-abi(Recommend)
-# Windows
-flutter build windows
 ```
-#### 若您想构建ohos版本：
 * 需注意，本项目使用了修改过的[xterm.dart](https://github.com/samu1oto/xterm.dart)以添加快捷操作栏等功能
-* 本项目使用了[openharmony-tpc/flutter_flutter/tree/br_3.22.0-ohos-1.0.4](https://gitcode.com/openharmony-tpc/flutter_flutter/tree/br_3.22.0-ohos-1.0.4)而非正常版本的flutter，不保证正常版本下可用
-* 经过测试，使用[openharmony-tpc/flutter_flutter](https://gitcode.com/openharmony-tpc/flutter_flutter)的3.27分支无法正常编译此项目。
 
+#### 若您想构建ohos版本：
 ```bash
 # 源码运行（Flutter = 3.22）
-git clone https://github.com/RWPteam/connssh.git
+git clone https://github.com/RWPteam/connssh.git -b ohos-archieve
 cd connssh
 flutter pub get
 flutter run -d <device_id>
