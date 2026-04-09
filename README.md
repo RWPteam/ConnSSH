@@ -23,7 +23,7 @@ A lightweight & cross-platform SSH/SFTP client built with Flutter.
 | Debian | [DEB](https://github.com/RWPteam/ConnSSH/releases/download/2.0.0/ConnSSH_2.0.0_amd64.deb) | AMD64 |
 | iOS | [IPK](https://github.com/RWPteam/ConnSSH/releases/download/2.0.0/ConnSSH_2.0.0.ipk) | arm64 |
 | Windows | [exe](https://github.com/RWPteam/ConnSSH/releases/download/1.4.2/ConnSSH.1.4.2.Installer.exe) | - |
-| OHOS | [app](https://github.com/RWPteam/ConnSSH/releases/download/1.4.2/ConnSSH_1.4.2.app.zip)[AppGallery](https://appgallery.huawei.com/app/detail?id=com.samuioto.connecter&channelId=SHARE&source=appshare) | - |
+| OHOS | [AppGallery](https://appgallery.huawei.com/app/detail?id=com.samuioto.connecter&channelId=SHARE&source=appshare) | [app](https://github.com/RWPteam/ConnSSH/releases/download/1.4.2/ConnSSH_1.4.2.app.zip) |
 
 ### 构建&打包
 ```bash
