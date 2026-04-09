@@ -54,11 +54,10 @@ class _HelpPageState extends State<HelpPage> {
     HelpItem(
       title: '关于 & 反馈',
       content: '''
-ConnSSH 版本 1.4.1
+ConnSSH 版本 1.4.2
 
 问题修复
-• 修正部分界面显示和文字提示
-• 修复ohos的后台保活逻辑
+• 修复#24 不支持不加密的私钥
 
 如有问题或建议，请前往本项目GitHub仓库提交issue
 若您访问不便，可发送邮件至：
