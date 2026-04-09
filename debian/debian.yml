@@ -1,0 +1,17 @@
+flutter_app: 
+  command: ConnSSH
+  arch: x64
+  parent: /usr/local/lib
+  nonInteractive: false
+
+control:
+  Package: ConnSSH
+  Version: 2.0.0
+  Architecture: amd64
+  Priority: optional
+  Depends:
+  Maintainer: samuioto
+  Description: A lightweight SSH tool.
+  
+#options:
+#  exec_out_dir: debian/packages

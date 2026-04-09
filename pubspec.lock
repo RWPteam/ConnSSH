@@ -310,6 +310,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_build_debian:
+    dependency: "direct main"
+    description:
+      name: flutter_build_debian
+      sha256: "6ec05711b8b7ffd339424f8aa00afd55e23c9472d68c1102d576bb59e10b5a0d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.1"
   flutter_foreground_task:
     dependency: "direct main"
     description:
@@ -549,6 +557,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.16.0"
+  mime_type:
+    dependency: transitive
+    description:
+      name: mime_type
+      sha256: d652b613e84dac1af28030a9fba82c0999be05b98163f9e18a0849c6e63838bb
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   nested:
     dependency: transitive
     description:

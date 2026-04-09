@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=2.0.0
+Name=ConnSSH
+GenericName=ConnSSH
+Comment=A lightweight SSH tool.
+Terminal=false
+Type=Application
+Categories=Utility
+Keywords=ssh;sftp;

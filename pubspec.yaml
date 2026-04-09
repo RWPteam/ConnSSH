@@ -66,6 +66,9 @@ dependencies:
   flutter_local_notifications: ^17.1.0
   flutter_foreground_task: ^8.8.0
   battery_optimization_permission: ^1.0.0
+  flutter_build_debian: ^0.0.1
+  
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
