@@ -7,10 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:dartssh2/dartssh2.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../models/connection_model.dart';
 import '../services/rsa_key_service.dart';
 import '../services/ecdsa_key_service.dart';
+import '../services/setting_service.dart';
 import '../services/storage_service.dart';
 import '../services/ssh_service.dart';
 import '../components/quick_connect_dialog.dart';
@@ -319,18 +321,16 @@ class _KeygenPageState extends State<KeygenPage> {
     try {
       final baseName = _getBaseFileName();
 
-      if (Platform.isAndroid) {
-        // 安卓平台：保存到/sdcard/Download/ConnSSH/key/
-        const String basePath = '/sdcard/Download';
-        const String keyDirPath = '$basePath/ConnSSH/key';
+      if (Platform.isAndroid || Platform.isIOS) {
+        final keyDirPath = await SettingsService.getPlatformDefaultKeyPath();
 
         final keyDir = Directory(keyDirPath);
         if (!await keyDir.exists()) {
           await keyDir.create(recursive: true);
         }
 
-        final privatePath = '$keyDirPath/$baseName';
-        final publicPath = '$privatePath.pub';
+        final privatePath = p.join(keyDirPath, baseName);
+        final publicPath = p.join(keyDirPath, '$baseName.pub');
 
         await _saveKeyPairToPath(privatePath, publicPath);
       } else if (Platform.operatingSystem == 'ohos') {

@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:encrypt/encrypt.dart' as encrypt_package;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import '../models/backup_data_model.dart';
 import '../services/storage_service.dart';
@@ -68,16 +69,9 @@ class BackupService {
 
       String savePath;
 
-      if (Platform.isAndroid) {
-        const String basePath = '/sdcard/Download';
-        const String backupDirPath = '$basePath/ConnSSH/backup';
-
-        final backupDir = Directory(backupDirPath);
-        if (!await backupDir.exists()) {
-          await backupDir.create(recursive: true);
-        }
-
-        final filePath = '$backupDirPath/$fileName';
+      if (Platform.isAndroid || Platform.isIOS) {
+        final backupDirPath = await SettingsService.getPlatformDefaultBackupPath();
+        final filePath = path.join(backupDirPath, fileName);
         final file = File(filePath);
         await file.writeAsBytes(encrypted.bytes);
         savePath = file.path;
@@ -158,8 +152,8 @@ class BackupService {
     try {
       Uint8List encryptedBytes;
 
-      if (Platform.isAndroid && filePath.isEmpty) {
-        const String backupDirPath = '/sdcard/Download/ConnSSH/backup';
+      if ((Platform.isAndroid || Platform.isIOS) && filePath.isEmpty) {
+        final backupDirPath = await SettingsService.getPlatformDefaultBackupPath();
         final backupDir = Directory(backupDirPath);
 
         if (!await backupDir.exists()) {

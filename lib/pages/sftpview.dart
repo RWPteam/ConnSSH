@@ -1490,16 +1490,16 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     _cancelOperation = false;
   }
 
-  // 安卓平台的下载逻辑（保持不变）
+  // 下载逻辑：使用平台标准目录保存下载文件
   Future<void> _downloadForAndroid(List<String> filesToDownload) async {
-    String saveDir = '/sdcard/Download/ConnSSH/Files/';
+    final String saveDir = await SettingsService.getPlatformDefaultDownloadPath();
 
     try {
       final dir = Directory(saveDir);
       if (!await dir.exists()) {
         await dir.create(recursive: true);
       }
-      debugPrint('使用固定下载目录: $saveDir');
+      debugPrint('使用标准下载目录: $saveDir');
     } catch (e) {
       debugPrint('创建目录失败: $e');
       if (mounted) {

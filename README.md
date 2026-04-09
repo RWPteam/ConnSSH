@@ -60,6 +60,9 @@ flutter build app
 ### 开源协议
 BSD 3-Clause © 2026 RWPteam
 
+### 隐私声明
+详见 [隐私声明](privacy.md)
+
 ### 感谢
 - [xterm.dart](https://github.com/TerminalStudio/xterm.dart) – terminal UI
 - [dartssh2](https://github.com/TerminalStudio/dartssh2) – SSH/SFTP engine
