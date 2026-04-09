@@ -3,7 +3,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:connssh/pages/transfer/info.dart';
 import 'package:connssh/pages/transfer/util.dart';
-
+import 'package:connssh/services/battery_optimize.dart';
 import 'setting.dart';
 import 'package:flutter/material.dart';
 import '../components/quick_connect_dialog.dart';
@@ -72,11 +72,11 @@ class _MainPageState extends State<MainPage> {
 
   Future<void> _checkAndRequestPermissions() async {
     final storageStatus = await Permission.storage.status;
-    final storageStatusHigh = await Permission.manageExternalStorage.status;
-    final notificationStatus = await Permission.notification.request();
+    //final storageStatusHigh = await Permission.manageExternalStorage.status;
+    final notificationStatus = await Permission.notification.status;
+    final mediaStatus = await Permission.photos.status;
     if (storageStatus.isGranted ||
-        storageStatusHigh.isGranted ||
-        notificationStatus.isGranted) {
+        mediaStatus.isGranted && notificationStatus.isGranted) {
       setState(() {
         _permissionsGranted = true;
       });
@@ -124,15 +124,18 @@ class _MainPageState extends State<MainPage> {
   }
 
   Future<void> _requestPermissions() async {
-    final storageStatus = await Permission.storage.request();
-    final storageStatusHigh = await Permission.manageExternalStorage.request();
-    final notificationStatus = await Permission.notification.request();
-    await Permission.ignoreBatteryOptimizations.request();
+    await Permission.storage.request();
+    await Permission.photos.request();
+    //final storageStatusHigh = await Permission.manageExternalStorage.request();
+    BatteryHelper.requestBatteryOptimizationPermission(context);
+    await Permission.notification.request();
     await Permission.backgroundRefresh.request();
-
+    final storageStatus = await Permission.storage.status;
+    //final storageStatusHigh = await Permission.manageExternalStorage.status;
+    final notificationStatus = await Permission.notification.status;
+    final mediaStatus = await Permission.photos.status;
     if (storageStatus.isGranted ||
-        storageStatusHigh.isGranted ||
-        notificationStatus.isGranted) {
+        mediaStatus.isGranted && notificationStatus.isGranted) {
       setState(() {
         _permissionsGranted = true;
       });

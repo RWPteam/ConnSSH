@@ -128,15 +128,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   ThemeData _buildTheme(Brightness brightness) {
+    final systemOverlayStyle = brightness == Brightness.light
+        ? SystemUiOverlayStyle.dark
+        : SystemUiOverlayStyle.light;
     if (_currentSettings.defaultPageTheme == 'materialyou') {
-      // Material You 使用系统颜色方案
       return ThemeData(
         fontFamily: 'hmossans',
         useMaterial3: true,
         brightness: brightness,
-        appBarTheme: const AppBarTheme(
+        appBarTheme: AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
+          systemOverlayStyle: systemOverlayStyle,
         ),
       );
     }
@@ -260,9 +263,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         brightness: brightness,
       ),
       useMaterial3: true,
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        systemOverlayStyle: systemOverlayStyle,
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:connssh/main.dart';
+import 'package:path/path.dart' as path;
 import '../../models/app_settings_model.dart';
 import '../../services/setting_service.dart';
 import '../../services/backup_service.dart';
@@ -243,6 +244,7 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
     final passwordController = TextEditingController();
     bool isObscure = true;
     String? selectedFilePath;
+    bool useAppBackupDir = false;
 
     showDialog(
       context: context,
@@ -255,6 +257,7 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(height: 16),
+                  // 文件选择
                   OutlinedButton.icon(
                     onPressed: () async {
                       try {
@@ -269,20 +272,103 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                           PlatformFile file = result.files.first;
                           setState(() {
                             selectedFilePath = file.path;
+                            useAppBackupDir = false;
                           });
                         }
                       } catch (e) {}
                     },
                     icon: const Icon(Icons.folder_open),
                     label: Text(
-                      selectedFilePath != null
-                          ? selectedFilePath!.split('/').last
+                      selectedFilePath != null && !useAppBackupDir
+                          ? path.basename(selectedFilePath!)
                           : '选择备份文件',
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
                   ),
-                  if (selectedFilePath != null) ...[const SizedBox(height: 8)],
+                  const SizedBox(height: 8),
+                  // 从应用备份目录读取
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      try {
+                        final files = await _backupService.getBackupFiles();
+                        if (!mounted) return;
+                        if (files.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('备份目录中没有找到备份文件')),
+                          );
+                          return;
+                        }
+                        final selected = await showDialog<FileSystemEntity>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('选择备份文件'),
+                            content: Container(
+                              width: double.maxFinite,
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: files.length,
+                                itemBuilder: (ctx, index) {
+                                  final file = files[index];
+                                  final fileName = path.basename(file.path);
+                                  return ListTile(
+                                    title: Text(fileName),
+                                    onTap: () => Navigator.of(ctx).pop(file),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        );
+                        if (selected != null) {
+                          setState(() {
+                            selectedFilePath = selected.path;
+                            useAppBackupDir = true;
+                          });
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('读取备份目录失败: $e')));
+                      }
+                    },
+                    icon: const Icon(Icons.storage),
+                    label: Text(
+                      useAppBackupDir && selectedFilePath != null
+                          ? path.basename(selectedFilePath!)
+                          : '从应用备份目录读取',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                  if (useAppBackupDir && selectedFilePath != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.info_outline, size: 16),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '已选择应用备份目录中的文件',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (selectedFilePath != null && !useAppBackupDir) ...[
+                    const SizedBox(height: 8),
+                  ],
                   const SizedBox(height: 12),
                   TextField(
                     controller: passwordController,
@@ -511,7 +597,7 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: Theme.of(context).colorScheme.primary),

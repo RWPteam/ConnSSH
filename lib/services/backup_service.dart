@@ -70,7 +70,8 @@ class BackupService {
       String savePath;
 
       if (Platform.isAndroid || Platform.isIOS) {
-        final backupDirPath = await SettingsService.getPlatformDefaultBackupPath();
+        final backupDirPath =
+            await SettingsService.getPlatformDefaultBackupPath();
         final filePath = path.join(backupDirPath, fileName);
         final file = File(filePath);
         await file.writeAsBytes(encrypted.bytes);
@@ -153,7 +154,8 @@ class BackupService {
       Uint8List encryptedBytes;
 
       if ((Platform.isAndroid || Platform.isIOS) && filePath.isEmpty) {
-        final backupDirPath = await SettingsService.getPlatformDefaultBackupPath();
+        final backupDirPath =
+            await SettingsService.getPlatformDefaultBackupPath();
         final backupDir = Directory(backupDirPath);
 
         if (!await backupDir.exists()) {
@@ -202,6 +204,20 @@ class BackupService {
       }
       throw Exception('恢复失败: $e\n可能是密码错误或文件已损坏');
     }
+  }
+
+  Future<List<FileSystemEntity>> getBackupFiles() async {
+    final backupDirPath = await SettingsService.getPlatformDefaultBackupPath();
+    final backupDir = Directory(backupDirPath);
+    if (!await backupDir.exists()) {
+      return [];
+    }
+    final files = await backupDir
+        .list()
+        .where((entity) => entity.path.toLowerCase().endsWith('.cntinfo'))
+        .toList();
+    files.sort((a, b) => b.path.compareTo(a.path));
+    return files;
   }
 
   Future<void> applyRestoredData(BackupData backupData) async {

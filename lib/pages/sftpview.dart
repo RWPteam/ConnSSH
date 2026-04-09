@@ -1492,7 +1492,8 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
   // 下载逻辑：使用平台标准目录保存下载文件
   Future<void> _downloadForAndroid(List<String> filesToDownload) async {
-    final String saveDir = await SettingsService.getPlatformDefaultDownloadPath();
+    final String saveDir =
+        await SettingsService.getPlatformDefaultDownloadPath();
 
     try {
       final dir = Directory(saveDir);

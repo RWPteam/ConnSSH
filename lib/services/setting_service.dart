@@ -46,8 +46,8 @@ class SettingsService {
       }
 
       final settingsToSave = settings.copyWith(
-          isFirstRun:
-              actualFirstRunStatus == false ? false : settings.isFirstRun);
+        isFirstRun: actualFirstRunStatus == false ? false : settings.isFirstRun,
+      );
 
       final jsonString = json.encode(settingsToSave.toMap());
       await prefs.setString(_settingsKey, jsonString);
