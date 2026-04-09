@@ -60,9 +60,12 @@ ConnSSH 版本 2.0.0
 由于ohos和其他平台代码差距据较大，ohos分支暂时不更新flutter版本
 
 * [Android]支持了material You取色
-* 修复 #24 不支持不加密的私钥，ohos分支稍后在1.4.2版本中更新此内容
+* 修复 #24 不支持不加密的私钥
 * [Android]现在连接时会创建通知，显示连接状态 
-* [Android]现在文件将会保存至应用的备份目录
+* [Android]现在文件将会保存至应用的私有目录
+* [Android]优化后台保活逻辑
+* [Linux]ConnSSH已经可用
+* [iOS]更新隐私声明
 * samuiord已可用
 
 如有问题或建议，请前往本项目GitHub仓库提交issue

@@ -20,9 +20,10 @@ A lightweight & cross-platform SSH/SFTP client built with Flutter.
 | 平台 | 下载 | 备注 |
 |------|------|------|
 | Android | [APK](https://github.com/RWPteam/ConnSSH/releases/download/2.0.0/ConnSSH_2.0.0_arm64.apk) | arm64 |
-| Windows | [exe](https://github.com/RWPteam/ConnSSH/releases/download/1.4.2/ConnSSH.1.4.2.Installer.exe) | 仅支持64位设备 |
-| OHOS | [AppGallery](https://appgallery.huawei.com/app/detail?id=com.samuioto.connecter&channelId=SHARE&source=appshare) | 已上架至华为应用市场，欢迎体验
-
+| Debian | [DEB](https://github.com/RWPteam/ConnSSH/releases/download/2.0.0/ConnSSH_2.0.0_amd64.deb) | AMD64 |
+| iOS | [IPK](https://github.com/RWPteam/ConnSSH/releases/download/2.0.0/ConnSSH_2.0.0.ipk) | arm64 |
+| Windows | [exe](https://github.com/RWPteam/ConnSSH/releases/download/1.4.2/ConnSSH.1.4.2.Installer.exe) | - |
+| OHOS | [app](https://github.com/RWPteam/ConnSSH/releases/download/1.4.2/ConnSSH_1.4.2.app.zip)[AppGallery](https://appgallery.huawei.com/app/detail?id=com.samuioto.connecter&channelId=SHARE&source=appshare) | - |
 
 ### 构建&打包
 ```bash
@@ -41,7 +42,7 @@ flutter build apk #--split-per-abi(Recommend)
 #### 若您想构建ohos版本：
 ```bash
 # 源码运行（Flutter = 3.22）
-git clone https://github.com/RWPteam/connssh.git -b ohos-archieve
+git clone https://github.com/RWPteam/connssh.git -b ohos-archive
 cd connssh
 flutter pub get
 flutter run -d <device_id>
