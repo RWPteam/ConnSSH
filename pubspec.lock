@@ -92,11 +92,12 @@ packages:
   code_text_field:
     dependency: "direct main"
     description:
-      name: code_text_field
-      sha256: "0cbffbb2932cf82e1d022996388041de3493a476acad3fbb13e5917cac0fc5f2"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.0"
+      path: "."
+      ref: HEAD
+      resolved-ref: "046bfe00161f03c5c24ca04724a3ad60c3edb3e8"
+      url: "https://github.com/samu1oto/code_field.git"
+    source: git
+    version: "1.1.1"
   collection:
     dependency: transitive
     description:
@@ -601,10 +602,10 @@ packages:
     dependency: transitive
     description:
       name: path_provider_android
-      sha256: "914a07484c4380e572998d30486e77e0d9cd2faec72fee268086d07bf7f302c9"
+      sha256: "69cbd515a62b94d32a7944f086b2f82b4ac40a1d45bebfc00813a430ab2dabcd"
       url: "https://pub.dev"
     source: hosted
-    version: "2.3.0"
+    version: "2.3.1"
   path_provider_foundation:
     dependency: transitive
     description:

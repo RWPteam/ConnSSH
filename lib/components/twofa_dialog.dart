@@ -1,4 +1,3 @@
-// two_factor_auth_dialog.dart
 import 'package:flutter/material.dart';
 
 class TwoFactorAuthDialog extends StatefulWidget {
@@ -45,11 +44,7 @@ class _TwoFactorAuthDialogState extends State<TwoFactorAuthDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Row(
-        children: [
-          const Text('2FA 验证'),
-        ],
-      ),
+      title: Row(children: [const Text('2FA 验证')]),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -100,9 +95,9 @@ class _TwoFactorAuthDialogState extends State<TwoFactorAuthDialog> {
   Future<void> _submit() async {
     final code = _codeController.text.trim();
     if (code.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入验证码')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请输入验证码')));
       return;
     }
 

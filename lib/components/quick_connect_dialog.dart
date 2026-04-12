@@ -1,4 +1,3 @@
-// quick_connect_dialog.dart
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -110,18 +109,19 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
 
   void _addNewCredential() {
     showDialog(
-        context: context,
-        builder: (context) => CredentialDialog(
-              onSaved: () {
-                _loadCredentials().then((_) {
-                  if (_credentials.isNotEmpty) {
-                    setState(() {
-                      _selectedCredential = _credentials.last;
-                    });
-                  }
-                });
-              },
-            ));
+      context: context,
+      builder: (context) => CredentialDialog(
+        onSaved: () {
+          _loadCredentials().then((_) {
+            if (_credentials.isNotEmpty) {
+              setState(() {
+                _selectedCredential = _credentials.last;
+              });
+            }
+          });
+        },
+      ),
+    );
   }
 
   void _connectToServer(ConnectionInfo connection) async {
@@ -139,9 +139,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
           backgroundColor: Colors.transparent,
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('正在测试连接...'),
-            ],
+            children: [Text('正在测试连接...')],
           ),
         );
       },
@@ -169,19 +167,15 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
         if (connection.type == ConnectionType.sftp) {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => SftpPage(
-                connection: connection,
-                credential: credential,
-              ),
+              builder: (context) =>
+                  SftpPage(connection: connection, credential: credential),
             ),
           );
         } else {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => TerminalPage(
-                connection: connection,
-                credential: credential,
-              ),
+              builder: (context) =>
+                  TerminalPage(connection: connection, credential: credential),
             ),
           );
         }
@@ -235,9 +229,9 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
   Future<void> _updateConnection() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCredential == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请选择认证凭证')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请选择认证凭证')));
       return;
     }
 
@@ -264,15 +258,15 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('连接信息已更新')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('连接信息已更新')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('更新失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('更新失败: $e')));
       }
     } finally {
       if (mounted) {
@@ -286,9 +280,9 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
   Future<void> _saveConnectionOnly() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCredential == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请选择认证凭证')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请选择认证凭证')));
       return;
     }
 
@@ -315,15 +309,15 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('连接已保存')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('连接已保存')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
       }
     } finally {
       if (mounted) {
@@ -355,8 +349,11 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
   }
 
   // 统一的文本框样式
-  InputDecoration _textFieldDecoration(String labelText,
-      {String? hintText, Widget? suffixIcon}) {
+  InputDecoration _textFieldDecoration(
+    String labelText, {
+    String? hintText,
+    Widget? suffixIcon,
+  }) {
     return InputDecoration(
       labelText: labelText,
       hintText: hintText,
@@ -371,8 +368,10 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.0),
-        borderSide:
-            BorderSide(color: Theme.of(context).primaryColor, width: 1.0),
+        borderSide: BorderSide(
+          color: Theme.of(context).primaryColor,
+          width: 1.0,
+        ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.0),
@@ -400,8 +399,10 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.0),
-        borderSide:
-            BorderSide(color: Theme.of(context).primaryColor, width: 1.0),
+        borderSide: BorderSide(
+          color: Theme.of(context).primaryColor,
+          width: 1.0,
+        ),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     );
@@ -412,12 +413,14 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: 500,
-        ),
+        constraints: const BoxConstraints(maxWidth: 500),
         child: Padding(
           padding: const EdgeInsets.only(
-              left: 16, right: 16, bottom: 16, top: 16), // 移除顶部内边距
+            left: 16,
+            right: 16,
+            bottom: 16,
+            top: 16,
+          ), // 移除顶部内边距
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -510,7 +513,8 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                                     );
                                   }).toList(),
                                   onChanged: (value) => setState(
-                                      () => _selectedCredential = value),
+                                    () => _selectedCredential = value,
+                                  ),
                                   validator: (value) =>
                                       value == null ? '请选择认证凭证' : null,
                                 ),
@@ -525,13 +529,15 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                                   tooltip: '添加新凭证',
                                   padding: const EdgeInsets.all(12), // 增加内边距
                                   style: IconButton.styleFrom(
-                                    backgroundColor: Theme.of(context)
-                                        .primaryColor
-                                        .withOpacity(0.1),
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).primaryColor.withOpacity(0.1),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                       side: const BorderSide(
-                                          color: Colors.grey, width: 1),
+                                        color: Colors.grey,
+                                        width: 1,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -562,16 +568,18 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                             ),
                             validator: (value) =>
                                 (value == null || value.isEmpty)
-                                    ? '请输入SFTP默认路径'
-                                    : null,
+                                ? '请输入SFTP默认路径'
+                                : null,
                           ),
                           const SizedBox(height: 8),
                           const Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
                               '此目录将覆盖全局SFTP默认路径设置',
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.grey),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -623,8 +631,9 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton(
-                        onPressed: _isConnecting ? null : _showTelnetDialog,
-                        child: const Text('Telnet')),
+                      onPressed: _isConnecting ? null : _showTelnetDialog,
+                      child: const Text('Telnet'),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -657,7 +666,8 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2))
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                           : Text(_getActionButtonText()),
                     ),
                   ),

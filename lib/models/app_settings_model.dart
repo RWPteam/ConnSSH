@@ -1,4 +1,3 @@
-// app_settings_model.dart
 class AppSettings {
   final String? defaultSftpPath;
   final String? defaultDownloadPath;
@@ -9,7 +8,7 @@ class AppSettings {
   final String defaultPageTheme;
   final String defaultThemeMode;
   final List<int> toolbarLayout;
-  final String defaultFonts; // 新增的字体属性
+  final String defaultFonts;
 
   const AppSettings({
     this.defaultSftpPath,
