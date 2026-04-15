@@ -54,19 +54,11 @@ class _HelpPageState extends State<HelpPage> {
     HelpItem(
       title: '关于 & 反馈',
       content: '''
-ConnSSH 版本 2.0.0
+ConnSSH 版本 2.1.0
 
-除ohos外，源码正式迁移至flutter3.35，修复了多个已知问题，提升了稳定性和性能。
-由于ohos和其他平台代码差距据较大，ohos分支暂时不更新flutter版本
-
-* [Android]支持了material You取色
-* 修复 #24 不支持不加密的私钥
-* [Android]现在连接时会创建通知，显示连接状态 
-* [Android]现在文件将会保存至应用的私有目录
-* [Android]优化后台保活逻辑
-* [Linux]ConnSSH已经可用
-* [iOS]更新隐私声明
-* samuiord已可用
+* 修复文本编辑器替换功能不支持仅查找的问题
+* 目前尚不支持自动滚动到查找位置
+* 优化权限请求逻辑，修复了错误的权限请求
 
 如有问题或建议，请前往本项目GitHub仓库提交issue
 若您访问不便，可发送邮件至：
