@@ -45,7 +45,7 @@ class BackupService {
       settings: settings,
       archiveGroups: archiveGroups,
       backupTime: DateTime.now(),
-      version: '1.3.1',
+      version: '2.1.0',
     );
   }
 
