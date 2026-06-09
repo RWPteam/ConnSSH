@@ -54,7 +54,7 @@ class _HelpPageState extends State<HelpPage> {
     HelpItem(
       title: '关于 & 反馈',
       content: '''
-ConnSSH 版本 2.1.0
+ConnSSH 版本 2.2.0
 
 * 修复文本编辑器替换功能不支持仅查找的问题
 * 目前尚不支持自动滚动到查找位置

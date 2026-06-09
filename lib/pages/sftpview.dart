@@ -624,7 +624,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
         actions: [
           OutlinedButton(
             onPressed: () {
-              Navigator.of(context).pop();
+              Navigator.of(context, rootNavigator: true).pop();
               _createFile();
             },
             child: const Text('文件'),
@@ -698,7 +698,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       _currentDownloadFile = null;
 
       if (mounted) {
-        Navigator.of(context).pop();
+        Navigator.of(context, rootNavigator: true).pop();
 
         await Navigator.of(context).push(
           MaterialPageRoute(
@@ -718,7 +718,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     } catch (e) {
       if (mounted) {
         try {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
         } catch (_) {}
         _showErrorDialog('下载文件失败', e.toString());
       }
@@ -956,7 +956,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
         if (mounted) {
           try {
-            Navigator.of(context).pop();
+            Navigator.of(context, rootNavigator: true).pop();
           } catch (_) {}
 
           if (!_cancelOperation) {
@@ -989,7 +989,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     } catch (e) {
       if (mounted) {
         try {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
         } catch (_) {}
         _showErrorDialog('上传失败', e.toString());
       }
@@ -1016,7 +1016,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       debugPrint('文件不存在: $filePath');
       if (mounted) {
         try {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
         } catch (_) {}
       }
       return;
@@ -1034,7 +1034,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     if (fileExists) {
       if (mounted) {
         try {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
         } catch (_) {}
 
         final shouldOverwrite = await showDialog<bool>(
@@ -1123,7 +1123,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
     if (mounted) {
       try {
-        Navigator.of(context).pop();
+        Navigator.of(context, rootNavigator: true).pop();
       } catch (_) {}
 
       if (!_cancelOperation) {
@@ -1195,7 +1195,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
         }
       }
 
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
       if (!_cancelOperation && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1208,7 +1208,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     } catch (e) {
       if (mounted) {
         try {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
         } catch (_) {}
         _showErrorDialog('删除失败', e.toString());
       }
@@ -1360,7 +1360,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
       if (mounted && !_cancelOperation) {
         try {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
         } catch (_) {}
 
         ScaffoldMessenger.of(
@@ -1372,7 +1372,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     } catch (e) {
       if (mounted) {
         try {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
         } catch (_) {}
         _showErrorDialog('下载失败', e.toString());
       }
@@ -1469,7 +1469,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
     if (mounted) {
       try {
-        Navigator.of(context).pop();
+        Navigator.of(context, rootNavigator: true).pop();
       } catch (_) {}
 
       if (!_cancelOperation) {
@@ -1589,7 +1589,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
     if (mounted) {
       try {
-        Navigator.of(context).pop();
+        Navigator.of(context, rootNavigator: true).pop();
       } catch (_) {}
 
       if (!_cancelOperation) {
@@ -2244,7 +2244,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       await remote.close();
 
       if (mounted) {
-        Navigator.of(context).pop();
+        Navigator.of(context, rootNavigator: true).pop();
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('文件保存成功')));
@@ -2255,10 +2255,10 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       if (_isPermissionDeniedError(e)) {
         return await _trySudoSaveFile(remotePath, data, filename);
       } else if (mounted) {
-        try {
-          Navigator.of(context).pop();
-        } catch (_) {}
-        _showErrorDialog('保存文件失败', e.toString());
+          try {
+            Navigator.of(context, rootNavigator: true).pop();
+          } catch (_) {}
+          _showErrorDialog('保存文件失败', e.toString());
       }
       return false;
     }
@@ -2273,7 +2273,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     if (password == null || password.isEmpty) {
       if (mounted) {
         try {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
         } catch (_) {}
       }
       return false;
@@ -2297,7 +2297,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
       if (mounted) {
         try {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
         } catch (_) {}
 
         if (success) {
@@ -2326,7 +2326,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       debugPrint('sudo保存失败: $e');
       if (mounted) {
         try {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
         } catch (_) {}
         _showErrorDialog('保存失败', e.toString());
       }
@@ -2551,7 +2551,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
     if (mounted) {
       try {
-        Navigator.of(context).pop();
+        Navigator.of(context, rootNavigator: true).pop();
       } catch (_) {}
 
       if (!_cancelOperation && mounted) {
@@ -2897,7 +2897,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     if (password == null || password.isEmpty) {
       if (mounted) {
         try {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
         } catch (_) {}
         _showErrorDialog('上传失败', '需要root权限但未提供密码');
       }
@@ -2939,7 +2939,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
       if (mounted) {
         try {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
         } catch (_) {}
 
         if (!_cancelOperation) {
@@ -2979,7 +2979,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       debugPrint('使用root上传失败: $e');
       if (mounted) {
         try {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
         } catch (_) {}
         _showErrorDialog('上传失败', e.toString());
       }
