@@ -6,6 +6,8 @@ import 'package:connssh/main.dart';
 import 'package:path/path.dart' as path;
 import '../../models/app_settings_model.dart';
 import '../../services/setting_service.dart';
+import '../../widgets/app_style.dart';
+import '../../widgets/app_toast.dart';
 import '../../services/backup_service.dart';
 import '../../services/storage_service.dart';
 import 'theme.dart';
@@ -129,15 +131,19 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                 OutlinedButton(
                   onPressed: () async {
                     if (passwordController.text.isEmpty) {
-                      ScaffoldMessenger.of(
+                      AppToast.show(
                         pageContext,
-                      ).showSnackBar(const SnackBar(content: Text('请输入密码')));
+                        message: '请输入密码',
+                        icon: Icons.info_outline_rounded,
+                      );
                       return;
                     }
                     if (passwordController.text !=
                         confirmPasswordController.text) {
-                      ScaffoldMessenger.of(pageContext).showSnackBar(
-                        const SnackBar(content: Text('两次输入的密码不一致')),
+                      AppToast.show(
+                        pageContext,
+                        message: '两次输入的密码不一致',
+                        icon: Icons.info_outline_rounded,
                       );
                       return;
                     }
@@ -294,8 +300,10 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                         final files = await _backupService.getBackupFiles();
                         if (!mounted) return;
                         if (files.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('备份目录中没有找到备份文件')),
+                          AppToast.show(
+                            context,
+                            message: '备份目录中没有找到备份文件',
+                            icon: Icons.info_outline_rounded,
                           );
                           return;
                         }
@@ -327,9 +335,11 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                           });
                         }
                       } catch (e) {
-                        ScaffoldMessenger.of(
+                        AppToast.show(
                           context,
-                        ).showSnackBar(SnackBar(content: Text('读取备份目录失败: $e')));
+                          message: '读取备份目录失败: $e',
+                          icon: Icons.error_outline_rounded,
+                        );
                       }
                     },
                     icon: const Icon(Icons.storage),
@@ -567,9 +577,11 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
               widget.onSettingsChanged();
               MyApp.of(context)?.loadSettings();
               if (mounted) {
-                ScaffoldMessenger.of(
+                AppToast.show(
                   context,
-                ).showSnackBar(const SnackBar(content: Text('已恢复默认设置')));
+                  message: '已恢复默认设置',
+                  icon: Icons.check_circle_outline_rounded,
+                );
               }
             },
             child: const Text('确定'),
@@ -585,60 +597,24 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey, width: 1.0),
-        borderRadius: BorderRadius.circular(12.0),
-        color: Colors.transparent,
-      ),
-      child: ListTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.grey.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        ),
-        title: Text(
-          title,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: Colors.grey,
-        ),
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16.0,
-          vertical: 16.0,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
-      ),
+    return AppMenuTile(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
+      onTap: onTap,
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('全局设置')),
+    return AppPageScaffold(
+      title: const Text('全局设置'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              children: [
                   _buildSettingTile(
                     icon: Icons.color_lens,
                     title: '主题设置',
@@ -673,8 +649,7 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                     subtitle: '将所有设置恢复为默认值',
                     onTap: _resetToDefaults,
                   ),
-                ],
-              ),
+              ],
             ),
     );
   }

@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/credential_model.dart';
 import '../services/storage_service.dart';
+import '../widgets/app_style.dart';
 
 class ManageCredentialsPage extends StatefulWidget {
   const ManageCredentialsPage({super.key});
@@ -112,11 +113,11 @@ class _ManageCredentialsPageState extends State<ManageCredentialsPage> {
                   ),
                   decoration: BoxDecoration(
                     color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.largeRadius,
                     border: Border.all(color: Colors.grey, width: 1),
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.largeRadius,
                     child: ListTile(
                       leading: Container(
                         width: 40,
@@ -149,29 +150,10 @@ class _ManageCredentialsPageState extends State<ManageCredentialsPage> {
                           ),
                         ],
                       ),
-                      trailing: PopupMenuButton<String>(
-                        onSelected: (value) {
-                          if (value == 'edit') {
-                            _editCredential(credential);
-                          } else if (value == 'delete') {
-                            _deleteCredential(credential);
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: ListTile(title: Text('编辑')),
-                          ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: ListTile(
-                              title: Text(
-                                '删除',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ),
-                        ],
+                      trailing: IconButton(
+                        icon: const Icon(Icons.more_vert_rounded),
+                        tooltip: '更多',
+                        onPressed: () => _showCredentialActionSheet(credential),
                       ),
                       onTap: () => _editCredential(credential),
                     ),
@@ -180,6 +162,32 @@ class _ManageCredentialsPageState extends State<ManageCredentialsPage> {
               },
             ),
     );
+  }
+
+  Future<void> _showCredentialActionSheet(Credential credential) async {
+    final value = await showAppActionSheet<String>(
+      context,
+      title: credential.name,
+      items: const [
+        AppActionSheetItem<String>(
+          value: 'edit',
+          label: '编辑',
+          icon: Icons.edit_outlined,
+        ),
+        AppActionSheetItem<String>(
+          value: 'delete',
+          label: '删除',
+          icon: Icons.delete_outline_rounded,
+          destructive: true,
+        ),
+      ],
+    );
+
+    if (value == 'edit') {
+      _editCredential(credential);
+    } else if (value == 'delete') {
+      _deleteCredential(credential);
+    }
   }
 
   String _getAuthTypeText(AuthType authType) {

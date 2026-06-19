@@ -9,6 +9,7 @@ class AppSettings {
   final String defaultThemeMode;
   final List<int> toolbarLayout;
   final String defaultFonts;
+  final bool blurEffectsEnabled;
 
   const AppSettings({
     this.defaultSftpPath,
@@ -38,6 +39,7 @@ class AppSettings {
       16,
     ],
     this.defaultFonts = 'maple', // 默认字体
+    this.blurEffectsEnabled = true,
   });
 
   AppSettings copyWith({
@@ -51,6 +53,7 @@ class AppSettings {
     String? defaultThemeMode,
     List<int>? toolbarLayout,
     String? defaultFonts,
+    bool? blurEffectsEnabled,
   }) {
     return AppSettings(
       defaultSftpPath: defaultSftpPath ?? this.defaultSftpPath,
@@ -63,6 +66,7 @@ class AppSettings {
       defaultThemeMode: defaultThemeMode ?? this.defaultThemeMode,
       toolbarLayout: toolbarLayout ?? this.toolbarLayout,
       defaultFonts: defaultFonts ?? this.defaultFonts,
+      blurEffectsEnabled: blurEffectsEnabled ?? this.blurEffectsEnabled,
     );
   }
 
@@ -78,6 +82,7 @@ class AppSettings {
       'defaultThemeMode': defaultThemeMode,
       'toolbarLayout': toolbarLayout,
       'defaultFonts': defaultFonts,
+      'blurEffectsEnabled': blurEffectsEnabled,
     };
   }
 
@@ -96,6 +101,7 @@ class AppSettings {
             [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
       ),
       defaultFonts: map['defaultFonts'] ?? 'maple',
+      blurEffectsEnabled: map['blurEffectsEnabled'] ?? true,
     );
   }
 
@@ -111,6 +117,7 @@ class AppSettings {
       defaultThemeMode: 'system',
       toolbarLayout: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
       defaultFonts: 'maple',
+      blurEffectsEnabled: true,
     );
   }
 }

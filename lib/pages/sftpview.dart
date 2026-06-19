@@ -16,6 +16,8 @@ import '../services/ssh_service.dart';
 import '../services/notification_service.dart';
 import 'package:path/path.dart' as path;
 import '../components/twofa_dialog.dart';
+import '../widgets/app_style.dart';
+import '../widgets/app_toast.dart';
 
 enum ViewMode { list, icon }
 
@@ -72,6 +74,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
   DateTime? _lastBackPressedTime;
   bool _isProgressDialogOpen = false;
   bool _isSudoPromptOpen = false;
+  bool _sftpMenuIsOpen = false;
   bool _needsTwoFactorAuth = false;
   Completer<String?>? _twoFactorCompleter;
 
@@ -123,6 +126,20 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     if (_isConnecting) return Colors.grey.shade700;
     if (_isConnected) return Theme.of(context).primaryColor;
     return Colors.red;
+  }
+
+  void _showToast(
+    String message, {
+    IconData icon = Icons.info_outline_rounded,
+    Duration? duration,
+  }) {
+    if (!mounted) return;
+    AppToast.show(
+      context,
+      message: message,
+      icon: icon,
+      duration: duration,
+    );
   }
 
   Future<void> _preConnection() async {
@@ -893,9 +910,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       await _sftpClient.rename(oldPath, newPath);
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('重命名成功: $oldName → $newName')));
+        _showToast('重命名成功: $oldName → $newName', icon: Icons.check_circle_outline_rounded);
         _clearSelectionAndExitMultiSelect();
         await _loadDirectory(_currentPath);
       }
@@ -955,19 +970,14 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
         }
 
         if (mounted) {
-          try {
-            Navigator.of(context, rootNavigator: true).pop();
-          } catch (_) {}
-
           if (!_cancelOperation) {
             String message = '上传完成: $successCount / $totalCount 个文件';
             if (skippedCount > 0) message += ' (跳过 $skippedCount 个文件)';
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(message),
-                duration: const Duration(seconds: 3),
-              ),
+            _showToast(
+              message,
+              icon: Icons.check_circle_outline_rounded,
+              duration: const Duration(seconds: 3),
             );
 
             await _loadDirectory(_currentPath);
@@ -1127,11 +1137,10 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       } catch (_) {}
 
       if (!_cancelOperation) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('上传完成: $filename'),
-            duration: const Duration(seconds: 3),
-          ),
+        _showToast(
+          '上传完成: $filename',
+          icon: Icons.check_circle_outline_rounded,
+          duration: const Duration(seconds: 3),
         );
 
         await _loadDirectory(_currentPath);
@@ -1197,10 +1206,9 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
       if (mounted) Navigator.of(context, rootNavigator: true).pop();
       if (!_cancelOperation && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('删除成功: $successCount/${_selectedFiles.length}'),
-          ),
+        _showToast(
+          '删除成功: $successCount/${_selectedFiles.length}',
+          icon: Icons.check_circle_outline_rounded,
         );
         _clearSelectionAndExitMultiSelect();
         await _loadDirectory(_currentPath);
@@ -1235,11 +1243,9 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
           filesToDownload.add(filename);
         } else {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('暂不支持下载目录: $filename'),
-                duration: const Duration(seconds: 2),
-              ),
+            _showToast(
+              '暂不支持下载目录: $filename',
+              duration: const Duration(seconds: 2),
             );
           }
         }
@@ -1250,9 +1256,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
     if (filesToDownload.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('没有有效的文件可以下载')));
+        _showToast('没有有效的文件可以下载');
       }
       return;
     }
@@ -1286,9 +1290,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
         if (result == null) {
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('已取消下载')));
+            _showToast('已取消下载');
           }
           return;
         }
@@ -1318,9 +1320,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
         if (selectedDir == null || selectedDir.isEmpty) {
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('已取消下载')));
+            _showToast('已取消下载');
           }
           return;
         }
@@ -1363,9 +1363,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
           Navigator.of(context, rootNavigator: true).pop();
         } catch (_) {}
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('下载完成: $filename')));
+        _showToast('下载完成: $filename', icon: Icons.check_circle_outline_rounded);
 
         _clearSelectionAndExitMultiSelect();
       }
@@ -1476,9 +1474,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
         if (successCount > 0) {
           _showDownloadCompleteDialog(saveDir, successCount, total);
         } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('下载失败')));
+          _showToast('下载失败', icon: Icons.error_outline_rounded);
         }
         _clearSelectionAndExitMultiSelect();
       }
@@ -1596,9 +1592,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
         if (successCount > 0) {
           _showDownloadCompleteDialog(saveDir, successCount, total);
         } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('下载失败')));
+          _showToast('下载失败', icon: Icons.error_outline_rounded);
         }
         _clearSelectionAndExitMultiSelect();
       }
@@ -1735,9 +1729,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
           OutlinedButton(
             onPressed: () {
               Clipboard.setData(ClipboardData(text: saveDir));
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('路径已复制到剪贴板')));
+              _showToast('路径已复制到剪贴板', icon: Icons.copy_rounded);
               Navigator.of(context).pop();
             },
             child: const Text('复制路径'),
@@ -1778,9 +1770,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('操作已取消')));
+        _showToast('操作已取消');
       }
     }
   }
@@ -2179,9 +2169,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     try {
       await _sftpClient.mkdir(newDirPath);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('文件夹创建成功')));
+        _showToast('文件夹创建成功', icon: Icons.check_circle_outline_rounded);
         await _loadDirectory(_currentPath);
       }
     } catch (e) {
@@ -2207,9 +2195,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       await remote.close();
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('文件创建成功')));
+        _showToast('文件创建成功', icon: Icons.check_circle_outline_rounded);
         await _loadDirectory(_currentPath);
       }
     } catch (e) {
@@ -2245,9 +2231,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('文件保存成功')));
+        _showToast('文件保存成功', icon: Icons.check_circle_outline_rounded);
       }
       return true;
     } catch (e) {
@@ -2301,16 +2285,12 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
         } catch (_) {}
 
         if (success) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('文件保存成功 ')));
+          _showToast('文件保存成功', icon: Icons.check_circle_outline_rounded);
           return true;
         } else {
           try {
             await _sftpClient.stat(remotePath);
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('文件保存成功 ')));
+            _showToast('文件保存成功', icon: Icons.check_circle_outline_rounded);
             return true;
           } catch (e) {
             try {
@@ -2370,8 +2350,9 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已复制 ${_selectedFiles.length} 个项目')),
+      _showToast(
+        '已复制 ${_selectedFiles.length} 个项目',
+        icon: Icons.copy_rounded,
       );
       _clearSelectionAndExitMultiSelect();
     }
@@ -2413,9 +2394,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已剪切 ${_selectedFiles.length} 个项目')),
-      );
+      _showToast('已剪切 ${_selectedFiles.length} 个项目', icon: Icons.content_cut_rounded);
       _clearSelectionAndExitMultiSelect();
     }
   }
@@ -2555,9 +2534,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       } catch (_) {}
 
       if (!_cancelOperation && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('粘贴完成: $successCount / $totalCount 个项目')),
-        );
+        _showToast('粘贴完成: $successCount / $totalCount 个项目', icon: Icons.check_circle_outline_rounded);
 
         if (_clipboardIsCut) {
           setState(() {
@@ -2713,6 +2690,71 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       _rememberSudoPassword = false;
     });
     debugPrint('已清除记住的sudo密码');
+  }
+
+
+  Future<void> _showMoreActionSheet() async {
+    setState(() {
+      _sftpMenuIsOpen = !_sftpMenuIsOpen;
+    });
+  }
+
+  void _closeSftpMenu() {
+    if (!mounted) return;
+    setState(() => _sftpMenuIsOpen = false);
+  }
+
+  Widget _buildSftpFloatingMenu() {
+    final entries = <AppActionMenuEntry>[
+      AppActionMenuEntry(
+        icon: Icons.refresh_rounded,
+        label: '刷新',
+        onTap: () {
+          _closeSftpMenu();
+          _loadDirectory(_currentPath);
+        },
+      ),
+      AppActionMenuEntry(
+        icon: Icons.sync_rounded,
+        label: '重新连接',
+        onTap: () {
+          _closeSftpMenu();
+          _connectSftp();
+        },
+      ),
+      if (_rememberedSudoPassword != null)
+        AppActionMenuEntry(
+          icon: Icons.lock_reset_rounded,
+          label: '忘记sudo密码',
+          onTap: () {
+            _closeSftpMenu();
+            _clearRememberedSudoPassword();
+            AppToast.show(
+              context,
+              message: '已清除记住的sudo密码',
+              icon: Icons.check_circle_outline_rounded,
+            );
+          },
+        ),
+      AppActionMenuEntry(
+        icon: Icons.logout_rounded,
+        label: '退出',
+        destructive: true,
+        onTap: () {
+          _closeSftpMenu();
+          _exitApp();
+        },
+      ),
+    ];
+
+    return Positioned(
+      right: 10,
+      top: 8,
+      child: AppAnimatedActionMenu(
+        visible: _sftpMenuIsOpen,
+        child: AppActionMenu(width: 150, entries: entries),
+      ),
+    );
   }
 
   Future<bool> _executeSudoCommand(String command, String password) async {
@@ -2944,22 +2986,20 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
         if (!_cancelOperation) {
           if (success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('上传完成 : $filename'),
-                duration: const Duration(seconds: 3),
-              ),
+            _showToast(
+              '上传完成 : $filename',
+              icon: Icons.check_circle_outline_rounded,
+              duration: const Duration(seconds: 3),
             );
             await _loadDirectory(_currentPath);
           } else {
             try {
               final stat = await _sftpClient.stat(remotePath);
               if (stat.size == fileSize) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('上传完成 : $filename'),
-                    duration: const Duration(seconds: 3),
-                  ),
+                _showToast(
+                  '上传完成 : $filename',
+                  icon: Icons.check_circle_outline_rounded,
+                  duration: const Duration(seconds: 3),
                 );
                 await _loadDirectory(_currentPath);
               } else {
@@ -3010,9 +3050,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     final success = await _executeSudoCommand(command, password);
 
     if (success && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('重命名成功 : $oldName → $newName')));
+      _showToast('重命名成功 : $oldName → $newName', icon: Icons.check_circle_outline_rounded);
       _clearSelectionAndExitMultiSelect();
       await _loadDirectory(_currentPath);
     } else {
@@ -3031,9 +3069,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     final success = await _executeSudoCommand(command, password);
 
     if (success && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('文件夹创建成功 ')));
+      _showToast('文件夹创建成功', icon: Icons.check_circle_outline_rounded);
       await _loadDirectory(_currentPath);
     } else {
       _showErrorDialog('创建文件夹失败', 'sudo创建失败');
@@ -3051,9 +3087,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     final success = await _executeSudoCommand(command, password);
 
     if (success && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('文件创建成功 ')));
+      _showToast('文件创建成功', icon: Icons.check_circle_outline_rounded);
       await _loadDirectory(_currentPath);
     } else {
       _showErrorDialog('创建文件失败', 'sudo创建失败');
@@ -3135,6 +3169,49 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildBlurAwareSftpStrip({
+    required Widget child,
+    double opacity = 0.34,
+  }) {
+    // SFTP 连接页地址栏和工具栏背后不是滚动内容，不再使用模糊，
+    // 避免连接页操作区因 BackdropFilter 产生额外重绘。
+    return child;
+  }
+
+  Future<void> _showPathInputDialog() async {
+    final controller = TextEditingController(text: _currentPath);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('输入地址'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'SFTP 路径',
+            hintText: '/home/user',
+          ),
+          onSubmitted: (value) => Navigator.of(context).pop(value),
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(controller.text),
+            child: const Text('打开'),
+          ),
+        ],
+      ),
+    );
+
+    controller.dispose();
+    final target = result?.trim();
+    if (target == null || target.isEmpty || target == _currentPath) return;
+    await _loadDirectory(target);
+  }
+
   Widget _buildBodyContent() {
     if (_isLoading) {
       return _buildLoadingWidget();
@@ -3161,6 +3238,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     final iconColor = _getIconColor(context);
     final disabledIconColor = _getDisabledIconColor(context);
     final displayTitle = 'SFTP-${widget.connection.name}';
+    final Color appBarColor = _getAppBarColor();
 
     return PopScope(
       canPop: false,
@@ -3190,9 +3268,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
             hintText = '再按一次退出';
           }
 
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(hintText)));
+          _showToast(hintText, duration: const Duration(seconds: 2));
         } else {
           if (mounted) {
             Navigator.of(context).pop();
@@ -3202,8 +3278,10 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       child: Scaffold(
         appBar: AppBar(
           toolbarHeight: 40,
-          backgroundColor: _getAppBarColor(),
+          backgroundColor: appBarColor,
           foregroundColor: Colors.white,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
           titleSpacing: 0,
           automaticallyImplyLeading: false,
           leading: _ismobile
@@ -3255,98 +3333,83 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
             ),
           ),
           actions: [
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                switch (value) {
-                  case 'refresh':
-                    _loadDirectory(_currentPath);
-                    break;
-                  case 'reconnect':
-                    _connectSftp();
-                    break;
-                  case 'clear_sudo_password':
-                    _clearRememberedSudoPassword();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('已清除记住的sudo密码')),
-                    );
-                    break;
-                  case 'exit':
-                    _exitApp();
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'refresh',
-                  child: Row(children: [Text('刷新')]),
-                ),
-                const PopupMenuItem(
-                  value: 'reconnect',
-                  child: Row(children: [Text('重新连接')]),
-                ),
-                if (_rememberedSudoPassword != null)
-                  const PopupMenuItem(
-                    value: 'clear_sudo_password',
-                    child: Row(children: [Text('忘记sudo密码')]),
-                  ),
-                const PopupMenuDivider(),
-                const PopupMenuItem(
-                  value: 'exit',
-                  child: Row(children: [Text('退出')]),
-                ),
-              ],
+            IconButton(
+              icon: const Icon(Icons.more_horiz_rounded),
+              tooltip: '更多',
+              onPressed: _showMoreActionSheet,
             ),
           ],
         ),
-        body: Column(
+        body: Stack(
           children: [
-            Container(
-              height: 40,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _currentPath,
-                      style: const TextStyle(
-                        fontFamily: 'hmossans',
-                        fontSize: 14,
+            Column(
+              children: [
+                _buildBlurAwareSftpStrip(
+                  opacity: 0.36,
+                  child: AppPressable(
+                    borderRadius: BorderRadius.zero,
+                    onTap: _showPathInputDialog,
+                    child: Container(
+                      height: 40,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _currentPath,
+                              style: const TextStyle(
+                                fontFamily: 'hmossans',
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.edit_location_alt_outlined,
+                            size: 18,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ],
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                ],
-              ),
+                ),
+                _buildBlurAwareSftpStrip(
+                  opacity: 0.30,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    height: screenWidth < 600 ? 80 : 40,
+                    child: screenWidth < 600
+                        ? _buildDoubleRowToolbar(
+                            iconColor,
+                            disabledIconColor,
+                            hasSelection,
+                            singleSelection,
+                          )
+                        : _buildSingleRowToolbar(
+                            iconColor,
+                            disabledIconColor,
+                            hasSelection,
+                            singleSelection,
+                            isWideScreen,
+                          ),
+                  ),
+                ),
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    switchInCurve: Curves.easeInOut,
+                    switchOutCurve: Curves.easeInOut,
+                    transitionBuilder: (Widget child, Animation<double> animation) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                    child: _buildBodyContent(),
+                  ),
+                ),
+              ],
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              height: screenWidth < 600 ? 80 : 40,
-              child: screenWidth < 600
-                  ? _buildDoubleRowToolbar(
-                      iconColor,
-                      disabledIconColor,
-                      hasSelection,
-                      singleSelection,
-                    )
-                  : _buildSingleRowToolbar(
-                      iconColor,
-                      disabledIconColor,
-                      hasSelection,
-                      singleSelection,
-                      isWideScreen,
-                    ),
-            ),
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                switchInCurve: Curves.easeInOut,
-                switchOutCurve: Curves.easeInOut,
-                transitionBuilder: (Widget child, Animation<double> animation) {
-                  return FadeTransition(opacity: animation, child: child);
-                },
-                child: _buildBodyContent(),
-              ),
-            ),
+            _buildSftpFloatingMenu(),
           ],
         ),
       ),

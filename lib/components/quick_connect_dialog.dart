@@ -9,6 +9,7 @@ import '../services/storage_service.dart';
 import '../pages/terminal.dart';
 import '../pages/sftpview.dart';
 import 'telnet_connect_dialog.dart';
+import '../widgets/app_toast.dart';
 
 class QuickConnectDialog extends StatefulWidget {
   final ConnectionInfo? connection;
@@ -40,6 +41,11 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
   bool _isEditing = false;
   bool _isNameChanged = false;
   bool _needTwoFa = false; // 新增：是否需要2FA
+
+  void _showToast(String message, {IconData icon = Icons.info_outline_rounded}) {
+    if (!mounted) return;
+    AppToast.show(context, message: message, icon: icon);
+  }
 
   @override
   void initState() {
@@ -229,9 +235,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
   Future<void> _updateConnection() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCredential == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请选择认证凭证')));
+      _showToast('请选择认证凭证');
       return;
     }
 
@@ -258,15 +262,11 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('连接信息已更新')));
+        _showToast('连接信息已更新', icon: Icons.check_circle_outline_rounded);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('更新失败: $e')));
+        _showToast('更新失败: $e', icon: Icons.error_outline_rounded);
       }
     } finally {
       if (mounted) {
@@ -280,9 +280,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
   Future<void> _saveConnectionOnly() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCredential == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请选择认证凭证')));
+      _showToast('请选择认证凭证');
       return;
     }
 
@@ -309,15 +307,11 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('连接已保存')));
+        _showToast('连接已保存', icon: Icons.check_circle_outline_rounded);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
+        _showToast('保存失败: $e', icon: Icons.error_outline_rounded);
       }
     } finally {
       if (mounted) {

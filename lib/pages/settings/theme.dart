@@ -1,10 +1,13 @@
-import 'dart:math';
+import 'dart:math' as math;
 
 import 'package:connssh/main.dart';
 import 'package:connssh/pages/settings/other.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/setting_service.dart';
+import '../../widgets/app_style.dart';
+import '../../widgets/app_toast.dart';
 
 class ThemeSettingsPage extends StatefulWidget {
   final SettingsService settingsService;
@@ -24,22 +27,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   bool _isLoading = true;
   String _themeMode = 'system';
   String _pageTheme = 'default';
-  bool _useMaterialYou = false;
+  bool _blurEffectsEnabled = true;
   int _easterEggCount = 0;
-
-  final List<String> _themeModes = ['system', 'light', 'dark'];
-  final List<String> _pageThemes = [
-    'default',
-    'orange',
-    'green',
-    'yellow',
-    'red',
-    'pink',
-    'purple',
-    'cyan',
-    'indigo',
-    'monochrome',
-  ];
 
   final Map<String, String> _themeModeLabels = {
     'system': '跟随系统',
@@ -58,7 +47,22 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     'cyan': Colors.cyan,
     'indigo': Colors.indigo,
     'monochrome': Colors.black,
+    'materialyou': Colors.blueAccent,
   };
+
+  final List<_PaletteOption> _paletteOptions = const [
+    _PaletteOption(id: 'default', label: '默认'),
+    _PaletteOption(id: 'orange', label: '橙色'),
+    _PaletteOption(id: 'green', label: '绿色'),
+    _PaletteOption(id: 'yellow', label: '黄色'),
+    _PaletteOption(id: 'red', label: '红色'),
+    _PaletteOption(id: 'pink', label: '粉色'),
+    _PaletteOption(id: 'purple', label: '紫色'),
+    _PaletteOption(id: 'cyan', label: '青色'),
+    _PaletteOption(id: 'indigo', label: '靛蓝'),
+    _PaletteOption(id: 'monochrome', label: '黑白'),
+    _PaletteOption(id: 'materialyou', label: 'Material You'),
+  ];
 
   @override
   void initState() {
@@ -71,7 +75,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     setState(() {
       _themeMode = settings.defaultThemeMode;
       _pageTheme = settings.defaultPageTheme;
-      _useMaterialYou = settings.defaultPageTheme == 'materialyou';
+      _blurEffectsEnabled = settings.blurEffectsEnabled;
       _isLoading = false;
     });
   }
@@ -82,10 +86,10 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       final newSettings = currentSettings.copyWith(
         defaultThemeMode: _themeMode,
         defaultPageTheme: _pageTheme,
+        blurEffectsEnabled: _blurEffectsEnabled,
       );
       await widget.settingsService.saveSettings(newSettings);
       widget.onSettingsChanged();
-      // 重新加载应用主题
       MyApp.of(context)?.loadSettings();
     } catch (e) {
       if (mounted) {
@@ -106,133 +110,35 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     }
   }
 
-  Brightness _getDisplayBrightness() {
-    if (_themeMode == 'light') {
-      return Brightness.light;
-    } else if (_themeMode == 'dark') {
-      return Brightness.dark;
-    }
-    return MediaQuery.of(context).platformBrightness;
-  }
-
-  ColorScheme _generateColorScheme(Color seedColor, Brightness brightness) {
-    if (seedColor == _themeColors['monochrome']) {
-      if (brightness == Brightness.dark) {
-        return const ColorScheme.dark(
-          primary: Colors.white,
-          onPrimary: Colors.black,
-          secondary: Colors.grey,
-          surface: Color(0xFF121212),
-        );
-      }
-      return const ColorScheme.light(
-        primary: Colors.black,
-        onPrimary: Colors.white,
-        secondary: Colors.grey,
-        surface: Color(0xFFF5F5F5),
+  Future<void> _setThemeMode(String mode) async {
+    if (_themeMode == mode) return;
+    setState(() => _themeMode = mode);
+    await _saveSettings();
+    if (mounted) {
+      AppToast.show(
+        context,
+        message: '已切换到${_themeModeLabels[mode] ?? mode}',
+        icon: Icons.check_circle_outline_rounded,
       );
     }
-    return ColorScheme.fromSeed(seedColor: seedColor, brightness: brightness);
   }
 
-  Widget _buildColorPalette(String theme) {
-    final seedColor = _themeColors[theme]!;
-    final brightness = _getDisplayBrightness();
-    final colorScheme = _generateColorScheme(seedColor, brightness);
-    final isSelected = _pageTheme == theme;
-
-    return Stack(
-      children: [
-        SizedBox(
-          width: 80,
-          height: 80,
-          child: CustomPaint(
-            painter: _ColorPalettePainter(
-              primaryColor: colorScheme.primary,
-              surfaceColor: colorScheme.surface,
-              secondaryColor: colorScheme.secondary,
-            ),
-          ),
-        ),
-        if (isSelected)
-          Positioned.fill(
-            child: Center(
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: colorScheme.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.check,
-                  color: colorScheme.onPrimary,
-                  size: 24,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  void _showThemeModeDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('主题风格'),
-        content: RadioGroup<String>(
-          groupValue: _themeMode,
-          onChanged: (value) async {
-            if (value != null) {
-              Navigator.of(context).pop();
-              setState(() => _themeMode = value);
-              await _saveSettings();
-            }
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: _themeModes
-                .map(
-                  (mode) => RadioListTile<String>(
-                    title: Text(_themeModeLabels[mode] ?? mode),
-                    value: mode,
-                    selected: _themeMode == mode,
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-        actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _onColorThemeTap(String theme) async {
+  Future<void> _setPalette(String theme) async {
     if (theme == 'monochrome') {
       setState(() {
         _easterEggCount++;
       });
 
       if (_easterEggCount >= 5 && _easterEggCount <= 32) {
-        final messenger = ScaffoldMessenger.of(context);
-        messenger.removeCurrentSnackBar();
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('$_easterEggCount'),
-            duration: const Duration(milliseconds: 200),
-          ),
+        AppToast.show(
+          context,
+          message: '$_easterEggCount',
+          icon: Icons.touch_app_rounded,
+          duration: const Duration(milliseconds: 350),
         );
       }
 
       if (_easterEggCount >= 32) {
-        final messenger = ScaffoldMessenger.of(context);
-        messenger.removeCurrentSnackBar();
         _easterEggCount = 0;
         Navigator.push(
           context,
@@ -241,390 +147,570 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       }
     }
 
-    setState(() {
-      _pageTheme = theme;
-    });
+    if (_pageTheme == theme) return;
+    setState(() => _pageTheme = theme);
     await _saveSettings();
+    if (mounted) {
+      final option = _paletteOptions.firstWhere(
+        (item) => item.id == theme,
+        orElse: () => _PaletteOption(id: theme, label: theme),
+      );
+      AppToast.show(
+        context,
+        message: '已切换到${option.label}',
+        icon: Icons.palette_outlined,
+      );
+    }
+  }
+
+  Future<void> _setBlurEffectsEnabled(bool value) async {
+    if (_blurEffectsEnabled == value) return;
+    setState(() => _blurEffectsEnabled = value);
+    await _saveSettings();
+    if (mounted) {
+      AppToast.show(
+        context,
+        message: value ? '已开启模糊效果' : '已关闭模糊效果',
+        icon: value ? Icons.blur_on_rounded : Icons.blur_off_rounded,
+      );
+    }
+  }
+
+  Color _displayColorFor(_PaletteOption option, Color? systemPrimaryColor) {
+    if (option.id == 'materialyou') {
+      return systemPrimaryColor ?? _themeColors[option.id]!;
+    }
+    return _themeColors[option.id]!;
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+    return DynamicColorBuilder(
+      builder: (lightDynamic, darkDynamic) {
+        final systemPrimaryColor =
+            lightDynamic?.primary ?? darkDynamic?.primary;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('主题设置')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : LayoutBuilder(
-              builder: (context, constraints) {
-                if (isLandscape) {
-                  return Row(
-                    children: [
-                      Container(
-                        width: constraints.maxWidth * 1 / 3,
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+        return AppPageScaffold(
+          title: const Text('主题设置'),
+          body: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  children: [
+                    const _ThemePreviewCard(),
+                    const SizedBox(height: 12),
+                    _ThemeControlPanel(
+                      themeMode: _themeMode,
+                      pageTheme: _pageTheme,
+                      blurEffectsEnabled: _blurEffectsEnabled,
+                      modeLabels: _themeModeLabels,
+                      paletteOptions: _paletteOptions,
+                      displayColorFor: (option) =>
+                          _displayColorFor(option, systemPrimaryColor),
+                      onThemeModeChanged: _setThemeMode,
+                      onPaletteChanged: _setPalette,
+                      onBlurChanged: _setBlurEffectsEnabled,
+                    ),
+                  ],
+                ),
+        );
+      },
+    );
+  }
+}
+
+class _ThemePreviewCard extends StatefulWidget {
+  const _ThemePreviewCard();
+
+  @override
+  State<_ThemePreviewCard> createState() => _ThemePreviewCardState();
+}
+
+class _ThemePreviewCardState extends State<_ThemePreviewCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final bool blurEnabled = AppVisualEffects.blurEnabledOf(context);
+
+    return ClipRRect(
+      borderRadius: AppRadius.largeRadius,
+      child: Container(
+        height: 210,
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest.withOpacity(0.36),
+          borderRadius: AppRadius.largeRadius,
+        ),
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            final double value = _controller.value;
+            final double enter = Curves.easeOutCubic.transform(
+              math.min(value / 0.24, 1),
+            );
+            final double exit = value < 0.72
+                ? 0
+                : Curves.easeInCubic.transform(
+                    math.min((value - 0.72) / 0.28, 1),
+                  );
+            final double progress = enter * (1 - exit);
+            final double opacity = value < 0.10
+                ? Curves.easeOut.transform(value / 0.10)
+                : value > 0.78
+                ? Curves.easeIn.transform(
+                    1 - math.min((value - 0.78) / 0.22, 1),
+                  )
+                : 1;
+            final double top = -18 + 42 * progress;
+
+            return Stack(
+              clipBehavior: Clip.hardEdge,
+              children: [
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 64, 14, 14),
+                    child: Column(
+                      children: const [
+                        _PreviewConnectionTile(title: '连接到服务器'),
+                        SizedBox(height: 10),
+                        _PreviewConnectionTile(title: '打开 SFTP', tag: '文件'),
+                        SizedBox(height: 10),
+                        _PreviewConnectionTile(title: '同步终端外观'),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: top,
+                  left: 16,
+                  right: 16,
+                  child: Opacity(
+                    opacity: opacity.clamp(0, 1),
+                    child: Center(
+                      child: AppGlassSurface(
+                        borderRadius: AppRadius.largeRadius,
+                        blurSigma: 10,
+                        opacity: blurEnabled ? 0.34 : 0.98,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const SizedBox(height: 16),
-                            const Padding(
-                              padding: EdgeInsets.only(bottom: 16.0),
-                              child: Text(
-                                '主题风格',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                            Icon(
+                              Icons.check_circle_outline_rounded,
+                              size: 18,
+                              color: colorScheme.primary,
                             ),
-                            Expanded(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: Colors.grey,
-                                    width: 1.0,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12.0),
-                                ),
-                                child: ListView.builder(
-                                  itemCount: _themeModes.length,
-                                  itemBuilder: (context, index) {
-                                    final mode = _themeModes[index];
-                                    return ListTile(
-                                      title: Text(
-                                        _themeModeLabels[mode] ?? mode,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      trailing: _themeMode == mode
-                                          ? Icon(
-                                              Icons.check_circle,
-                                              color: Theme.of(
-                                                context,
-                                              ).primaryColor,
-                                            )
-                                          : null,
-                                      onTap: () async {
-                                        setState(() {
-                                          _themeMode = mode;
-                                        });
-                                        await _saveSettings();
-                                      },
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 16.0,
-                                            vertical: 12.0,
-                                          ),
-                                    );
-                                  },
-                                ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '当前主题预览',
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: double.infinity,
-                                margin: const EdgeInsets.only(bottom: 16),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: SwitchListTile(
-                                  title: const Text(
-                                    '使用 Material You',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  value: _useMaterialYou,
-                                  onChanged: (value) async {
-                                    setState(() {
-                                      _useMaterialYou = value;
-                                      if (value) {
-                                        _pageTheme = 'materialyou';
-                                      } else if (_pageTheme == 'materialyou') {
-                                        _pageTheme = 'default';
-                                      }
-                                    });
-                                    await _saveSettings();
-                                  },
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 16,
-                                  ),
-                                ),
-                              ),
-                              if (!_useMaterialYou) ...[
-                                const Padding(
-                                  padding: EdgeInsets.only(bottom: 16.0),
-                                  child: Text(
-                                    '页面主题',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: GridView.builder(
-                                    gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: 3,
-                                          childAspectRatio: 1.2,
-                                          crossAxisSpacing: 16,
-                                          mainAxisSpacing: 16,
-                                        ),
-                                    itemCount: _pageThemes.length,
-                                    itemBuilder: (context, index) {
-                                      final theme = _pageThemes[index];
-                                      final isSelected = _pageTheme == theme;
-
-                                      return GestureDetector(
-                                        onTap: () => _onColorThemeTap(theme),
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                              12.0,
-                                            ),
-                                            border: Border.all(
-                                              color: isSelected
-                                                  ? Theme.of(
-                                                      context,
-                                                    ).primaryColor
-                                                  : Colors.grey,
-                                              width: isSelected ? 2.0 : 1.0,
-                                            ),
-                                            color: isSelected
-                                                ? Theme.of(
-                                                    context,
-                                                  ).colorScheme.onInverseSurface
-                                                : Colors.transparent,
-                                          ),
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              _buildColorPalette(theme),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                }
-
-                return SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 16),
-                      Container(
-                        margin: const EdgeInsets.symmetric(
-                          vertical: 6.0,
-                          horizontal: 16.0,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey, width: 1.0),
-                          borderRadius: BorderRadius.circular(12.0),
-                        ),
-                        child: ListTile(
-                          title: const Text(
-                            '主题风格',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          subtitle: Text(
-                            _themeModeLabels[_themeMode] ?? _themeMode,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          trailing: const Icon(
-                            Icons.arrow_forward_ios,
-                            size: 16,
-                            color: Colors.grey,
-                          ),
-                          onTap: _showThemeModeDialog,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16.0,
-                            vertical: 16.0,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        margin: const EdgeInsets.symmetric(
-                          vertical: 6.0,
-                          horizontal: 16.0,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey, width: 1.0),
-                          borderRadius: BorderRadius.circular(12.0),
-                        ),
-                        child: SwitchListTile(
-                          title: const Text(
-                            '使用 Material You',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          value: _useMaterialYou,
-                          onChanged: (value) async {
-                            setState(() {
-                              _useMaterialYou = value;
-                              if (value) {
-                                _pageTheme = 'materialyou';
-                              } else if (_pageTheme == 'materialyou') {
-                                _pageTheme = 'default';
-                              }
-                            });
-                            await _saveSettings();
-                          },
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16.0,
-                            vertical: 16.0,
-                          ),
-                        ),
-                      ),
-                      if (!_useMaterialYou) ...[
-                        const Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 16,
-                          ),
-                          child: Text(
-                            '页面主题',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                childAspectRatio: 1,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
-                              ),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: _pageThemes.length,
-                          itemBuilder: (context, index) {
-                            final theme = _pageThemes[index];
-                            final isSelected = _pageTheme == theme;
-
-                            return GestureDetector(
-                              onTap: () => _onColorThemeTap(theme),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12.0),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? Theme.of(context).primaryColor
-                                        : Colors.grey,
-                                    width: isSelected ? 2.0 : 1.0,
-                                  ),
-                                  color: isSelected
-                                      ? Theme.of(
-                                          context,
-                                        ).colorScheme.onInverseSurface
-                                      : Colors.transparent,
-                                ),
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [_buildColorPalette(theme)],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-                    ],
+                    ),
                   ),
-                );
-              },
-            ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }
 
-class _ColorPalettePainter extends CustomPainter {
-  final Color primaryColor;
-  final Color surfaceColor;
-  final Color secondaryColor;
+class _PreviewConnectionTile extends StatelessWidget {
+  const _PreviewConnectionTile({required this.title, this.tag});
 
-  _ColorPalettePainter({
-    required this.primaryColor,
-    required this.surfaceColor,
-    required this.secondaryColor,
+  final String title;
+  final String? tag;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: theme.brightness == Brightness.light
+            ? Colors.white.withOpacity(0.72)
+            : colorScheme.surfaceContainerHighest.withOpacity(0.36),
+        borderRadius: AppRadius.largeRadius,
+        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.45)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.terminal_rounded, color: colorScheme.primary, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          if (tag != null) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer,
+                borderRadius: AppRadius.largeRadius,
+              ),
+              child: Text(
+                tag!,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ThemeControlPanel extends StatelessWidget {
+  const _ThemeControlPanel({
+    required this.themeMode,
+    required this.pageTheme,
+    required this.blurEffectsEnabled,
+    required this.modeLabels,
+    required this.paletteOptions,
+    required this.displayColorFor,
+    required this.onThemeModeChanged,
+    required this.onPaletteChanged,
+    required this.onBlurChanged,
   });
 
+  final String themeMode;
+  final String pageTheme;
+  final bool blurEffectsEnabled;
+  final Map<String, String> modeLabels;
+  final List<_PaletteOption> paletteOptions;
+  final Color Function(_PaletteOption option) displayColorFor;
+  final ValueChanged<String> onThemeModeChanged;
+  final ValueChanged<String> onPaletteChanged;
+  final ValueChanged<bool> onBlurChanged;
+
   @override
-  void paint(Canvas canvas, Size size) {
-    final radius = size.width / 2;
-    final center = Offset(size.width / 2, size.height / 2);
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
 
-    final leftArc = Path()
-      ..moveTo(center.dx, center.dy)
-      ..arcTo(
-        Rect.fromCircle(center: center, radius: radius),
-        -pi / 2,
-        -pi,
-        false,
-      )
-      ..close();
-    canvas.drawPath(leftArc, Paint()..color = primaryColor);
-
-    final rightTopArc = Path()
-      ..moveTo(center.dx, center.dy)
-      ..arcTo(
-        Rect.fromCircle(center: center, radius: radius),
-        -pi / 2,
-        pi / 2,
-        false,
-      )
-      ..close();
-    canvas.drawPath(rightTopArc, Paint()..color = surfaceColor);
-
-    final rightBottomArc = Path()
-      ..moveTo(center.dx, center.dy)
-      ..arcTo(
-        Rect.fromCircle(center: center, radius: radius),
-        pi / 2,
-        -pi / 2,
-        false,
-      )
-      ..close();
-    canvas.drawPath(rightBottomArc, Paint()..color = secondaryColor);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '色彩模式',
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _ThemeModeChoice(
+                label: modeLabels['system'] ?? '跟随系统',
+                mode: 'system',
+                selected: themeMode == 'system',
+                onTap: () => onThemeModeChanged('system'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _ThemeModeChoice(
+                label: modeLabels['light'] ?? '浅色模式',
+                mode: 'light',
+                selected: themeMode == 'light',
+                onTap: () => onThemeModeChanged('light'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _ThemeModeChoice(
+                label: modeLabels['dark'] ?? '深色模式',
+                mode: 'dark',
+                selected: themeMode == 'dark',
+                onTap: () => onThemeModeChanged('dark'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          '配色方案',
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 10),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          itemCount: paletteOptions.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 1.35,
+          ),
+          itemBuilder: (context, index) {
+            final option = paletteOptions[index];
+            return _PaletteChoice(
+              option: option,
+              color: displayColorFor(option),
+              selected: pageTheme == option.id,
+              onTap: () => onPaletteChanged(option.id),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surface.withOpacity(0.42),
+            borderRadius: AppRadius.largeRadius,
+            border: Border.all(
+              color: colorScheme.outlineVariant.withOpacity(0.55),
+            ),
+          ),
+          child: ListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+            title: const Text('使用模糊'),
+            subtitle: const Text('关闭后使用实体背景'),
+            trailing: AppSwitch(
+              value: blurEffectsEnabled,
+              onChanged: onBlurChanged,
+            ),
+            onTap: () => onBlurChanged(!blurEffectsEnabled),
+          ),
+        ),
+      ],
+    );
   }
+}
+
+class _ThemeModeChoice extends StatelessWidget {
+  const _ThemeModeChoice({
+    required this.label,
+    required this.mode,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final String mode;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return AppPressable(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? colorScheme.primaryContainer.withOpacity(0.90)
+              : colorScheme.surface.withOpacity(0.48),
+          borderRadius: AppRadius.largeRadius,
+          border: Border.all(
+            color: selected ? colorScheme.primary : colorScheme.outlineVariant,
+            width: selected ? 1.4 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _ThemeModeSwatch(mode: mode),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: selected
+                      ? colorScheme.onPrimaryContainer
+                      : colorScheme.onSurface,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemeModeSwatch extends StatelessWidget {
+  const _ThemeModeSwatch({required this.mode});
+
+  final String mode;
+
+  @override
+  Widget build(BuildContext context) {
+    final outline = Theme.of(context).colorScheme.outlineVariant;
+    Widget inner;
+    switch (mode) {
+      case 'light':
+        inner = const ColoredBox(color: Colors.white);
+        break;
+      case 'dark':
+        inner = const ColoredBox(color: Colors.black);
+        break;
+      case 'system':
+      default:
+        inner = const Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 11,
+              child: ColoredBox(color: Colors.white),
+            ),
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: 11,
+              child: ColoredBox(color: Colors.black),
+            ),
+          ],
+        );
+    }
+
+    return SizedBox(
+      width: 22,
+      height: 22,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: AppRadius.largeRadius,
+          border: Border.all(color: outline),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(1),
+          child: ClipRRect(
+            borderRadius: AppRadius.largeRadius,
+            clipBehavior: Clip.antiAlias,
+            child: inner,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PaletteChoice extends StatelessWidget {
+  const _PaletteChoice({
+    required this.option,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _PaletteOption option;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final bool isMaterialYou = option.id == 'materialyou';
+    return Tooltip(
+      message: option.label,
+      child: AppPressable(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            color: isMaterialYou
+                ? colorScheme.surface.withOpacity(0.82)
+                : color,
+            borderRadius: AppRadius.largeRadius,
+            border: Border.all(
+              color: selected
+                  ? colorScheme.primary
+                  : colorScheme.outlineVariant,
+              width: selected ? 2.2 : 1,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: colorScheme.primary.withOpacity(0.22),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
+                    ),
+                  ]
+                : null,
+          ),
+          child: isMaterialYou
+              ? Icon(
+                  Icons.android_rounded,
+                  color: selected
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                  size: 22,
+                )
+              : selected
+              ? Icon(
+                  Icons.check_rounded,
+                  color: option.id == 'yellow'
+                      ? Colors.black
+                      : colorScheme.onPrimary,
+                  size: 20,
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+}
+
+class _PaletteOption {
+  const _PaletteOption({required this.id, required this.label});
+
+  final String id;
+  final String label;
 }

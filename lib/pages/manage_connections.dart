@@ -8,6 +8,7 @@ import '../models/connection_model.dart';
 import '../services/storage_service.dart';
 import '../components/quick_connect_dialog.dart';
 import 'sftpview.dart';
+import '../widgets/app_style.dart';
 
 class ManageConnectionsPage extends StatefulWidget {
   const ManageConnectionsPage({super.key});
@@ -443,7 +444,7 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
             height: 56,
             decoration: BoxDecoration(
               color: Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.largeRadius,
             ),
             child: InkWell(
               onTap: () {
@@ -451,7 +452,7 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
                   _isUngroupedExpanded = !_isUngroupedExpanded;
                 });
               },
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.largeRadius,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -515,7 +516,7 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
               height: 56,
               decoration: BoxDecoration(
                 color: Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AppRadius.largeRadius,
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -597,6 +598,55 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
     );
   }
 
+  Future<void> _showConnectionActionSheet(
+    ConnectionInfo connection,
+    bool canDup,
+  ) async {
+    final value = await showAppActionSheet<String>(
+      context,
+      title: connection.name,
+      items: [
+        const AppActionSheetItem<String>(
+          value: 'connect',
+          label: '连接',
+          icon: Icons.play_arrow_rounded,
+        ),
+        if (canDup)
+          AppActionSheetItem<String>(
+            value: 'duplicate',
+            label: connection.type == ConnectionType.ssh ? '复制为 SFTP' : '复制为 SSH',
+            icon: Icons.copy_all_rounded,
+          ),
+        const AppActionSheetItem<String>(
+          value: 'edit',
+          label: '编辑',
+          icon: Icons.edit_outlined,
+        ),
+        const AppActionSheetItem<String>(
+          value: 'delete',
+          label: '删除',
+          icon: Icons.delete_outline_rounded,
+          destructive: true,
+        ),
+      ],
+    );
+
+    switch (value) {
+      case 'connect':
+        _connectTo(connection);
+        break;
+      case 'duplicate':
+        _duplicateConnection(connection);
+        break;
+      case 'edit':
+        _editConnection(connection);
+        break;
+      case 'delete':
+        _deleteConnection(connection);
+        break;
+    }
+  }
+
   Widget _buildConnectionTile(ConnectionInfo connection,
       {bool withMargin = true}) {
     final canDup = _canDuplicate(connection);
@@ -607,14 +657,14 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
           : const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.largeRadius,
         border: Border.all(
           color: Colors.grey,
           width: 1,
         ),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.largeRadius,
         child: ListTile(
           leading: Container(
             width: 40,
@@ -638,52 +688,10 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
             '${connection.host}:${connection.port}',
             style: TextStyle(color: Colors.grey[600]),
           ),
-          trailing: PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'connect':
-                  _connectTo(connection);
-                  break;
-                case 'duplicate':
-                  _duplicateConnection(connection);
-                  break;
-                case 'edit':
-                  _editConnection(connection);
-                  break;
-                case 'delete':
-                  _deleteConnection(connection);
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'connect',
-                child: ListTile(
-                  title: Text('连接'),
-                ),
-              ),
-              PopupMenuItem(
-                value: 'duplicate',
-                enabled: canDup,
-                child: ListTile(
-                  title: Text(connection.type == ConnectionType.ssh
-                      ? '复制为 SFTP'
-                      : '复制为 SSH'),
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'edit',
-                child: ListTile(
-                  title: Text('编辑'),
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'delete',
-                child: ListTile(
-                  title: Text('删除', style: TextStyle(color: Colors.red)),
-                ),
-              ),
-            ],
+          trailing: IconButton(
+            icon: const Icon(Icons.more_vert_rounded),
+            tooltip: '更多',
+            onPressed: () => _showConnectionActionSheet(connection, canDup),
           ),
           onTap: () => _connectTo(connection),
         ),
@@ -804,19 +812,19 @@ class _ArchiveGroupEditDialogState extends State<ArchiveGroupEditDialog> {
                       color: isSelected
                           ? Theme.of(context).primaryColor.withOpacity(0.2)
                           : Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.largeRadius,
                       border: Border.all(
                         color: Colors.grey,
                         width: 1,
                       ),
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.largeRadius,
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () => _toggleConnection(connection),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: AppRadius.largeRadius,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 8),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
+import '../widgets/app_style.dart';
+
 class HelpPage extends StatefulWidget {
   const HelpPage({super.key});
 
@@ -56,10 +58,10 @@ class _HelpPageState extends State<HelpPage> {
       content: '''
 ConnSSH 版本 2.2.0
 
-* 修复文本编辑器替换功能不支持仅查找的问题
-* 目前尚不支持自动滚动到查找位置
-* [Android]优化权限请求逻辑，修复了错误的权限请求
-* [Android]修复存储目录错误的问题
+修复了以下问题：
+* SFTP下载完文件会退回主页
+新增功能：
+* 终端页面支持复制了，长按文字选中后会直接复制到剪贴板
 
 如有问题或建议，请前往本项目GitHub仓库提交issue
 若您访问不便，可发送邮件至：
@@ -77,7 +79,7 @@ samuioto@outlook.com
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: 0);
+    _pageController = PageController(initialPage: 0, viewportFraction: 0.96);
     _startTimer();
   }
 
@@ -128,135 +130,121 @@ samuioto@outlook.com
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('帮助')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'ConnSSH',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+    final colorScheme = Theme.of(context).colorScheme;
+    return AppPageScaffold(
+      title: const Text('帮助'),
+      actions: [
+        AppIconActionButton(
+          tooltip: '更新日志',
+          icon: Icons.history_rounded,
+          onPressed: _jumpToLastPage,
+        ),
+      ],
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: SettingCard(
+              padding: const EdgeInsets.all(20),
+              margin: EdgeInsets.zero,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ConnSSH',
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        '一个便捷的SSH和SFTP连接管理工具',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                OutlinedButton(
-                  onPressed: _jumpToLastPage,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                        const SizedBox(height: 6),
+                        Text(
+                          '一个便捷的SSH和SFTP连接管理工具',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: const Text('更新日志', style: TextStyle(fontSize: 14)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: helpItems.length,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentPage = index;
-                  });
-
-                  _resetTimer();
-                },
-                itemBuilder: (context, index) {
-                  final item = helpItems[index];
-                  return HelpCard(helpItem: item);
-                },
-                scrollDirection: Axis.horizontal,
-                pageSnapping: true,
-                padEnds: true,
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(helpItems.length, (index) {
-                    return Container(
-                      width: 8,
-                      height: 8,
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _currentPage == index
-                            ? Theme.of(context).colorScheme.primary
-                            : Colors.grey[300],
-                      ),
-                    );
-                  }),
-                ),
-              ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: helpItems.length,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentPage = index;
+                });
+                _resetTimer();
+              },
+              itemBuilder: (context, index) {
+                final item = helpItems[index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: HelpCard(helpItem: item),
+                );
+              },
+              scrollDirection: Axis.horizontal,
+              pageSnapping: true,
+              padEnds: true,
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: _currentPage > 0
-                      ? () {
-                          _pageController.previousPage(
-                            duration: const Duration(milliseconds: 500),
-                            curve: Curves.easeInOut,
-                          );
-
-                          _resetTimer();
-                        }
-                      : null,
-                ),
-                const SizedBox(width: 20),
-                Text(
-                  '${_currentPage + 1} / ${helpItems.length}',
-                  style: const TextStyle(fontSize: 14),
-                ),
-                const SizedBox(width: 20),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: _currentPage < helpItems.length - 1
-                      ? () {
-                          _pageController.nextPage(
-                            duration: const Duration(milliseconds: 500),
-                            curve: Curves.easeInOut,
-                          );
-
-                          _resetTimer();
-                        }
-                      : null,
-                ),
-              ],
+          ),
+          const SizedBox(height: 12),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  AppIconActionButton(
+                    tooltip: '上一页',
+                    icon: Icons.chevron_left_rounded,
+                    onPressed: _currentPage > 0
+                        ? () {
+                            _pageController.previousPage(
+                              duration: const Duration(milliseconds: 500),
+                              curve: Curves.easeInOut,
+                            );
+                            _resetTimer();
+                          }
+                        : null,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${_currentPage + 1} / ${helpItems.length}',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(width: 8),
+                  AppIconActionButton(
+                    tooltip: '下一页',
+                    icon: Icons.chevron_right_rounded,
+                    onPressed: _currentPage < helpItems.length - 1
+                        ? () {
+                            _pageController.nextPage(
+                              duration: const Duration(milliseconds: 500),
+                              curve: Curves.easeInOut,
+                            );
+                            _resetTimer();
+                          }
+                        : null,
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -278,179 +266,95 @@ class HelpCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isAboutFeedback = helpItem.title == '关于 & 反馈';
+    final colorScheme = Theme.of(context).colorScheme;
 
-    if (isAboutFeedback) {
-      return Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          margin: const EdgeInsets.all(8),
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    helpItem.title,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    helpItem.content,
-                    style: const TextStyle(fontSize: 16, height: 1.5),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    } else {
-      return Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          margin: const EdgeInsets.all(8),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (helpItem.imagePath != null)
-                    LayoutBuilder(
-                      builder: (context, innerConstraints) {
-                        final textHeight = _calculateTextHeight(
-                          helpItem.title,
-                          helpItem.content,
-                          innerConstraints.maxWidth,
-                        );
-                        final totalHeight = constraints.maxHeight;
-                        const padding = 16.0;
-                        const imageTextSpacing = 8.0;
-                        const textBottomMargin = 16.0;
-                        final maxImageHeight =
-                            totalHeight -
-                            textHeight -
-                            padding * 2 -
-                            imageTextSpacing -
-                            textBottomMargin;
-
-                        return Container(
-                          height: maxImageHeight.clamp(100, double.infinity),
+    return SettingCard(
+      margin: EdgeInsets.zero,
+      padding: const EdgeInsets.all(8),
+      child: isAboutFeedback
+          ? SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: _buildTextContent(context),
+            )
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (helpItem.imagePath != null)
+                      Expanded(
+                        child: Container(
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(8),
-                            ),
-                            color: Colors.transparent,
+                            color: colorScheme.surfaceContainerHighest.withOpacity(0.24),
+                            borderRadius: AppRadius.mediumRadius,
                           ),
                           child: ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(8),
-                            ),
+                            borderRadius: AppRadius.mediumRadius,
                             child: helpItem.imagePath!.startsWith('http')
                                 ? Image.network(
                                     helpItem.imagePath!,
                                     fit: BoxFit.contain,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return _buildImageErrorWidget();
-                                    },
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        _buildImageErrorWidget(context),
                                   )
                                 : Image.asset(
                                     helpItem.imagePath!,
                                     fit: BoxFit.contain,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return _buildImageErrorWidget();
-                                    },
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        _buildImageErrorWidget(context),
                                   ),
                           ),
-                        );
-                      },
-                    ),
-                  if (helpItem.imagePath != null) const SizedBox(height: 8),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 16.0),
-                      child: SingleChildScrollView(
-                        physics: const ClampingScrollPhysics(),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              helpItem.title,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              helpItem.content,
-                              style: const TextStyle(fontSize: 16, height: 1.5),
-                              maxLines: null,
-                              overflow: TextOverflow.visible,
-                            ),
-                          ],
                         ),
                       ),
+                    if (helpItem.imagePath != null) const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                      child: _buildTextContent(context),
                     ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      );
-    }
-  }
-
-  double _calculateTextHeight(String title, String content, double maxWidth) {
-    final titlePainter = TextPainter(
-      text: TextSpan(
-        text: title,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-      ),
-      maxLines: null,
-      textDirection: TextDirection.ltr,
-    );
-    titlePainter.layout(maxWidth: maxWidth - 32);
-    final titleHeight = titlePainter.size.height;
-
-    final contentPainter = TextPainter(
-      text: TextSpan(
-        text: content,
-        style: const TextStyle(fontSize: 16, height: 1.5),
-      ),
-      maxLines: null,
-      textDirection: TextDirection.ltr,
-    );
-    contentPainter.layout(maxWidth: maxWidth - 32);
-    final contentHeight = contentPainter.size.height;
-
-    return titleHeight + 8 + contentHeight + 16;
-  }
-
-  Widget _buildImageErrorWidget() {
-    return Container(
-      color: Colors.transparent,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.image_not_supported, size: 30, color: Colors.grey),
-            const SizedBox(height: 8),
-            Text(
-              '图片加载失败',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ],
+                );
+              },
             ),
-          ],
+    );
+  }
+
+  Widget _buildTextContent(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          helpItem.title,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
         ),
+        const SizedBox(height: 8),
+        Text(
+          helpItem.content,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.5),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImageErrorWidget(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.image_not_supported_outlined,
+            size: 30,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '图片加载失败',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
       ),
     );
   }

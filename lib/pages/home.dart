@@ -15,6 +15,8 @@ import 'terminal.dart';
 import 'sftpview.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
+import '../widgets/app_style.dart';
+import '../widgets/app_toast.dart';
 
 class NativeBridge {
   static const platform = MethodChannel('com.samuioto.ConnSSH/native');
@@ -51,7 +53,6 @@ class _MainPageState extends State<MainPage> {
   final SettingsService _settingsService = SettingsService();
   bool _isFirstRun = true;
 
-  @override
   @override
   void initState() {
     super.initState();
@@ -245,8 +246,10 @@ class _MainPageState extends State<MainPage> {
         _isLoading = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('读取最近连接失败：$e'), backgroundColor: Colors.red),
+        AppToast.show(
+          context,
+          message: '读取最近连接失败：$e',
+          icon: Icons.error_outline_rounded,
         );
       }
     }
@@ -257,8 +260,10 @@ class _MainPageState extends State<MainPage> {
       await _storageService.deleteRecentConnection(connection.id);
       _loadRecentConnections();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('删除最近连接失败：$e'), backgroundColor: Colors.red),
+      AppToast.show(
+        context,
+        message: '删除最近连接失败：$e',
+        icon: Icons.error_outline_rounded,
       );
     }
   }
@@ -272,21 +277,27 @@ class _MainPageState extends State<MainPage> {
       );
 
       if (connectionExists) {
-        ScaffoldMessenger.of(
+        AppToast.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text('连接已存在')));
+          message: '连接已存在',
+          icon: Icons.info_outline_rounded,
+        );
         return;
       }
 
       // 保存连接
       await _storageService.saveConnection(connection);
 
-      ScaffoldMessenger.of(
+      AppToast.show(
         context,
-      ).showSnackBar(SnackBar(content: Text('保存连接${connection.name}成功')));
+        message: '保存连接${connection.name}成功',
+        icon: Icons.check_circle_outline_rounded,
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('保存连接失败：$e'), backgroundColor: Colors.red),
+      AppToast.show(
+        context,
+        message: '保存连接失败：$e',
+        icon: Icons.error_outline_rounded,
       );
     }
   }
@@ -296,8 +307,10 @@ class _MainPageState extends State<MainPage> {
       await _storageService.togglePinConnection(connection.id);
       _loadRecentConnections();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.orange),
+      AppToast.show(
+        context,
+        message: e.toString(),
+        icon: Icons.info_outline_rounded,
       );
     }
   }
@@ -305,23 +318,15 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     if (!_permissionsGranted) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('ConnSSH'),
-          backgroundColor: Colors.transparent,
-          //elevation: 0,
-          //foregroundColor: Theme.of(context).colorScheme.onSurface,
-        ),
-        body: const Center(child: CircularProgressIndicator()),
+      return const AppPageScaffold(
+        title: Text('ConnSSH'),
+        automaticallyImplyLeading: false,
+        body: Center(child: CircularProgressIndicator()),
       );
     }
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('ConnSSH'),
-        backgroundColor: Colors.transparent,
-        //elevation: 0,
-        //foregroundColor: Theme.of(context).colorScheme.onSurface,
-      ),
+    return AppPageScaffold(
+      title: const Text('ConnSSH'),
+      automaticallyImplyLeading: false,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final bool showRecentConnections = constraints.maxWidth >= 800;
@@ -383,7 +388,7 @@ class _MainPageState extends State<MainPage> {
                                   color: Colors.grey,
                                   width: 0.2,
                                 ),
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: AppRadius.largeRadius,
                               ),
                               child: _buildSmallConnectionTile(
                                 context,
@@ -397,7 +402,7 @@ class _MainPageState extends State<MainPage> {
                         height: 50,
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey, width: 0.2),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: AppRadius.largeRadius,
                         ),
                         child: const Align(
                           alignment: Alignment.centerLeft,
@@ -482,16 +487,22 @@ class _MainPageState extends State<MainPage> {
                           ),
                         )
                       : Expanded(
-                          child: ListView.builder(
-                            itemCount: _recentConnections.length,
-                            itemBuilder: (context, index) {
-                              final connection = _recentConnections[index];
-                              return _buildConnectionTile(
-                                context,
-                                connection,
-                                showButtonSubtitle,
-                              );
-                            },
+                          child: MediaQuery.removePadding(
+                            context: context,
+                            removeTop: true,
+                            child: ListView.builder(
+                              primary: false,
+                              padding: EdgeInsets.zero,
+                              itemCount: _recentConnections.length,
+                              itemBuilder: (context, index) {
+                                final connection = _recentConnections[index];
+                                return _buildConnectionTile(
+                                  context,
+                                  connection,
+                                  showButtonSubtitle,
+                                );
+                              },
+                            ),
                           ),
                         ),
                 ],
@@ -515,14 +526,14 @@ class _MainPageState extends State<MainPage> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.largeRadius,
           onTap: () {
             _connectTo(connection);
           },
           child: Container(
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey, width: 1),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.largeRadius,
             ),
             child: Center(
               child: Container(
@@ -555,41 +566,14 @@ class _MainPageState extends State<MainPage> {
                         ),
                       ),
                     ),
-                    PopupMenuButton<String>(
-                      icon: const Icon(
-                        Icons.more_vert,
-                        color: Color.fromARGB(255, 117, 117, 117),
-                        size: 20,
+                    Builder(
+                      builder: (buttonContext) => AppIconActionButton(
+                        tooltip: '更多',
+                        icon: Icons.more_vert_rounded,
+                        iconSize: 20,
+                        onPressed: () =>
+                            _showConnectionActionMenu(buttonContext, connection),
                       ),
-                      onSelected: (value) {
-                        _handleMenuAction(value, connection);
-                      },
-                      itemBuilder: (BuildContext context) => [
-                        const PopupMenuItem<String>(
-                          value: 'connect',
-                          child: Row(children: [Text('连接')]),
-                        ),
-                        PopupMenuItem<String>(
-                          value: 'pin',
-                          child: Row(
-                            children: [
-                              Text(connection.isPinned ? '取消置顶' : '置顶'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem<String>(
-                          value: 'save',
-                          child: Row(children: [Text('保存该连接')]),
-                        ),
-                        const PopupMenuItem<String>(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Text('删除', style: TextStyle(color: Colors.red)),
-                            ],
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
@@ -620,12 +604,12 @@ class _MainPageState extends State<MainPage> {
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey, width: 1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.largeRadius,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.largeRadius,
           onTap: () {
             _connectTo(connection);
           },
@@ -690,49 +674,56 @@ class _MainPageState extends State<MainPage> {
                 ),
 
                 // 右侧菜单按钮
-                PopupMenuButton<String>(
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: Color.fromARGB(255, 117, 117, 117),
-                    size: isLargeHeight ? 24 : 20,
+                Builder(
+                  builder: (buttonContext) => AppIconActionButton(
+                    tooltip: '更多',
+                    icon: Icons.more_vert_rounded,
+                    iconSize: isLargeHeight ? 24 : 20,
+                    onPressed: () =>
+                        _showConnectionActionMenu(buttonContext, connection),
                   ),
-                  onSelected: (value) {
-                    _handleMenuAction(value, connection);
-                  },
-                  itemBuilder: (BuildContext context) => [
-                    const PopupMenuItem<String>(
-                      value: 'connect',
-                      child: Row(children: [SizedBox(width: 8), Text('连接')]),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'pin',
-                      child: Row(
-                        children: [
-                          SizedBox(width: 8),
-                          Text(connection.isPinned ? '取消置顶' : '置顶'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'save',
-                      child: Row(children: [SizedBox(width: 8), Text('保存该连接')]),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          SizedBox(width: 8),
-                          Text('删除', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  void _showConnectionActionMenu(
+    BuildContext anchorContext,
+    ConnectionInfo connection,
+  ) {
+    showAppAnchoredActionMenu(
+      context,
+      anchorContext: anchorContext,
+      width: 174,
+      entries: [
+        AppActionMenuEntry(
+          icon: Icons.play_arrow_rounded,
+          label: '连接',
+          onTap: () => _handleMenuAction('connect', connection),
+        ),
+        AppActionMenuEntry(
+          icon: connection.isPinned
+              ? Icons.vertical_align_center_rounded
+              : Icons.vertical_align_top_rounded,
+          label: connection.isPinned ? '取消置顶' : '置顶',
+          onTap: () => _handleMenuAction('pin', connection),
+        ),
+        AppActionMenuEntry(
+          icon: Icons.bookmark_add_outlined,
+          label: '保存该连接',
+          onTap: () => _handleMenuAction('save', connection),
+        ),
+        AppActionMenuEntry(
+          icon: Icons.delete_outline_rounded,
+          label: '删除',
+          destructive: true,
+          onTap: () => _handleMenuAction('delete', connection),
+        ),
+      ],
     );
   }
 
@@ -946,7 +937,7 @@ class _MainPageState extends State<MainPage> {
           style: OutlinedButton.styleFrom(
             padding: EdgeInsets.all(screenHeight >= 500 ? 14 : 12),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.largeRadius,
             ),
             alignment: Alignment.centerLeft,
             side: const BorderSide(color: Colors.grey),

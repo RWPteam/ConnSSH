@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/app_toast.dart';
+
 class TwoFactorAuthDialog extends StatefulWidget {
   final String connectionName;
   final String host;
@@ -95,9 +97,11 @@ class _TwoFactorAuthDialogState extends State<TwoFactorAuthDialog> {
   Future<void> _submit() async {
     final code = _codeController.text.trim();
     if (code.isEmpty) {
-      ScaffoldMessenger.of(
+      AppToast.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('请输入验证码')));
+        message: '请输入验证码',
+        icon: Icons.info_outline_rounded,
+      );
       return;
     }
 

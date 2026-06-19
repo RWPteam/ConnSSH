@@ -2,11 +2,12 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../services/telnet_storage_service.dart';
-import '../../models/telnet_connection_model.dart';
+import '../services/telnet_storage_service.dart';
+import '../models/telnet_connection_model.dart';
 import '../services/telnet_service.dart';
 import 'telnet_terminal.dart';
 import '../components/telnet_connect_dialog.dart';
+import '../widgets/app_style.dart';
 
 class ManageTelnetConnectionsPage extends StatefulWidget {
   const ManageTelnetConnectionsPage({super.key});
@@ -147,6 +148,45 @@ class _ManageTelnetConnectionsPageState
     ).then((_) => _loadConnections());
   }
 
+  Future<void> _showConnectionActionSheet(
+    TelnetConnectionInfo connection,
+  ) async {
+    final value = await showAppActionSheet<String>(
+      context,
+      title: connection.name,
+      items: const [
+        AppActionSheetItem<String>(
+          value: 'connect',
+          label: '连接',
+          icon: Icons.play_arrow_rounded,
+        ),
+        AppActionSheetItem<String>(
+          value: 'edit',
+          label: '编辑',
+          icon: Icons.edit_outlined,
+        ),
+        AppActionSheetItem<String>(
+          value: 'delete',
+          label: '删除',
+          icon: Icons.delete_outline_rounded,
+          destructive: true,
+        ),
+      ],
+    );
+
+    switch (value) {
+      case 'connect':
+        _connectTo(connection);
+        break;
+      case 'edit':
+        _editConnection(connection);
+        break;
+      case 'delete':
+        _deleteConnection(connection);
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -171,14 +211,14 @@ class _ManageTelnetConnectionsPageState
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.largeRadius,
                     border: Border.all(
                       color: Colors.grey,
                       width: 1,
                     ),
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.largeRadius,
                     child: ListTile(
                       // 修改后的图标样式：圆形背景 + 主题色图标
                       leading: Container(
@@ -201,44 +241,10 @@ class _ManageTelnetConnectionsPageState
                         '${connection.host}:${connection.port}',
                         style: TextStyle(color: Colors.grey[600]),
                       ),
-                      // 修改后的操作按钮：使用 PopupMenuButton 替代 Row
-                      trailing: PopupMenuButton<String>(
-                        onSelected: (value) {
-                          switch (value) {
-                            case 'connect':
-                              _connectTo(connection);
-                              break;
-                            case 'edit':
-                              _editConnection(connection);
-                              break;
-                            case 'delete':
-                              _deleteConnection(connection);
-                              break;
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'connect',
-                            child: ListTile(
-                              title: Text('连接'),
-                            ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: ListTile(
-                              title: Text('编辑'),
-                            ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: ListTile(
-                              title: Text(
-                                '删除',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ),
-                        ],
+                      trailing: IconButton(
+                        icon: const Icon(Icons.more_vert_rounded),
+                        tooltip: '更多',
+                        onPressed: () => _showConnectionActionSheet(connection),
                       ),
                       onTap: () => _connectTo(connection),
                     ),

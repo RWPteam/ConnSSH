@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../models/app_settings_model.dart';
 import '../../services/setting_service.dart';
+import '../../widgets/app_style.dart';
+import '../../widgets/app_toast.dart';
 
 class SFTPSettingsPage extends StatefulWidget {
   final SettingsService settingsService;
@@ -44,22 +46,25 @@ class _SFTPSettingsPageState extends State<SFTPSettingsPage> {
       final newSettings = AppSettings(
         defaultSftpPath: _sftpPath.isEmpty ? null : _sftpPath,
         defaultDownloadPath: _downloadPath.isEmpty ? null : _downloadPath,
+        isFirstRun: currentSettings.isFirstRun,
         defaultFontSize: currentSettings.defaultFontSize,
         defaultTermTheme: currentSettings.defaultTermTheme,
         termType: currentSettings.termType,
         defaultPageTheme: currentSettings.defaultPageTheme,
         defaultThemeMode: currentSettings.defaultThemeMode,
+        toolbarLayout: currentSettings.toolbarLayout,
+        defaultFonts: currentSettings.defaultFonts,
+        blurEffectsEnabled: currentSettings.blurEffectsEnabled,
       );
 
       await widget.settingsService.saveSettings(newSettings);
       widget.onSettingsChanged();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('设置已保存'),
-            duration: Duration(seconds: 2),
-          ),
+        AppToast.show(
+          context,
+          message: '设置已保存',
+          icon: Icons.check_circle_outline_rounded,
         );
       }
     } catch (e) {
@@ -183,11 +188,10 @@ class _SFTPSettingsPageState extends State<SFTPSettingsPage> {
               await _saveSettings();
 
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('已清除默认下载路径'),
-                    duration: Duration(seconds: 2),
-                  ),
+                AppToast.show(
+                  context,
+                  message: '已清除默认下载路径',
+                  icon: Icons.check_circle_outline_rounded,
                 );
               }
             },
@@ -247,11 +251,10 @@ class _SFTPSettingsPageState extends State<SFTPSettingsPage> {
         await _saveSettings();
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('已清除默认下载路径'),
-              duration: Duration(seconds: 2),
-            ),
+          AppToast.show(
+            context,
+            message: '已清除默认下载路径',
+            icon: Icons.check_circle_outline_rounded,
           );
         }
       }
@@ -281,70 +284,36 @@ class _SFTPSettingsPageState extends State<SFTPSettingsPage> {
     required VoidCallback onTap,
     bool showClearButton = false,
   }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey, width: 1.0),
-        borderRadius: BorderRadius.circular(12.0),
-        color: Colors.transparent,
-      ),
-      child: ListTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        ),
-        title: Text(
-          title,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (showClearButton && _downloadPath.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: IconButton(
-                  icon: const Icon(Icons.clear, color: Colors.red, size: 20),
-                  onPressed: _clearDownloadPath,
-                  tooltip: '清除下载路径',
-                ),
-              ),
-            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-          ],
-        ),
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16.0,
-          vertical: 16.0,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
+    return AppMenuTile(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
+      onTap: onTap,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showClearButton && _downloadPath.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.clear, color: Colors.red, size: 20),
+              onPressed: _clearDownloadPath,
+              tooltip: '清除下载路径',
+            ),
+          const Icon(Icons.chevron_right_rounded),
+        ],
       ),
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('SFTP设置')),
+    return AppPageScaffold(
+      title: const Text('SFTP设置'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              children: [
                   _buildSettingTile(
                     title: '默认SFTP路径',
                     subtitle: _sftpPath,
@@ -360,8 +329,7 @@ class _SFTPSettingsPageState extends State<SFTPSettingsPage> {
                     onTap: _showDownloadPathDialog,
                     showClearButton: true,
                   ),
-                ],
-              ),
+              ],
             ),
     );
   }

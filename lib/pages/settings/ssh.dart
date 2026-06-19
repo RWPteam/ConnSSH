@@ -1,8 +1,9 @@
 import 'package:connssh/main.dart';
 import 'package:flutter/material.dart';
 import '../toolbar_customizer.dart';
-import '../../models/app_settings_model.dart';
 import '../../services/setting_service.dart';
+import '../../widgets/app_style.dart';
+import '../../widgets/app_toast.dart';
 
 class SSHSettingsPage extends StatefulWidget {
   final SettingsService settingsService;
@@ -27,7 +28,7 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
 
   final Map<String, String> _fontMap = {
     'maple': 'maple（默认）',
-    'droidsan': 'Droid Sans Mono',
+    'droidsans': 'Droid Sans Mono',
     'ohossans': 'HarmonyOS Sans',
     'jetbrain': 'Jetbrain Mono',
     'roboto': 'Roboto',
@@ -40,7 +41,7 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
     'ohossans',
     'jetbrain',
     'roboto',
-    'sauce'
+    'sauce',
   ];
 
   final Map<String, String> _termThemeMap = {
@@ -103,14 +104,14 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
     'light',
     'xshell',
     'dracula',
-    'druvbox'
+    'druvbox',
   ];
   final List<String> _termTypes = [
     'xterm-256color',
     'xterm',
     'xterm-color',
     'vt100',
-    'linux'
+    'linux',
   ];
 
   @override
@@ -133,14 +134,10 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
   Future<void> _saveSettings() async {
     try {
       final currentSettings = await widget.settingsService.getSettings();
-      final newSettings = AppSettings(
-        defaultSftpPath: currentSettings.defaultSftpPath,
-        defaultDownloadPath: currentSettings.defaultDownloadPath,
+      final newSettings = currentSettings.copyWith(
         defaultFontSize: _fontSize,
         defaultTermTheme: _termTheme,
         termType: _termType,
-        defaultPageTheme: currentSettings.defaultPageTheme,
-        defaultThemeMode: currentSettings.defaultThemeMode,
         defaultFonts: _defaultFonts,
       );
 
@@ -166,165 +163,166 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
     }
   }
 
-  void _showFontSizeDialog() {
+  Future<void> _showFontSizeDialog() async {
     double currentValue = _fontSize;
-    showDialog(
+    final saved = await showModalBottomSheet<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: const Text('字体大小设置'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, modalSetState) {
+            return SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('大小: '),
-                    Expanded(
-                      child: Slider(
-                        value: currentValue,
-                        min: 8,
-                        max: 24,
-                        divisions: 16,
-                        label: currentValue.toStringAsFixed(1),
-                        onChanged: (value) {
-                          setState(() {
-                            currentValue = value;
-                          });
-                        },
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+                      child: Text(
+                        '字体大小设置',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                     ),
-                    Text('${currentValue.toInt()}px'),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              const Text('大小: '),
+                              Expanded(
+                                child: Slider(
+                                  value: currentValue,
+                                  min: 8,
+                                  max: 24,
+                                  divisions: 16,
+                                  label: currentValue.toStringAsFixed(1),
+                                  onChanged: (value) {
+                                    modalSetState(() {
+                                      currentValue = value;
+                                    });
+                                  },
+                                ),
+                              ),
+                              Text('${currentValue.toInt()}px'),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(false),
+                                child: const Text('取消'),
+                              ),
+                              const SizedBox(width: 8),
+                              FilledButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(true),
+                                child: const Text('保存'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ],
-            ),
-            actions: [
-              OutlinedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('取消'),
               ),
-              OutlinedButton(
-                onPressed: () async {
-                  setState(() {
-                    _fontSize = currentValue;
-                  });
-                  Navigator.of(context).pop();
-                  await _saveSettings();
-                },
-                child: const Text('保存'),
-              ),
-            ],
-          );
-        },
-      ),
+            );
+          },
+        );
+      },
     );
+
+    if (saved == true) {
+      setState(() {
+        _fontSize = currentValue;
+      });
+      await _saveSettings();
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: '已更新字体大小',
+          icon: Icons.check_circle_outline_rounded,
+        );
+      }
+    }
   }
 
-  void _showFontFamilyDialog() {
-    String currentValue = _defaultFonts;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('选择字体'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: _fontList
-              .map((font) => RadioListTile<String>(
-                    title: Row(
-                      children: [
-                        Expanded(
-                          child: Text(_fontMap[font] ?? font),
-                        ),
-                        // 字体示例
-                        Container(
-                          margin: EdgeInsets.only(left: 8),
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: Colors.grey.shade300,
-                              width: 1,
-                            ),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'Aa',
-                            style: TextStyle(
-                              fontFamily: font == 'maple' ? null : font,
-                              fontSize: 16,
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.white
-                                  : Colors.black,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    value: font,
-                    groupValue: currentValue,
-                    onChanged: (value) {
-                      if (value != null) {
-                        Navigator.of(context).pop();
-                        setState(() {
-                          _defaultFonts = value;
-                        });
-                        _saveSettings();
-                      }
-                    },
-                  ))
-              .toList(),
-        ),
-        actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
-          ),
-        ],
-      ),
+  Future<void> _showFontFamilyDialog() async {
+    final value = await _showSelectionSheet<String>(
+      title: '选择字体',
+      values: _fontList,
+      currentValue: _defaultFonts,
+      labelBuilder: (font) => _fontMap[font] ?? font,
+      trailingBuilder: (font) => _buildFontPreview(font),
     );
+
+    if (value != null) {
+      setState(() {
+        _defaultFonts = value;
+      });
+      await _saveSettings();
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: '已切换字体',
+          icon: Icons.check_circle_outline_rounded,
+        );
+      }
+    }
   }
 
-  void _showTermThemeDialog() {
-    String currentValue = _termTheme;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('终端主题'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: _termThemes
-              .map((theme) => RadioListTile<String>(
-                    title: Row(
-                      children: [
-                        Expanded(
-                          child: Text(_termThemeMap[theme] ?? theme),
-                        ),
-                        // 配色示例
-                        _buildThemePreview(theme),
-                      ],
-                    ),
-                    value: theme,
-                    groupValue: currentValue,
-                    onChanged: (value) {
-                      if (value != null) {
-                        Navigator.of(context).pop();
-                        setState(() {
-                          _termTheme = value;
-                        });
-                        _saveSettings();
-                      }
-                    },
-                  ))
-              .toList(),
+  Future<void> _showTermThemeDialog() async {
+    final value = await _showSelectionSheet<String>(
+      title: '终端主题',
+      values: _termThemes,
+      currentValue: _termTheme,
+      labelBuilder: (theme) => _termThemeMap[theme] ?? theme,
+      trailingBuilder: _buildThemePreview,
+    );
+
+    if (value != null) {
+      setState(() {
+        _termTheme = value;
+      });
+      await _saveSettings();
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: '已切换终端主题',
+          icon: Icons.check_circle_outline_rounded,
+        );
+      }
+    }
+  }
+
+  Widget _buildFontPreview(String font) {
+    return Container(
+      margin: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant,
+          width: 1,
         ),
-        actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
-          ),
-        ],
+        borderRadius: AppRadius.smallRadius,
+      ),
+      child: Text(
+        'Aa',
+        style: TextStyle(
+          fontFamily: font == 'maple' ? null : font,
+          fontSize: 16,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
       ),
     );
   }
@@ -336,17 +334,18 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
     }
 
     return Container(
-      margin: EdgeInsets.only(left: 8),
+      margin: const EdgeInsets.only(left: 8),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           _buildColorSquare(colors['bg']!, Colors.white),
-          SizedBox(width: 2),
+          const SizedBox(width: 2),
           _buildColorSquare(colors['fg']!, Colors.black),
-          SizedBox(width: 2),
+          const SizedBox(width: 2),
           _buildColorSquare(colors['red']!, Colors.white),
-          SizedBox(width: 2),
+          const SizedBox(width: 2),
           _buildColorSquare(colors['green']!, Colors.white),
-          SizedBox(width: 2),
+          const SizedBox(width: 2),
           _buildColorSquare(colors['blue']!, Colors.white),
         ],
       ),
@@ -359,47 +358,121 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
       height: 20,
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: AppRadius.smallRadius,
         border: Border.all(
-          color: Colors.grey.shade400,
+          color: Theme.of(context).colorScheme.outlineVariant,
           width: 0.5,
         ),
       ),
     );
   }
 
-  void _showTermTypeDialog() {
-    String currentValue = _termType;
-    showDialog(
+  Future<void> _showTermTypeDialog() async {
+    final value = await _showSelectionSheet<String>(
+      title: '终端类型',
+      values: _termTypes,
+      currentValue: _termType,
+      labelBuilder: (type) => type,
+    );
+
+    if (value != null) {
+      setState(() {
+        _termType = value;
+      });
+      await _saveSettings();
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: '已切换终端类型',
+          icon: Icons.check_circle_outline_rounded,
+        );
+      }
+    }
+  }
+
+  Future<T?> _showSelectionSheet<T>({
+    required String title,
+    required List<T> values,
+    required T currentValue,
+    required String Function(T value) labelBuilder,
+    Widget Function(T value)? trailingBuilder,
+  }) {
+    return showModalBottomSheet<T>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('终端类型'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: _termTypes
-              .map((type) => RadioListTile<String>(
-                    title: Text(type),
-                    value: type,
-                    groupValue: currentValue,
-                    onChanged: (value) {
-                      if (value != null) {
-                        Navigator.of(context).pop();
-                        setState(() {
-                          _termType = value;
-                        });
-                        _saveSettings();
-                      }
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.sizeOf(context).height * 0.62,
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    itemCount: values.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 4),
+                    itemBuilder: (context, index) {
+                      final value = values[index];
+                      final bool selected = value == currentValue;
+                      return AppPressable(
+                        onTap: () => Navigator.of(context).pop(value),
+                        borderRadius: AppRadius.largeRadius,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? Theme.of(context).colorScheme.primaryContainer
+                                      .withOpacity(0.72)
+                                : Colors.transparent,
+                            borderRadius: AppRadius.largeRadius,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(child: Text(labelBuilder(value))),
+                              if (trailingBuilder != null)
+                                trailingBuilder(value),
+                              const SizedBox(width: 8),
+                              AnimatedOpacity(
+                                opacity: selected ? 1 : 0,
+                                duration: const Duration(milliseconds: 160),
+                                child: Icon(
+                                  Icons.check_rounded,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
                     },
-                  ))
-              .toList(),
-        ),
-        actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -424,106 +497,54 @@ class _SSHSettingsPageState extends State<SSHSettingsPage> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.grey,
-          width: 1.0,
-        ),
-        borderRadius: BorderRadius.circular(12.0),
-        color: Colors.transparent,
-      ),
-      child: ListTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey.shade600,
-          ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: Colors.grey,
-        ),
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16.0,
-          vertical: 16.0,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
-      ),
+    return AppMenuTile(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
+      onTap: onTap,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('SSH设置'),
-      ),
+    return AppPageScaffold(
+      title: const Text('SSH设置'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
-                  _buildSettingTile(
-                    title: '字体',
-                    subtitle: _fontMap[_defaultFonts] ?? _defaultFonts,
-                    onTap: _showFontFamilyDialog,
-                    icon: Icons.font_download,
-                  ),
-                  _buildSettingTile(
-                    title: '字体大小',
-                    subtitle: '${_fontSize.toInt()}px',
-                    onTap: _showFontSizeDialog,
-                    icon: Icons.text_fields,
-                  ),
-                  _buildSettingTile(
-                    title: '终端主题',
-                    subtitle: _termThemeMap[_termTheme] ?? _termTheme,
-                    onTap: _showTermThemeDialog,
-                    icon: Icons.palette,
-                  ),
-                  _buildSettingTile(
-                    title: '终端类型',
-                    subtitle: _termType,
-                    onTap: _showTermTypeDialog,
-                    icon: Icons.category,
-                  ),
-                  _buildSettingTile(
-                    title: '自定义快捷栏',
-                    subtitle: '配置快捷栏样式',
-                    onTap: _showCustomShortcutBarMessage,
-                    icon: Icons.dashboard_customize,
-                  ),
-                ],
-              ),
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              children: [
+                _buildSettingTile(
+                  title: '字体',
+                  subtitle: _fontMap[_defaultFonts] ?? _defaultFonts,
+                  onTap: _showFontFamilyDialog,
+                  icon: Icons.font_download,
+                ),
+                _buildSettingTile(
+                  title: '字体大小',
+                  subtitle: '${_fontSize.toInt()}px',
+                  onTap: _showFontSizeDialog,
+                  icon: Icons.text_fields,
+                ),
+                _buildSettingTile(
+                  title: '终端主题',
+                  subtitle: _termThemeMap[_termTheme] ?? _termTheme,
+                  onTap: _showTermThemeDialog,
+                  icon: Icons.palette,
+                ),
+                _buildSettingTile(
+                  title: '终端类型',
+                  subtitle: _termType,
+                  onTap: _showTermTypeDialog,
+                  icon: Icons.category,
+                ),
+                _buildSettingTile(
+                  title: '自定义快捷栏',
+                  subtitle: '配置快捷栏样式',
+                  onTap: _showCustomShortcutBarMessage,
+                  icon: Icons.dashboard_customize,
+                ),
+              ],
             ),
     );
   }
