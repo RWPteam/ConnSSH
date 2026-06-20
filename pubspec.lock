@@ -60,11 +60,12 @@ packages:
   code_text_field:
     dependency: "direct main"
     description:
-      name: code_text_field
-      sha256: "0cbffbb2932cf82e1d022996388041de3493a476acad3fbb13e5917cac0fc5f2"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.0"
+      path: "."
+      ref: HEAD
+      resolved-ref: "046bfe00161f03c5c24ca04724a3ad60c3edb3e8"
+      url: "https://github.com/samu1oto/code_field.git"
+    source: git
+    version: "1.1.1"
   collection:
     dependency: transitive
     description:
@@ -872,10 +873,10 @@ packages:
     dependency: transitive
     description:
       name: win32
-      sha256: "5a751eddf9db89b3e5f9d50c20ab8612296e4e8db69009788d6c8b060a84191c"
+      sha256: "329edf97fdd893e0f1e3b9e88d6a0e627128cc17cc316a8d67fda8f1451178ba"
       url: "https://pub.dev"
     source: hosted
-    version: "4.1.4"
+    version: "5.13.0"
   xdg_directories:
     dependency: transitive
     description:

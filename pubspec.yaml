@@ -72,7 +72,9 @@ dependencies:
   pointycastle: ^3.9.1
   encrypt: ^5.0.3
   asn1lib: ^1.6.5
-  code_text_field: ^1.1.0
+  code_text_field:
+    git:
+      url: https://github.com/samu1oto/code_field.git
   highlight: ^0.7.0
   ctelnet: ^0.3.1
   fast_gbk: ^1.0.0
@@ -122,6 +124,9 @@ dependency_overrides:
     git: 
       url: https://gitcode.com/openharmony-tpc/flutter_packages.git
       path: packages/path_provider/path_provider
+  code_text_field:
+    git:
+      url: https://github.com/samu1oto/code_field.git
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

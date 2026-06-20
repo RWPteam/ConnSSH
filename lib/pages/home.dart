@@ -128,7 +128,7 @@ class _MainPageState extends State<MainPage> {
     await Permission.photos.request();
     //final storageStatusHigh = await Permission.manageExternalStorage.request();
     await Permission.notification.request();
-    await Permission.backgroundRefresh.request();
+    //sawait Permission.backgroundRefresh.request();
     final storageStatus = await Permission.storage.status;
     //final storageStatusHigh = await Permission.manageExternalStorage.status;
     final notificationStatus = await Permission.notification.status;

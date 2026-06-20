@@ -119,6 +119,7 @@ class AppThemeFactory {
           TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
           TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
           TargetPlatform.fuchsia: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.ohos: CupertinoPageTransitionsBuilder()
         },
       ),
       appBarTheme: AppBarTheme(
