@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'pages/home.dart';
 import 'models/app_settings_model.dart';
 import 'services/setting_service.dart';
+import 'widgets/app_style.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,6 +13,8 @@ void main() {
   platform.setMethodCallHandler((call) async {
     return null;
   });
+
+
   runApp(const MyApp());
 }
 
@@ -73,9 +76,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       GlobalCupertinoLocalizations.delegate,
     ];
 
-    const List<Locale> supportedLocales = [
-      Locale('zh', 'CH'),
-    ];
+    const List<Locale> supportedLocales = [Locale('zh', 'CH')];
 
     if (_isLoading) {
       return const MaterialApp(
@@ -101,93 +102,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       ),
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(),
-          child: child!,
+        return AppVisualEffects(
+          blurEnabled: _currentSettings.blurEffectsEnabled,
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(),
+            child: child!,
+          ),
         );
       },
     );
   }
 
   ThemeData _buildTheme(Brightness brightness) {
-    if (_currentSettings.defaultPageTheme == 'monochrome') {
-      final isDark = brightness == Brightness.dark;
-      ColorScheme colorScheme;
-
-      if (isDark) {
-        colorScheme = ColorScheme(
-          brightness: Brightness.dark,
-          primary: Colors.white,
-          onPrimary: Colors.black,
-          secondary: Colors.grey[300]!,
-          onSecondary: Colors.black,
-          error: Colors.redAccent,
-          onError: Colors.white,
-          surface: Colors.grey[900]!,
-          onSurface: Colors.white,
-          surfaceContainerHighest: Colors.grey[800]!,
-          onSurfaceVariant: Colors.grey[300]!,
-          outline: Colors.grey[700]!,
-          outlineVariant: Colors.grey[800]!,
-          shadow: Colors.black,
-          scrim: Colors.black54,
-          inverseSurface: Colors.grey[200]!,
-          onInverseSurface: Colors.black,
-          inversePrimary: Colors.black,
-          primaryContainer: Colors.grey[900]!,
-          onPrimaryContainer: Colors.white,
-          secondaryContainer: Colors.grey[800]!,
-          onSecondaryContainer: Colors.white,
-          tertiary: Colors.grey[500]!,
-          onTertiary: Colors.black,
-          tertiaryContainer: Colors.grey[700]!,
-          onTertiaryContainer: Colors.white,
-          errorContainer: Colors.red[900]!,
-          onErrorContainer: Colors.white,
-          surfaceTint: Colors.transparent,
-        );
-      } else {
-        colorScheme = ColorScheme(
-          brightness: Brightness.light,
-          primary: Colors.black,
-          onPrimary: Colors.white,
-          secondary: Colors.grey[700]!,
-          onSecondary: Colors.white,
-          error: Colors.redAccent,
-          onError: Colors.white,
-          surface: Colors.grey[100]!,
-          onSurface: Colors.black,
-          surfaceContainerHighest: Colors.grey[200]!,
-          onSurfaceVariant: Colors.grey[800]!,
-          outline: Colors.grey[300]!,
-          outlineVariant: Colors.grey[200]!,
-          shadow: Colors.black,
-          scrim: Colors.black54,
-          inverseSurface: Colors.grey[800]!,
-          onInverseSurface: Colors.white,
-          inversePrimary: Colors.white,
-          primaryContainer: Colors.grey[100]!,
-          onPrimaryContainer: Colors.black,
-          secondaryContainer: Colors.grey[200]!,
-          onSecondaryContainer: Colors.black,
-          tertiary: Colors.grey[500]!,
-          onTertiary: Colors.white,
-          tertiaryContainer: Colors.grey[300]!,
-          onTertiaryContainer: Colors.black,
-          errorContainer: Colors.red[100]!,
-          onErrorContainer: Colors.red[900]!,
-          surfaceTint: Colors.transparent,
-        );
-      }
-
-      return ThemeData(
-        fontFamily: 'hmossans',
-        colorScheme: colorScheme,
-        useMaterial3: true,
-      );
-    }
+    final systemOverlayStyle = brightness == Brightness.light
+        ? SystemUiOverlayStyle.dark
+        : SystemUiOverlayStyle.light;
 
     Color seedColor;
+    bool monochrome = false;
     switch (_currentSettings.defaultPageTheme) {
       case 'orange':
         seedColor = Colors.orange;
@@ -213,18 +145,22 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       case 'indigo':
         seedColor = Colors.indigo;
         break;
+      case 'monochrome':
+        seedColor = Colors.black;
+        monochrome = true;
+        break;
       case 'default':
       default:
         seedColor = Colors.blueAccent;
     }
 
-    return ThemeData(
+    return AppThemeFactory.build(
+      brightness: brightness,
+      seedColor: seedColor,
+      monochrome: monochrome,
       fontFamily: 'hmossans',
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: seedColor,
-        brightness: brightness,
-      ),
-      useMaterial3: true,
+      systemOverlayStyle: systemOverlayStyle,
     );
   }
+
 }

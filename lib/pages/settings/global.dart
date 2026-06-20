@@ -1,12 +1,13 @@
-// global_settings_page.dart
 import 'dart:async';
 import 'dart:io';
-
 import 'package:file_picker_ohos/file_picker_ohos.dart';
 import 'package:flutter/material.dart';
 import 'package:connssh/main.dart';
+import 'package:path/path.dart' as path;
 import '../../models/app_settings_model.dart';
 import '../../services/setting_service.dart';
+import '../../widgets/app_style.dart';
+import '../../widgets/app_toast.dart';
 import '../../services/backup_service.dart';
 import '../../services/storage_service.dart';
 import 'theme.dart';
@@ -80,11 +81,14 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                           borderRadius: BorderRadius.circular(12.0),
                         ),
                         suffixIcon: IconButton(
-                          icon: Icon(passwordObscure
-                              ? Icons.visibility
-                              : Icons.visibility_off),
+                          icon: Icon(
+                            passwordObscure
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
                           onPressed: () => setState(
-                              () => passwordObscure = !passwordObscure),
+                            () => passwordObscure = !passwordObscure,
+                          ),
                         ),
                       ),
                     ),
@@ -98,11 +102,15 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                           borderRadius: BorderRadius.circular(12.0),
                         ),
                         suffixIcon: IconButton(
-                          icon: Icon(confirmPasswordObscure
-                              ? Icons.visibility
-                              : Icons.visibility_off),
-                          onPressed: () => setState(() =>
-                              confirmPasswordObscure = !confirmPasswordObscure),
+                          icon: Icon(
+                            confirmPasswordObscure
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () => setState(
+                            () => confirmPasswordObscure =
+                                !confirmPasswordObscure,
+                          ),
                         ),
                       ),
                     ),
@@ -123,14 +131,20 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                 OutlinedButton(
                   onPressed: () async {
                     if (passwordController.text.isEmpty) {
-                      ScaffoldMessenger.of(pageContext)
-                          .showSnackBar(const SnackBar(content: Text('请输入密码')));
+                      AppToast.show(
+                        pageContext,
+                        message: '请输入密码',
+                        icon: Icons.info_outline_rounded,
+                      );
                       return;
                     }
                     if (passwordController.text !=
                         confirmPasswordController.text) {
-                      ScaffoldMessenger.of(pageContext).showSnackBar(
-                          const SnackBar(content: Text('两次输入的密码不一致')));
+                      AppToast.show(
+                        pageContext,
+                        message: '两次输入的密码不一致',
+                        icon: Icons.info_outline_rounded,
+                      );
                       return;
                     }
 
@@ -156,8 +170,9 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
 
                     Future<void> backupOperation() async {
                       try {
-                        final filePath = await _backupService
-                            .backupData(passwordController.text);
+                        final filePath = await _backupService.backupData(
+                          passwordController.text,
+                        );
 
                         if (!mounted) return;
 
@@ -165,15 +180,20 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
 
                         await Future.delayed(const Duration(milliseconds: 100));
 
-                        if (Navigator.of(pageContext, rootNavigator: true)
-                            .canPop()) {
+                        if (Navigator.of(
+                          pageContext,
+                          rootNavigator: true,
+                        ).canPop()) {
                           Navigator.of(pageContext, rootNavigator: true).pop();
                         }
 
                         await loadingDialogFuture;
 
                         _showResultDialog(
-                            pageContext, '备份成功', '备份文件已保存到:\n$filePath');
+                          pageContext,
+                          '备份成功',
+                          '备份文件已保存到:\n$filePath',
+                        );
                       } catch (e) {
                         if (!mounted) return;
 
@@ -181,15 +201,20 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
 
                         await Future.delayed(const Duration(milliseconds: 100));
 
-                        if (Navigator.of(pageContext, rootNavigator: true)
-                            .canPop()) {
+                        if (Navigator.of(
+                          pageContext,
+                          rootNavigator: true,
+                        ).canPop()) {
                           Navigator.of(pageContext, rootNavigator: true).pop();
                         }
 
                         await loadingDialogFuture;
 
                         _showResultDialog(
-                            pageContext, '备份失败', '错误: $e\n请检查存储空间');
+                          pageContext,
+                          '备份失败',
+                          '错误: $e\n请检查存储空间',
+                        );
                       }
                     }
 
@@ -225,6 +250,7 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
     final passwordController = TextEditingController();
     bool isObscure = true;
     String? selectedFilePath;
+    bool useAppBackupDir = false;
 
     showDialog(
       context: context,
@@ -237,34 +263,120 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(height: 16),
+                  // 文件选择
                   OutlinedButton.icon(
                     onPressed: () async {
                       try {
                         final FilePickerResult? result =
                             await FilePicker.platform.pickFiles(
-                          type: FileType.any,
-                          dialogTitle: '选择备份文件',
-                          allowMultiple: false,
-                        );
+                              type: FileType.any,
+                              dialogTitle: '选择备份文件',
+                              allowMultiple: false,
+                            );
 
                         if (result != null && result.files.isNotEmpty) {
                           PlatformFile file = result.files.first;
                           setState(() {
                             selectedFilePath = file.path;
+                            useAppBackupDir = false;
                           });
                         }
                       } catch (e) {}
                     },
                     icon: const Icon(Icons.folder_open),
                     label: Text(
-                      selectedFilePath != null
-                          ? selectedFilePath!.split('/').last
+                      selectedFilePath != null && !useAppBackupDir
+                          ? path.basename(selectedFilePath!)
                           : '选择备份文件',
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
                   ),
-                  if (selectedFilePath != null) ...[
+                  const SizedBox(height: 8),
+                  // 从应用备份目录读取
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      try {
+                        final files = await _backupService.getBackupFiles();
+                        if (!mounted) return;
+                        if (files.isEmpty) {
+                          AppToast.show(
+                            context,
+                            message: '备份目录中没有找到备份文件',
+                            icon: Icons.info_outline_rounded,
+                          );
+                          return;
+                        }
+                        final selected = await showDialog<FileSystemEntity>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('选择备份文件'),
+                            content: Container(
+                              width: double.maxFinite,
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: files.length,
+                                itemBuilder: (ctx, index) {
+                                  final file = files[index];
+                                  final fileName = path.basename(file.path);
+                                  return ListTile(
+                                    title: Text(fileName),
+                                    onTap: () => Navigator.of(ctx).pop(file),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        );
+                        if (selected != null) {
+                          setState(() {
+                            selectedFilePath = selected.path;
+                            useAppBackupDir = true;
+                          });
+                        }
+                      } catch (e) {
+                        AppToast.show(
+                          context,
+                          message: '读取备份目录失败: $e',
+                          icon: Icons.error_outline_rounded,
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.storage),
+                    label: Text(
+                      useAppBackupDir && selectedFilePath != null
+                          ? path.basename(selectedFilePath!)
+                          : '从应用备份目录读取',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                  if (useAppBackupDir && selectedFilePath != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.info_outline, size: 16),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '已选择应用备份目录中的文件',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (selectedFilePath != null && !useAppBackupDir) ...[
                     const SizedBox(height: 8),
                   ],
                   const SizedBox(height: 12),
@@ -309,8 +421,8 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                 child: const Text('取消'),
               ),
               OutlinedButton(
-                onPressed: selectedFilePath == null ||
-                        passwordController.text.isEmpty
+                onPressed:
+                    selectedFilePath == null || passwordController.text.isEmpty
                     ? null
                     : () async {
                         // 确认恢复
@@ -318,10 +430,13 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                           context: context,
                           builder: (context) => AlertDialog(
                             title: const Text('这是最后一次确认'),
-                            content: const Text('此操作将覆盖所有现有数据，且不可撤销，确定要恢复吗？',
-                                style: TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.bold)),
+                            content: const Text(
+                              '此操作将覆盖所有现有数据，且不可撤销，确定要恢复吗？',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             actions: [
                               OutlinedButton(
                                 onPressed: () => Navigator.of(context).pop(),
@@ -330,14 +445,19 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                               OutlinedButton(
                                 onPressed: () async {
                                   Navigator.of(context).pop();
-                                  if (Navigator.of(context, rootNavigator: true)
-                                      .canPop()) {
-                                    Navigator.of(context, rootNavigator: true)
-                                        .pop();
+                                  if (Navigator.of(
+                                    context,
+                                    rootNavigator: true,
+                                  ).canPop()) {
+                                    Navigator.of(
+                                      context,
+                                      rootNavigator: true,
+                                    ).pop();
                                   }
                                   final NavigatorState navigator = Navigator.of(
-                                      this.context,
-                                      rootNavigator: true);
+                                    this.context,
+                                    rootNavigator: true,
+                                  );
                                   showDialog(
                                     context: context,
                                     barrierDismissible: false,
@@ -355,11 +475,11 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                                   );
 
                                   try {
-                                    final backupData =
-                                        await _backupService.restoreData(
-                                      selectedFilePath!,
-                                      passwordController.text,
-                                    );
+                                    final backupData = await _backupService
+                                        .restoreData(
+                                          selectedFilePath!,
+                                          passwordController.text,
+                                        );
 
                                     await _backupService.applyRestoredData(
                                       backupData,
@@ -397,11 +517,14 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                                     );
                                   } catch (e) {
                                     // 关闭加载对话框
-                                    if (Navigator.of(context,
-                                            rootNavigator: true)
-                                        .canPop()) {
-                                      Navigator.of(context, rootNavigator: true)
-                                          .pop();
+                                    if (Navigator.of(
+                                      context,
+                                      rootNavigator: true,
+                                    ).canPop()) {
+                                      Navigator.of(
+                                        context,
+                                        rootNavigator: true,
+                                      ).pop();
                                     }
 
                                     showDialog(
@@ -454,10 +577,10 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
               widget.onSettingsChanged();
               MyApp.of(context)?.loadSettings();
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('已恢复默认设置'),
-                  ),
+                AppToast.show(
+                  context,
+                  message: '已恢复默认设置',
+                  icon: Icons.check_circle_outline_rounded,
                 );
               }
             },
@@ -474,74 +597,24 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.grey,
-          width: 1.0,
-        ),
-        borderRadius: BorderRadius.circular(12.0),
-        color: Colors.transparent,
-      ),
-      child: ListTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey.shade600,
-          ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: Colors.grey,
-        ),
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16.0,
-          vertical: 16.0,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
-      ),
+    return AppMenuTile(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
+      onTap: onTap,
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('全局设置'),
-      ),
+    return AppPageScaffold(
+      title: const Text('全局设置'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              children: [
                   _buildSettingTile(
                     icon: Icons.color_lens,
                     title: '主题设置',
@@ -576,8 +649,7 @@ class _GlobalSettingsPageState extends State<GlobalSettingsPage> {
                     subtitle: '将所有设置恢复为默认值',
                     onTap: _resetToDefaults,
                   ),
-                ],
-              ),
+              ],
             ),
     );
   }

@@ -1,10 +1,11 @@
-// settings_main.dart
 import 'package:flutter/material.dart';
+
+import '../services/setting_service.dart';
+import '../widgets/app_style.dart';
 import 'help.dart';
-import 'settings/ssh.dart';
-import 'settings/sftp.dart';
 import 'settings/global.dart';
-import '../../services/setting_service.dart';
+import 'settings/sftp.dart';
+import 'settings/ssh.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -17,31 +18,11 @@ class PageState extends State<SettingsPage> {
   final SettingsService Service = SettingsService();
 
   final List<Map<String, dynamic>> _menuItems = [
-    {
-      'title': 'SSH设置',
-      'subtitle': '字体大小、终端主题、快捷栏等',
-      'icon': Icons.terminal,
-    },
-    {
-      'title': 'SFTP设置',
-      'subtitle': '默认路径、下载目录等',
-      'icon': Icons.folder,
-    },
-    {
-      'title': '全局设置',
-      'subtitle': '页面主题、恢复默认设置',
-      'icon': Icons.settings,
-    },
-    {
-      'title': '帮助',
-      'subtitle': '帮助文档、版本信息',
-      'icon': Icons.help,
-    },
-    {
-      'title': '开放源代码许可',
-      'subtitle': '查看应用使用的许可证',
-      'icon': Icons.description,
-    },
+    {'title': 'SSH设置', 'subtitle': '字体大小、终端主题、快捷栏等', 'icon': Icons.terminal},
+    {'title': 'SFTP设置', 'subtitle': '默认路径、下载目录等', 'icon': Icons.folder},
+    {'title': '全局设置', 'subtitle': '页面主题、恢复默认设置', 'icon': Icons.settings},
+    {'title': '帮助', 'subtitle': '帮助文档、版本信息', 'icon': Icons.help},
+    {'title': '开放源代码许可', 'subtitle': '查看应用使用的许可证', 'icon': Icons.description},
   ];
 
   void _navigateToSettingsPage(int index, BuildContext context) {
@@ -82,112 +63,54 @@ class PageState extends State<SettingsPage> {
       case 3:
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => const HelpPage(),
-          ),
+          MaterialPageRoute(builder: (context) => const HelpPage()),
         );
         break;
       case 4:
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => const LicensePage(),
-          ),
+          MaterialPageRoute(builder: (context) => const LicensePage()),
         );
         break;
     }
   }
 
   Widget _buildMenuItem(Map<String, dynamic> item, int index) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.grey,
-          width: 1.0,
-        ),
-        borderRadius: BorderRadius.circular(12.0),
-        color: Colors.transparent,
-      ),
-      child: ListTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            item['icon'],
-            color: Theme.of(context).colorScheme.primary,
-            size: 20,
-          ),
-        ),
-        title: Text(
-          item['title'],
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        subtitle: Text(
-          item['subtitle'],
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey.shade600,
-          ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: Colors.grey,
-        ),
-        onTap: () => _navigateToSettingsPage(index, context),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16.0,
-          vertical: 16.0,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
-      ),
+    return AppMenuTile(
+      icon: item['icon'],
+      title: item['title'],
+      subtitle: item['subtitle'],
+      onTap: () => _navigateToSettingsPage(index, context),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('设置'),
-      ),
+    return AppPageScaffold(
+      title: const Text('设置'),
       body: Column(
         children: [
-          const SizedBox(height: 24),
           Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ..._menuItems.asMap().entries.map(
-                        (entry) => _buildMenuItem(entry.value, entry.key),
-                      ),
-                  const SizedBox(height: 20),
-                ],
-              ),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              children: [
+                ..._menuItems.asMap().entries.map(
+                      (entry) => _buildMenuItem(entry.value, entry.key),
+                    ),
+                const SizedBox(height: 8),
+              ],
             ),
           ),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16.0),
-            color: Theme.of(context).colorScheme.surface,
-            child: Text(
-              '鲁ICP备2024127829号-5A',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Text(
+                '鲁ICP备2024127829号-5A',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
               ),
             ),
           ),

@@ -2,15 +2,17 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:basic_utils/basic_utils.dart';
+import 'package:file_picker_ohos/file_picker_ohos.dart' show FilePicker;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:dartssh2/dartssh2.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:file_picker_ohos/file_picker_ohos.dart';
 import '../models/connection_model.dart';
 import '../services/rsa_key_service.dart';
 import '../services/ecdsa_key_service.dart';
+import '../services/setting_service.dart';
 import '../services/storage_service.dart';
 import '../services/ssh_service.dart';
 import '../components/quick_connect_dialog.dart';
@@ -52,7 +54,7 @@ class _KeygenPageState extends State<KeygenPage> {
     'p224',
     'p256',
     'p384',
-    'p521'
+    'p521',
   ];
 
   final List<String> _formatOptions = ['pkcs1', 'pkcs8'];
@@ -143,10 +145,7 @@ class _KeygenPageState extends State<KeygenPage> {
           _ecdsaCurve,
         );
 
-        ECDSAKeyService.encodePublicKeyToOpenSSH(
-          publicKeyObj,
-          _ecdsaCurve,
-        );
+        ECDSAKeyService.encodePublicKeyToOpenSSH(publicKeyObj, _ecdsaCurve);
       }
 
       if (_passwordController.text.isNotEmpty) {
@@ -253,7 +252,9 @@ class _KeygenPageState extends State<KeygenPage> {
 
   // OHOS平台保存公钥
   Future<String?> _savePublicKeyOnOhos(
-      String baseName, String? privateKeyPath) async {
+    String baseName,
+    String? privateKeyPath,
+  ) async {
     try {
       final appDocDir = await getApplicationDocumentsDirectory();
       final keyDir = Directory('${appDocDir.path}/Keys');
@@ -320,18 +321,16 @@ class _KeygenPageState extends State<KeygenPage> {
     try {
       final baseName = _getBaseFileName();
 
-      if (Platform.isAndroid) {
-        // 安卓平台：保存到/sdcard/Download/ConnSSH/key/
-        const String basePath = '/sdcard/Download';
-        const String keyDirPath = '$basePath/ConnSSH/key';
+      if (Platform.isAndroid || Platform.isIOS) {
+        final keyDirPath = await SettingsService.getPlatformDefaultKeyPath();
 
         final keyDir = Directory(keyDirPath);
         if (!await keyDir.exists()) {
           await keyDir.create(recursive: true);
         }
 
-        final privatePath = '$keyDirPath/$baseName';
-        final publicPath = '$privatePath.pub';
+        final privatePath = p.join(keyDirPath, baseName);
+        final publicPath = p.join(keyDirPath, '$baseName.pub');
 
         await _saveKeyPairToPath(privatePath, publicPath);
       } else if (Platform.operatingSystem == 'ohos') {
@@ -356,9 +355,7 @@ class _KeygenPageState extends State<KeygenPage> {
         }
       } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
         // Windows/Linux/macOS：使用文件选择器
-        final privateKeyFile = await getSaveLocation(
-          suggestedName: baseName,
-        );
+        final privateKeyFile = await getSaveLocation(suggestedName: baseName);
 
         if (privateKeyFile != null) {
           final privatePath = privateKeyFile.path;
@@ -382,9 +379,7 @@ class _KeygenPageState extends State<KeygenPage> {
         }
       } else {
         // 其他平台：尝试使用文件选择器
-        final privateKeyFile = await getSaveLocation(
-          suggestedName: baseName,
-        );
+        final privateKeyFile = await getSaveLocation(suggestedName: baseName);
 
         if (privateKeyFile != null) {
           final privatePath = privateKeyFile.path;
@@ -651,7 +646,8 @@ class _KeygenPageState extends State<KeygenPage> {
   Future<void> _uploadFile(String content, String remotePath) async {
     final remoteFile = await _sftpClient.open(
       remotePath,
-      mode: SftpFileOpenMode.create |
+      mode:
+          SftpFileOpenMode.create |
           SftpFileOpenMode.write |
           SftpFileOpenMode.truncate,
     );
@@ -684,19 +680,13 @@ class _KeygenPageState extends State<KeygenPage> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.fixed,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.fixed),
     );
   }
 
   void _showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.fixed,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.fixed),
     );
   }
 
@@ -707,9 +697,7 @@ class _KeygenPageState extends State<KeygenPage> {
         MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('密钥生成'),
-      ),
+      appBar: AppBar(title: const Text('密钥生成')),
       body: isLandscape
           ? _buildLandscapeLayout(colorScheme)
           : _buildPortraitLayout(colorScheme),
@@ -721,140 +709,136 @@ class _KeygenPageState extends State<KeygenPage> {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(left: 4, bottom: 12),
+                child: Text(
+                  '生成参数',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
                 children: [
-                  const Text(
-                    '生成参数',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _keyAlgorithm,
+                      decoration: InputDecoration(
+                        labelText: '密钥算法',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: _algorithmOptions.map((algorithm) {
+                        return DropdownMenuItem(
+                          value: algorithm.toLowerCase(),
+                          child: Text(algorithm),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _keyAlgorithm = value;
+                            if (value == 'rsa') {
+                              _keySize = 2048;
+                            } else {
+                              _ecdsaCurve = 'p256';
+                            }
+                          });
+                        }
+                      },
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          value: _keyAlgorithm,
-                          decoration: InputDecoration(
-                            labelText: '密钥算法',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                          ),
-                          items: _algorithmOptions.map((algorithm) {
-                            return DropdownMenuItem(
-                              value: algorithm.toLowerCase(),
-                              child: Text(algorithm),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() {
-                                _keyAlgorithm = value;
-                                if (value == 'rsa') {
-                                  _keySize = 2048;
-                                } else {
-                                  _ecdsaCurve = 'p256';
-                                }
-                              });
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<dynamic>(
+                      value: _keyAlgorithm == 'rsa'
+                          ? _keySize
+                          : _ecdsaCurve,
+                      decoration: InputDecoration(
+                        labelText: _keyAlgorithm == 'rsa' ? '密钥长度' : '椭圆曲线',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: _currentKeyOptions.map((option) {
+                        return DropdownMenuItem(
+                          value: option,
+                          child: Text(_getKeySizeLabel(option)),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            if (_keyAlgorithm == 'rsa') {
+                              _keySize = value as int;
+                            } else {
+                              _ecdsaCurve = value as String;
                             }
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: DropdownButtonFormField<dynamic>(
-                          value:
-                              _keyAlgorithm == 'rsa' ? _keySize : _ecdsaCurve,
-                          decoration: InputDecoration(
-                            labelText: _keyAlgorithm == 'rsa' ? '密钥长度' : '椭圆曲线',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                          ),
-                          items: _currentKeyOptions.map((option) {
-                            return DropdownMenuItem(
-                              value: option,
-                              child: Text(_getKeySizeLabel(option)),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() {
-                                if (_keyAlgorithm == 'rsa') {
-                                  _keySize = value as int;
-                                } else {
-                                  _ecdsaCurve = value as String;
-                                }
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          value: _keyFormat,
-                          decoration: InputDecoration(
-                            labelText: '密钥格式',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            enabled: _keyAlgorithm == 'rsa',
-                          ),
-                          items: _formatOptions.map((format) {
-                            return DropdownMenuItem(
-                              value: format,
-                              child: Text(format.toUpperCase()),
-                            );
-                          }).toList(),
-                          onChanged: _keyAlgorithm == 'rsa'
-                              ? (value) {
-                                  if (value != null) {
-                                    setState(() => _keyFormat = value);
-                                  }
-                                }
-                              : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(
-                      labelText: '私钥密码（可选）',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      hintText: '为空则不设置密码保护',
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 16,
-                      ),
+                          });
+                        }
+                      },
                     ),
-                    obscureText: true,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _keyFormat,
+                      decoration: InputDecoration(
+                        labelText: '密钥格式',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        enabled: _keyAlgorithm == 'rsa',
+                      ),
+                      items: _formatOptions.map((format) {
+                        return DropdownMenuItem(
+                          value: format,
+                          child: Text(format.toUpperCase()),
+                        );
+                      }).toList(),
+                      onChanged: _keyAlgorithm == 'rsa'
+                          ? (value) {
+                              if (value != null) {
+                                setState(() => _keyFormat = value);
+                              }
+                            }
+                          : null,
+                    ),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _passwordController,
+                decoration: InputDecoration(
+                  labelText: '私钥密码（可选）',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  hintText: '为空则不设置密码保护',
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
+                  ),
+                ),
+                obscureText: true,
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Row(
@@ -906,10 +890,7 @@ class _KeygenPageState extends State<KeygenPage> {
                           ),
                         )
                       : null,
-                  label: const Text(
-                    '上传',
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  label: const Text('上传', style: TextStyle(fontSize: 16)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -919,10 +900,7 @@ class _KeygenPageState extends State<KeygenPage> {
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 50),
                   ),
-                  label: const Text(
-                    '保存',
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  label: const Text('保存', style: TextStyle(fontSize: 16)),
                 ),
               ),
             ],
@@ -1005,19 +983,21 @@ class _KeygenPageState extends State<KeygenPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(left: 4, bottom: 12),
+                        child: Text(
                           '生成参数',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                      ),
                         const SizedBox(height: 16),
                         // 算法选择
                         DropdownButtonFormField<String>(
@@ -1055,8 +1035,9 @@ class _KeygenPageState extends State<KeygenPage> {
                         const SizedBox(height: 12),
                         // 密钥长度/曲线选择
                         DropdownButtonFormField<dynamic>(
-                          value:
-                              _keyAlgorithm == 'rsa' ? _keySize : _ecdsaCurve,
+                          value: _keyAlgorithm == 'rsa'
+                              ? _keySize
+                              : _ecdsaCurve,
                           isExpanded: true,
                           decoration: InputDecoration(
                             labelText: _keyAlgorithm == 'rsa' ? '密钥长度' : '椭圆曲线',
@@ -1136,7 +1117,6 @@ class _KeygenPageState extends State<KeygenPage> {
                       ],
                     ),
                   ),
-                ),
                 const SizedBox(height: 16),
                 Column(
                   children: [
@@ -1189,10 +1169,7 @@ class _KeygenPageState extends State<KeygenPage> {
                                 ),
                               )
                             : null,
-                        label: const Text(
-                          '上传',
-                          style: TextStyle(fontSize: 16),
-                        ),
+                        label: const Text('上传', style: TextStyle(fontSize: 16)),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -1203,10 +1180,7 @@ class _KeygenPageState extends State<KeygenPage> {
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(0, 50),
                         ),
-                        label: const Text(
-                          '保存',
-                          style: TextStyle(fontSize: 16),
-                        ),
+                        label: const Text('保存', style: TextStyle(fontSize: 16)),
                       ),
                     ),
                   ],
@@ -1283,10 +1257,7 @@ class _KeygenPageState extends State<KeygenPage> {
     );
   }
 
-  Widget _buildKeyCard({
-    required String title,
-    required String keyContent,
-  }) {
+  Widget _buildKeyCard({required String title, required String keyContent}) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
@@ -1329,10 +1300,7 @@ class _KeygenPageState extends State<KeygenPage> {
                 ),
                 child: SelectableText(
                   keyContent,
-                  style: const TextStyle(
-                    fontFamily: 'maple',
-                    fontSize: 11,
-                  ),
+                  style: const TextStyle(fontFamily: 'maple', fontSize: 11),
                 ),
               ),
             ),

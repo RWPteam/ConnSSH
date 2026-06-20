@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:file_picker_ohos/file_picker_ohos.dart';
 import 'package:flutter/foundation.dart';
 import 'package:encrypt/encrypt.dart' as encrypt_package;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:file_picker_ohos/file_picker_ohos.dart';
 import '../models/backup_data_model.dart';
 import '../services/storage_service.dart';
 import '../services/setting_service.dart';
@@ -17,8 +18,8 @@ class BackupService {
   BackupService({
     required StorageService storageService,
     required SettingsService settingsService,
-  })  : _storageService = storageService,
-        _settingsService = settingsService;
+  }) : _storageService = storageService,
+       _settingsService = settingsService;
 
   encrypt_package.Key _generateKey(String password) {
     final hash = crypto.sha256.convert(utf8.encode(password));
@@ -44,7 +45,7 @@ class BackupService {
       settings: settings,
       archiveGroups: archiveGroups,
       backupTime: DateTime.now(),
-      version: '1.3.1',
+      version: '2.2.0',
     );
   }
 
@@ -56,25 +57,22 @@ class BackupService {
       final key = _generateKey(password);
       final iv = _generateIV(password);
       final encrypter = encrypt_package.Encrypter(
-          encrypt_package.AES(key, mode: encrypt_package.AESMode.cbc));
+        encrypt_package.AES(key, mode: encrypt_package.AESMode.cbc),
+      );
       final encrypted = encrypter.encrypt(jsonString, iv: iv);
 
-      final dateStr =
-          DateTime.now().toString().replaceAll(RegExp(r'[:\.]'), '-');
+      final dateStr = DateTime.now().toString().replaceAll(
+        RegExp(r'[:\.]'),
+        '-',
+      );
       final fileName = 'backup-$dateStr.cntinfo';
 
       String savePath;
 
-      if (Platform.isAndroid) {
-        const String basePath = '/sdcard/Download';
-        const String backupDirPath = '$basePath/ConnSSH/backup';
-
-        final backupDir = Directory(backupDirPath);
-        if (!await backupDir.exists()) {
-          await backupDir.create(recursive: true);
-        }
-
-        final filePath = '$backupDirPath/$fileName';
+      if (Platform.isAndroid || Platform.isIOS) {
+        final backupDirPath =
+            await SettingsService.getPlatformDefaultBackupPath();
+        final filePath = path.join(backupDirPath, fileName);
         final file = File(filePath);
         await file.writeAsBytes(encrypted.bytes);
         savePath = file.path;
@@ -121,27 +119,6 @@ class BackupService {
             throw Exception('用户取消保存');
           }
         }
-      } else if (Platform.isIOS) {
-        final appDocDir = await getApplicationDocumentsDirectory();
-        String? result = await FilePicker.platform.saveFile(
-          dialogTitle: '保存备份文件',
-          fileName: fileName,
-          allowedExtensions: ['cntinfo'],
-          type: FileType.custom,
-          initialDirectory: appDocDir.path,
-        );
-
-        if (result == null) {
-          throw Exception('用户取消选择保存位置');
-        }
-
-        if (!result.toLowerCase().endsWith('.cntinfo')) {
-          result = '$result.cntinfo';
-        }
-
-        final file = File(result);
-        await file.writeAsBytes(encrypted.bytes);
-        savePath = file.path;
       } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
         String? result = await FilePicker.platform.saveFile(
           dialogTitle: '保存备份文件',
@@ -150,11 +127,7 @@ class BackupService {
           type: FileType.custom,
         );
 
-        if (result == null) {
-          throw Exception('用户取消选择保存位置');
-        }
-
-        if (!result.toLowerCase().endsWith('.cntinfo')) {
+        if (!result!.toLowerCase().endsWith('.cntinfo')) {
           result = '$result.cntinfo';
         }
 
@@ -199,8 +172,10 @@ class BackupService {
 
         filePath = platformFile.path!;
       }
-      if (Platform.isAndroid && filePath.isEmpty) {
-        const String backupDirPath = '/sdcard/Download/ConnSSH/backup';
+
+      if ((Platform.isAndroid || Platform.isIOS) && filePath.isEmpty) {
+        final backupDirPath =
+            await SettingsService.getPlatformDefaultBackupPath();
         final backupDir = Directory(backupDirPath);
 
         if (!await backupDir.exists()) {
@@ -234,7 +209,8 @@ class BackupService {
       final key = _generateKey(password);
       final iv = _generateIV(password);
       final encrypter = encrypt_package.Encrypter(
-          encrypt_package.AES(key, mode: encrypt_package.AESMode.cbc));
+        encrypt_package.AES(key, mode: encrypt_package.AESMode.cbc),
+      );
       final encrypted = encrypt_package.Encrypted(encryptedBytes);
       final decryptedString = encrypter.decrypt(encrypted, iv: iv);
 
@@ -248,6 +224,20 @@ class BackupService {
       }
       throw Exception('恢复失败: $e\n可能是密码错误或文件已损坏');
     }
+  }
+
+  Future<List<FileSystemEntity>> getBackupFiles() async {
+    final backupDirPath = await SettingsService.getPlatformDefaultBackupPath();
+    final backupDir = Directory(backupDirPath);
+    if (!await backupDir.exists()) {
+      return [];
+    }
+    final files = await backupDir
+        .list()
+        .where((entity) => entity.path.toLowerCase().endsWith('.cntinfo'))
+        .toList();
+    files.sort((a, b) => b.path.compareTo(a.path));
+    return files;
   }
 
   Future<void> applyRestoredData(BackupData backupData) async {

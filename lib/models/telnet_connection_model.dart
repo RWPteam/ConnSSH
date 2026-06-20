@@ -20,7 +20,6 @@ enum TelnetLineSeparator {
   final String displayName;
   const TelnetLineSeparator(this.value, this.displayName);
 }
-// 在 models/telnet_connection_model.dart 中添加
 
 enum TelnetEncoding {
   utf8('UTF-8'),
@@ -44,7 +43,7 @@ class TelnetConnectionInfo {
   final bool remember;
   final TelnetTerminalType terminalType;
   final TelnetLineSeparator lineSeparator;
-  final TelnetEncoding encoding; // 新增编码字段
+  final TelnetEncoding encoding;
   DateTime lastUsed;
 
   TelnetConnectionInfo({
@@ -57,7 +56,7 @@ class TelnetConnectionInfo {
     this.remember = true,
     this.terminalType = TelnetTerminalType.xterm,
     this.lineSeparator = TelnetLineSeparator.crlf,
-    this.encoding = TelnetEncoding.utf8, // 默认使用UTF-8
+    this.encoding = TelnetEncoding.utf8,
     DateTime? lastUsed,
   }) : lastUsed = lastUsed ?? DateTime.now();
 

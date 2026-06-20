@@ -87,15 +87,15 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Telnet连接已保存')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Telnet连接已保存')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
       }
     } finally {
       if (mounted) {
@@ -118,10 +118,12 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
       name: _nameController.text,
       host: _hostController.text,
       port: int.parse(_portController.text),
-      username:
-          _usernameController.text.isNotEmpty ? _usernameController.text : null,
-      password:
-          _passwordController.text.isNotEmpty ? _passwordController.text : null,
+      username: _usernameController.text.isNotEmpty
+          ? _usernameController.text
+          : null,
+      password: _passwordController.text.isNotEmpty
+          ? _passwordController.text
+          : null,
       remember: _rememberConnection,
       terminalType: _selectedTerminalType,
       lineSeparator: _selectedLineSeparator,
@@ -143,9 +145,7 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
         Navigator.of(context).pop();
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) => TelnetTerminalPage(
-              connection: connection,
-            ),
+            builder: (context) => TelnetTerminalPage(connection: connection),
           ),
         );
       }
@@ -176,8 +176,11 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
   }
 
   // 统一的文本框样式
-  InputDecoration _textFieldDecoration(String labelText,
-      {String? hintText, Widget? suffixIcon}) {
+  InputDecoration _textFieldDecoration(
+    String labelText, {
+    String? hintText,
+    Widget? suffixIcon,
+  }) {
     return InputDecoration(
       labelText: labelText,
       hintText: hintText,
@@ -192,8 +195,10 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.0),
-        borderSide:
-            BorderSide(color: Theme.of(context).primaryColor, width: 1.0),
+        borderSide: BorderSide(
+          color: Theme.of(context).primaryColor,
+          width: 1.0,
+        ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.0),
@@ -221,8 +226,10 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.0),
-        borderSide:
-            BorderSide(color: Theme.of(context).primaryColor, width: 1.0),
+        borderSide: BorderSide(
+          color: Theme.of(context).primaryColor,
+          width: 1.0,
+        ),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     );
@@ -233,12 +240,14 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: 500,
-        ),
+        constraints: const BoxConstraints(maxWidth: 500),
         child: Padding(
-          padding:
-              const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 16),
+          padding: const EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            top: 16,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -345,7 +354,7 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
                         ),
                         const SizedBox(height: 16),
                         DropdownButtonFormField<TelnetLineSeparator>(
-                          value: _selectedLineSeparator,
+                          initialValue: _selectedLineSeparator,
                           decoration: _dropdownDecoration('行分隔符'),
                           items: TelnetLineSeparator.values.map((separator) {
                             return DropdownMenuItem(
@@ -406,13 +415,14 @@ class _TelnetConnectDialogState extends State<TelnetConnectDialog> {
                       onPressed: _isConnecting
                           ? null
                           : _isEditing
-                              ? _saveConnection
-                              : _connectNow,
+                          ? _saveConnection
+                          : _connectNow,
                       child: _isConnecting
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2))
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                           : Text(_isEditing ? '保存' : '连接'),
                     ),
                   ),

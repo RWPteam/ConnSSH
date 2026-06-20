@@ -1,4 +1,3 @@
-// connection_model.dart
 class ConnectionInfo {
   String id;
   String name;
@@ -11,7 +10,7 @@ class ConnectionInfo {
   DateTime lastUsed;
   String? sftpPath;
   String? archive;
-  bool needTwoFa; // 新增：是否需要2FA认证
+  bool needTwoFa;
 
   ConnectionInfo({
     required this.id,
@@ -107,10 +106,7 @@ class ArchiveGroup {
   }
 }
 
-enum ConnectionType {
-  ssh,
-  sftp,
-}
+enum ConnectionType { ssh, sftp }
 
 extension ConnectionTypeExtension on ConnectionType {
   String get displayName {

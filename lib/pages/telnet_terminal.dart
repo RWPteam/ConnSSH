@@ -3,17 +3,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:xterm/xterm.dart';
-import '../../models/telnet_connection_model.dart';
-import '../../services/telnet_service.dart';
-import '../../services/setting_service.dart';
+import '../models/telnet_connection_model.dart';
+import '../services/telnet_service.dart';
+import '../services/setting_service.dart';
+import '../widgets/app_style.dart';
+import '../widgets/app_toast.dart';
 
 class TelnetTerminalPage extends StatefulWidget {
   final TelnetConnectionInfo connection;
 
-  const TelnetTerminalPage({
-    super.key,
-    required this.connection,
-  });
+  const TelnetTerminalPage({super.key, required this.connection});
 
   @override
   State<TelnetTerminalPage> createState() => _TelnetTerminalPageState();
@@ -63,14 +62,15 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
     13,
     14,
     15,
-    16
+    16,
   ];
 
   // 返回按钮处理
   DateTime? _lastBackPressedTime;
 
   // 是否为移动端
-  bool _ismobile = defaultTargetPlatform == TargetPlatform.android ||
+  bool _ismobile =
+      defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.ohos ||
       defaultTargetPlatform == TargetPlatform.iOS;
 
@@ -90,8 +90,6 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
       case TelnetLineSeparator.lf:
         return '\n';
       case TelnetLineSeparator.crlf:
-        return '\r\n';
-      default:
         return '\r\n';
     }
   }
@@ -237,7 +235,7 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
         13,
         14,
         15,
-        16
+        16,
       ];
     }
   }
@@ -264,7 +262,8 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
       });
 
       _terminal.write(
-          '正在连接到 ${widget.connection.host}:${widget.connection.port}...\r\n');
+        '正在连接到 ${widget.connection.host}:${widget.connection.port}...\r\n',
+      );
 
       // 先断开旧的连接
       _telnetService?.disconnect();
@@ -452,11 +451,14 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('字体大小',
-                                    style: TextStyle(color: Colors.white)),
-                                Text('${_fontSize.toInt()}',
-                                    style:
-                                        const TextStyle(color: Colors.white)),
+                                const Text(
+                                  '字体大小',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                Text(
+                                  '${_fontSize.toInt()}',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
                               ],
                             ),
                             Slider(
@@ -620,8 +622,10 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
     } catch (e) {
       debugPrint('切换主题失败: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('切换主题失败: $e')),
+        AppToast.show(
+          context,
+          message: '切换主题失败: $e',
+          icon: Icons.error_outline_rounded,
         );
       }
     }
@@ -654,29 +658,59 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
   }
 
   // 菜单项
-  List<PopupMenuEntry<String>> _buildMenuItems() {
+  List<AppActionSheetItem<String>> _buildMenuActionItems() {
     return [
-      const PopupMenuItem<String>(value: 'reconnect', child: Text('重新连接')),
-      PopupMenuItem<String>(
+      const AppActionSheetItem<String>(
+        value: 'reconnect',
+        label: '重新连接',
+        icon: Icons.refresh_rounded,
+      ),
+      const AppActionSheetItem<String>(
         value: 'commands',
-        child: Row(
-          children: const [
-            Text('发送命令'),
-            SizedBox(width: 8),
-            Icon(Icons.arrow_right, size: 16, color: Colors.grey),
-          ],
-        ),
+        label: '发送命令',
+        icon: Icons.keyboard_command_key_rounded,
       ),
-      const PopupMenuItem<String>(value: 'clear', child: Text('清屏')),
-      const PopupMenuItem<String>(value: 'fontsize', child: Text('字体大小')),
-      const PopupMenuItem<String>(value: 'theme', child: Text('主题')),
-      // 添加快捷栏切换菜单项
-      PopupMenuItem<String>(
+      const AppActionSheetItem<String>(
+        value: 'clear',
+        label: '清屏',
+        icon: Icons.cleaning_services_rounded,
+      ),
+      const AppActionSheetItem<String>(
+        value: 'fontsize',
+        label: '字体大小',
+        icon: Icons.format_size_rounded,
+      ),
+      const AppActionSheetItem<String>(
+        value: 'theme',
+        label: '主题',
+        icon: Icons.palette_rounded,
+      ),
+      AppActionSheetItem<String>(
         value: 'toggle_toolbar',
-        child: Text(_showToolbar ? '收起快捷栏' : '展示快捷栏'),
+        label: _showToolbar ? '收起快捷栏' : '展示快捷栏',
+        icon: _showToolbar
+            ? Icons.keyboard_arrow_down_rounded
+            : Icons.keyboard_arrow_up_rounded,
       ),
-      const PopupMenuItem<String>(value: 'disconnect', child: Text('断开连接并返回')),
+      const AppActionSheetItem<String>(
+        value: 'disconnect',
+        label: '断开连接并返回',
+        icon: Icons.logout_rounded,
+        destructive: true,
+      ),
     ];
+  }
+
+  Future<void> _showTerminalActionSheet() async {
+    setState(() => _menuIsOpen = true);
+    final value = await showAppActionSheet<String>(
+      context,
+      title: widget.connection.name,
+      items: _buildMenuActionItems(),
+    );
+    if (!mounted) return;
+    setState(() => _menuIsOpen = false);
+    if (value != null) _onMenuSelected(value);
   }
 
   void _onMenuSelected(String value) {
@@ -705,48 +739,68 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
     }
   }
 
-  void _showCommandsSubMenu() {
-    final RenderBox? button = context.findRenderObject() as RenderBox?;
-    if (button == null) return;
-
-    final RenderBox? overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
-    if (overlay == null) return;
-
-    final position = RelativeRect.fromRect(
-      Rect.fromPoints(
-        button.localToGlobal(button.size.topRight(Offset.zero),
-            ancestor: overlay),
-        button.localToGlobal(button.size.bottomRight(Offset.zero),
-            ancestor: overlay),
-      ),
-      Offset.zero & overlay.size,
-    );
-
-    showMenu<String>(
-      context: context,
-      position: position,
+  Future<void> _showCommandsSubMenu() async {
+    final value = await showAppActionSheet<String>(
+      context,
+      title: '发送命令',
       items: const [
-        PopupMenuItem<String>(value: 'enter', child: Text('发送 Enter')),
-        PopupMenuItem<String>(value: 'tab', child: Text('发送 Tab')),
-        PopupMenuItem<String>(value: 'ctrlc', child: Text('发送 Ctrl+C')),
-        PopupMenuItem<String>(value: 'ctrld', child: Text('发送 Ctrl+D')),
-        PopupMenuItem<String>(value: 'backspace', child: Text('发送 Backspace')),
-        PopupMenuItem<String>(value: 'telnet_ip', child: Text('Telnet中断进程')),
-        PopupMenuItem<String>(value: 'telnet_ao', child: Text('Telnet中止输出')),
-        PopupMenuItem<String>(value: 'telnet_el', child: Text('Telnet擦除行')),
-        PopupMenuItem<String>(value: 'telnet_ec', child: Text('Telnet擦除字符')),
+        AppActionSheetItem<String>(
+          value: 'enter',
+          label: '发送 Enter',
+          icon: Icons.subdirectory_arrow_left_rounded,
+        ),
+        AppActionSheetItem<String>(
+          value: 'tab',
+          label: '发送 Tab',
+          icon: Icons.keyboard_tab_rounded,
+        ),
+        AppActionSheetItem<String>(
+          value: 'ctrlc',
+          label: '发送 Ctrl+C',
+          icon: Icons.cancel_rounded,
+        ),
+        AppActionSheetItem<String>(
+          value: 'ctrld',
+          label: '发送 Ctrl+D',
+          icon: Icons.exit_to_app_rounded,
+        ),
+        AppActionSheetItem<String>(
+          value: 'backspace',
+          label: '发送 Backspace',
+          icon: Icons.backspace_outlined,
+        ),
+        AppActionSheetItem<String>(
+          value: 'telnet_ip',
+          label: 'Telnet中断进程',
+          icon: Icons.stop_circle_outlined,
+        ),
+        AppActionSheetItem<String>(
+          value: 'telnet_ao',
+          label: 'Telnet中止输出',
+          icon: Icons.block_rounded,
+        ),
+        AppActionSheetItem<String>(
+          value: 'telnet_el',
+          label: 'Telnet擦除行',
+          icon: Icons.cleaning_services_outlined,
+        ),
+        AppActionSheetItem<String>(
+          value: 'telnet_ec',
+          label: 'Telnet擦除字符',
+          icon: Icons.backspace_rounded,
+        ),
       ],
-    ).then((value) {
-      if (value != null) _handleCommand(value);
-      setState(() => _menuIsOpen = false);
-      if (_isConnected) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _terminalFocusNode.requestFocus();
-        });
-      }
-    });
+    );
+    if (!mounted) return;
+    if (value != null) _handleCommand(value);
+    setState(() => _menuIsOpen = false);
+    if (_isConnected) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _terminalFocusNode.requestFocus();
+      });
+    }
   }
+
 
   void _handleCommand(String command) {
     switch (command) {
@@ -808,16 +862,17 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
         if (didPop) return;
 
         final now = DateTime.now();
-        final bool shouldExit = _lastBackPressedTime == null ||
+        final bool shouldExit =
+            _lastBackPressedTime == null ||
             now.difference(_lastBackPressedTime!) > const Duration(seconds: 2);
 
         if (shouldExit) {
           _lastBackPressedTime = now;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('再按一次退出'),
-              duration: Duration(seconds: 2),
-            ),
+          AppToast.show(
+            context,
+            message: '再按一次退出',
+            icon: Icons.info_outline_rounded,
+            duration: const Duration(seconds: 2),
           );
         } else {
           _disconnect();
@@ -866,10 +921,7 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
                       const SizedBox(width: 4),
                       Text(
                         _status,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.white70,
-                        ),
+                        style: TextStyle(fontSize: 10, color: Colors.white70),
                       ),
                     ],
                   ),
@@ -878,9 +930,10 @@ class _TelnetTerminalPageState extends State<TelnetTerminalPage> {
             ),
           ),
           actions: [
-            PopupMenuButton<String>(
-              onSelected: _onMenuSelected,
-              itemBuilder: (context) => _buildMenuItems(),
+            IconButton(
+              icon: const Icon(Icons.more_horiz_rounded),
+              tooltip: '更多',
+              onPressed: _showTerminalActionSheet,
             ),
           ],
         ),

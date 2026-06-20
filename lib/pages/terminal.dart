@@ -9,6 +9,8 @@ import '../models/credential_model.dart';
 import '../services/ssh_service.dart';
 import '../services/setting_service.dart';
 import '../components/twofa_dialog.dart';
+import '../widgets/app_style.dart';
+import '../widgets/app_toast.dart';
 
 class TerminalPage extends StatefulWidget {
   final ConnectionInfo connection;
@@ -35,9 +37,16 @@ class _TerminalPageState extends State<TerminalPage> {
   final List<String> _statuses = List.filled(_maxSessions, '未连接');
   final List<StreamSubscription?> _stdoutSubs = List.filled(_maxSessions, null);
   final List<StreamSubscription?> _stderrSubs = List.filled(_maxSessions, null);
+  final List<StringBuffer> _terminalOutputBuffers = List.generate(
+    _maxSessions,
+    (_) => StringBuffer(),
+  );
+  final List<Timer?> _terminalFlushTimers = List.filled(_maxSessions, null);
 
-  final List<Completer<String?>?> _twoFactorCompleters =
-      List.filled(_maxSessions, null);
+  final List<Completer<String?>?> _twoFactorCompleters = List.filled(
+    _maxSessions,
+    null,
+  );
   final List<bool> _needsTwoFactorAuth = List.filled(_maxSessions, false);
 
   int _activeIndex = 0;
@@ -57,7 +66,9 @@ class _TerminalPageState extends State<TerminalPage> {
 
   bool _isSliderVisible = false;
   bool _menuIsOpen = false;
-  bool _ismobile = defaultTargetPlatform == TargetPlatform.android ||
+  String _terminalMenuPanel = 'main';
+  bool _ismobile =
+      defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.ohos ||
       defaultTargetPlatform == TargetPlatform.iOS;
   bool _showToolbar = false;
@@ -65,7 +76,6 @@ class _TerminalPageState extends State<TerminalPage> {
   bool _isThemeSelectorVisible = false;
   Timer? _hideThemeSelectorTimer;
   TerminalTheme _currentTheme = TerminalThemes.defaultTheme;
-  String _selectedThemeName = 'dark';
   String _termType = 'xterm-256color';
   String _defaultfonts = 'maple';
   List<int> _toolbarLayout = const [
@@ -84,11 +94,10 @@ class _TerminalPageState extends State<TerminalPage> {
     13,
     14,
     15,
-    16
+    16,
   ];
 
   final SettingsService _settingsService = SettingsService();
-
   DateTime? _lastBackPressedTime;
 
   bool get _shouldBeReadOnly {
@@ -103,7 +112,6 @@ class _TerminalPageState extends State<TerminalPage> {
     super.initState();
     _showToolbar = _ismobile;
 
-    // 立即初始化终端列表
     _terminals = List.generate(_maxSessions, (index) {
       final t = Terminal(maxLines: 10000);
 
@@ -116,8 +124,12 @@ class _TerminalPageState extends State<TerminalPage> {
       };
 
       t.onResize = (width, height, pixelWidth, pixelHeight) {
-        _sessions[index]
-            ?.resizeTerminal(width, height, pixelWidth, pixelHeight);
+        _sessions[index]?.resizeTerminal(
+          width,
+          height,
+          pixelWidth,
+          pixelHeight,
+        );
       };
 
       return t;
@@ -146,7 +158,6 @@ class _TerminalPageState extends State<TerminalPage> {
 
       // 设置主题
       final themeName = settings.defaultTermTheme;
-      _selectedThemeName = themeName;
       switch (themeName) {
         case 'dark':
           _currentTheme = TerminalThemes.defaultTheme;
@@ -168,7 +179,6 @@ class _TerminalPageState extends State<TerminalPage> {
           break;
         default:
           _currentTheme = TerminalThemes.defaultTheme;
-          _selectedThemeName = 'dark';
       }
 
       // 设置终端类型
@@ -184,7 +194,6 @@ class _TerminalPageState extends State<TerminalPage> {
       debugPrint('加载设置失败: $e');
       // 使用默认值
       _currentTheme = TerminalThemes.defaultTheme;
-      _selectedThemeName = 'dark';
       _termType = 'xterm-256color';
       _fontSize = 14.0;
       _toolbarLayout = const [
@@ -203,7 +212,7 @@ class _TerminalPageState extends State<TerminalPage> {
         13,
         14,
         15,
-        16
+        16,
       ];
     }
   }
@@ -233,7 +242,11 @@ class _TerminalPageState extends State<TerminalPage> {
         widget.credential,
         onTwoFactorAuth: (connectionName, host, prompt) async {
           return await _showTwoFactorAuthDialog(
-              index, connectionName, host, prompt);
+            index,
+            connectionName,
+            host,
+            prompt,
+          );
         },
       );
 
@@ -245,32 +258,22 @@ class _TerminalPageState extends State<TerminalPage> {
       final height = t.viewHeight > 0 ? t.viewHeight : 24;
 
       final session = await client.shell(
-        pty: SSHPtyConfig(
-          width: width,
-          height: height,
-          type: _termType,
-        ),
+        pty: SSHPtyConfig(width: width, height: height, type: _termType),
       );
       _sessions[index] = session;
 
-      // 监听输出
+      // 监听输出。SSH 登录脚本或大段输出可能在短时间内产生大量小块数据，
+      // 逐块写入 xterm 会造成明显掉帧，因此先合并到每帧最多刷新一次。
       _stdoutSubs[index] = session.stdout.listen((data) {
-        if (!mounted) return;
-        try {
-          t.write(utf8.decode(data));
-        } catch (_) {}
+        _appendTerminalOutput(index, utf8.decode(data, allowMalformed: true));
       });
 
       _stderrSubs[index] = session.stderr.listen((data) {
-        if (!mounted) return;
-        try {
-          t.write(utf8.decode(data));
-        } catch (_) {
-          t.write('错误: <stderr 解码失败>');
-        }
+        _appendTerminalOutput(index, utf8.decode(data, allowMalformed: true));
       });
 
       session.done.then((_) {
+        _flushTerminalOutput(index);
         if (!mounted) return;
         setState(() {
           _isConnecteds[index] = false;
@@ -302,6 +305,39 @@ class _TerminalPageState extends State<TerminalPage> {
         _terminals[index].write('连接失败: $e\r\n');
       }
     }
+  }
+
+
+  void _appendTerminalOutput(int index, String text) {
+    if (!mounted || text.isEmpty) return;
+
+    final buffer = _terminalOutputBuffers[index];
+    buffer.write(text);
+
+    _terminalFlushTimers[index] ??= Timer(
+      const Duration(milliseconds: 16),
+      () => _flushTerminalOutput(index),
+    );
+  }
+
+  void _flushTerminalOutput(int index) {
+    _terminalFlushTimers[index]?.cancel();
+    _terminalFlushTimers[index] = null;
+
+    if (!mounted) {
+      _terminalOutputBuffers[index].clear();
+      return;
+    }
+
+    final buffer = _terminalOutputBuffers[index];
+    if (buffer.isEmpty) return;
+
+    final text = buffer.toString();
+    buffer.clear();
+
+    try {
+      _terminals[index].write(text);
+    } catch (_) {}
   }
 
   // 显示 2FA 验证码对话框
@@ -357,11 +393,13 @@ class _TerminalPageState extends State<TerminalPage> {
         content: const Text('即将关闭第二个连接，请确认工作已保存'),
         actions: [
           OutlinedButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
           OutlinedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('确认关闭', style: TextStyle(color: Colors.red))),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确认关闭', style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
@@ -399,6 +437,10 @@ class _TerminalPageState extends State<TerminalPage> {
 
   @override
   void dispose() {
+    for (var i = 0; i < _maxSessions; i++) {
+      _terminalFlushTimers[i]?.cancel();
+      _terminalOutputBuffers[i].clear();
+    }
     for (var sub in _stdoutSubs) {
       sub?.cancel();
     }
@@ -433,54 +475,33 @@ class _TerminalPageState extends State<TerminalPage> {
     return Colors.red;
   }
 
-  List<PopupMenuEntry<String>> _buildMenuItems() {
-    return [
-      const PopupMenuItem<String>(value: 'reconnect', child: Text('重新连接')),
-      PopupMenuItem<String>(
-        value: 'commands',
-        child: Row(
-          children: const [
-            Text('发送命令'),
-            SizedBox(width: 8),
-            Icon(Icons.arrow_right, size: 16, color: Colors.grey),
-          ],
-        ),
-      ),
-      const PopupMenuItem<String>(value: 'clear', child: Text('清屏')),
-      const PopupMenuItem<String>(value: 'fontsize', child: Text('字体大小')),
-      const PopupMenuItem<String>(value: 'theme', child: Text('主题')),
-      PopupMenuItem<String>(
-        value: 'toggle_toolbar',
-        child: Text(_showToolbar ? '收起快捷栏' : '展示快捷栏'),
-      ),
-      const PopupMenuItem<String>(value: 'disconnect', child: Text('断开连接并返回')),
-    ];
+  Future<void> _showTerminalActionSheet() async {
+    setState(() {
+      _menuIsOpen = !_menuIsOpen;
+      _terminalMenuPanel = 'main';
+    });
+    if (!_menuIsOpen && _isConnected) {
+      _terminalFocusNode.requestFocus();
+    }
   }
 
-  void _onMenuSelected(String value) {
-    switch (value) {
-      case 'fontsize':
-        _showFontSlider();
-        break;
-      case 'reconnect':
-        _reconnect();
-        break;
-      case 'commands':
-        _showCommandsSubMenu();
-        break;
-      case 'clear':
-        _clearTerminal();
-        break;
-      case 'theme':
-        _showThemeSelector();
-        break;
-      case 'toggle_toolbar':
-        _toggleToolbar();
-        break;
-      case 'disconnect':
-        Navigator.of(context).pop();
-        break;
+  void _closeTerminalMenu({bool requestFocus = true}) {
+    if (!mounted) return;
+    setState(() {
+      _menuIsOpen = false;
+      _terminalMenuPanel = 'main';
+      _isThemeSelectorVisible = false;
+    });
+    if (requestFocus && _isConnected) {
+      _terminalFocusNode.requestFocus();
     }
+  }
+
+  void _showTerminalMenuPanel(String panel) {
+    setState(() {
+      _menuIsOpen = true;
+      _terminalMenuPanel = panel;
+    });
   }
 
   void _toggleToolbar() {
@@ -490,113 +511,32 @@ class _TerminalPageState extends State<TerminalPage> {
     if (_isConnected) _terminalFocusNode.requestFocus();
   }
 
-  void _showThemeSelector() {
-    if (_isThemeSelectorVisible) return;
-    setState(() => _isThemeSelectorVisible = true);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('选择主题'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioListTile<String>(
-              title: const Text('深色'),
-              value: 'dark',
-              groupValue: _selectedThemeName,
-              onChanged: (value) {
-                if (value != null) {
-                  Navigator.of(context).pop();
-                  _switchTheme(TerminalThemes.defaultTheme, value);
-                }
-              },
-            ),
-            RadioListTile<String>(
-              title: const Text('高对比度'),
-              value: 'black',
-              groupValue: _selectedThemeName,
-              onChanged: (value) {
-                if (value != null) {
-                  Navigator.of(context).pop();
-                  _switchTheme(TerminalThemes.whiteOnBlack, value);
-                }
-              },
-            ),
-            RadioListTile<String>(
-              title: const Text('浅色'),
-              value: 'light',
-              groupValue: _selectedThemeName,
-              onChanged: (value) {
-                if (value != null) {
-                  Navigator.of(context).pop();
-                  _switchTheme(TerminalThemes.LightTheme, value);
-                }
-              },
-            ),
-            RadioListTile<String>(
-              title: const Text('XShell'),
-              value: 'xshell',
-              groupValue: _selectedThemeName,
-              onChanged: (value) {
-                if (value != null) {
-                  Navigator.of(context).pop();
-                  _switchTheme(TerminalThemes.xshell, value);
-                }
-              },
-            ),
-            RadioListTile<String>(
-              title: const Text('Dracula Dark'),
-              value: 'dracula',
-              groupValue: _selectedThemeName,
-              onChanged: (value) {
-                if (value != null) {
-                  Navigator.of(context).pop();
-                  _switchTheme(TerminalThemes.dracula, value);
-                }
-              },
-            ),
-            RadioListTile<String>(
-              title: const Text('Gruvbox Dark'),
-              value: 'gruvbox',
-              groupValue: _selectedThemeName,
-              onChanged: (value) {
-                if (value != null) {
-                  Navigator.of(context).pop();
-                  _switchTheme(TerminalThemes.gruvbox, value);
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
-          ),
-        ],
-      ),
-    ).then((_) {
-      _hideThemeSelector();
-    });
+  void _selectTerminalTheme(String value) {
+    switch (value) {
+      case 'dark':
+        _switchTheme(TerminalThemes.defaultTheme, 'dark');
+        break;
+      case 'light':
+        _switchTheme(TerminalThemes.LightTheme, 'light');
+        break;
+      case 'xshell':
+        _switchTheme(TerminalThemes.xshell, 'xshell');
+        break;
+      case 'dracula':
+        _switchTheme(TerminalThemes.dracula, 'dracula');
+        break;
+      case 'gruvbox':
+        _switchTheme(TerminalThemes.gruvbox, 'gruvbox');
+        break;
+    }
+    _closeTerminalMenu();
   }
 
   void _switchTheme(TerminalTheme newTheme, String themeName) {
     setState(() {
       _currentTheme = newTheme;
-      _selectedThemeName = themeName;
     });
     if (_isConnected) _terminalFocusNode.requestFocus();
-  }
-
-  void _hideThemeSelector() {
-    setState(() {
-      _menuIsOpen = false;
-      _isThemeSelectorVisible = false;
-    });
-    if (_isConnected) _terminalFocusNode.requestFocus();
-
-    _hideThemeSelectorTimer?.cancel();
   }
 
   void _reconnect() {
@@ -632,40 +572,6 @@ class _TerminalPageState extends State<TerminalPage> {
         t.write('\r\n正在重新连接...\r\n');
         _connectToHost(_activeIndex);
       }
-    });
-  }
-
-  void _showCommandsSubMenu() {
-    final RenderBox? button = context.findRenderObject() as RenderBox?;
-    if (button == null) return;
-
-    final RenderBox? overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
-    if (overlay == null) return;
-
-    final position = RelativeRect.fromRect(
-      Rect.fromPoints(
-        button.localToGlobal(button.size.topRight(Offset.zero),
-            ancestor: overlay),
-        button.localToGlobal(button.size.bottomRight(Offset.zero),
-            ancestor: overlay),
-      ),
-      Offset.zero & overlay.size,
-    );
-
-    showMenu<String>(
-      context: context,
-      position: position,
-      items: const [
-        PopupMenuItem<String>(value: 'enter', child: Text('发送 Enter')),
-        PopupMenuItem<String>(value: 'tab', child: Text('发送 Tab')),
-        PopupMenuItem<String>(value: 'ctrlc', child: Text('发送 Ctrl+C')),
-        PopupMenuItem<String>(value: 'ctrld', child: Text('发送 Ctrl+D')),
-      ],
-    ).then((value) {
-      if (value != null) _handleCommand(value);
-      setState(() => _menuIsOpen = false);
-      if (_isConnected) _terminalFocusNode.requestFocus();
     });
   }
 
@@ -723,11 +629,14 @@ class _TerminalPageState extends State<TerminalPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('字体大小',
-                                    style: TextStyle(color: Colors.white)),
-                                Text('${_fontSize.toInt()}',
-                                    style:
-                                        const TextStyle(color: Colors.white)),
+                                const Text(
+                                  '字体大小',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                Text(
+                                  '${_fontSize.toInt()}',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
                               ],
                             ),
                             Slider(
@@ -777,11 +686,174 @@ class _TerminalPageState extends State<TerminalPage> {
     _hideSliderTimer = Timer(const Duration(seconds: 3), _hideFontSlider);
   }
 
+  Widget _buildTerminalFloatingMenu() {
+    List<AppActionMenuEntry> entries;
+    double width = 160;
+
+    if (_terminalMenuPanel == 'commands') {
+      width = 152;
+      entries = [
+        AppActionMenuEntry(
+          icon: Icons.arrow_back_rounded,
+          label: '返回',
+          onTap: () => _showTerminalMenuPanel('main'),
+        ),
+        AppActionMenuEntry(
+          icon: Icons.keyboard_return_rounded,
+          label: '发送 Enter',
+          onTap: () {
+            _handleCommand('enter');
+            _closeTerminalMenu();
+          },
+        ),
+        AppActionMenuEntry(
+          icon: Icons.keyboard_tab_rounded,
+          label: '发送 Tab',
+          onTap: () {
+            _handleCommand('tab');
+            _closeTerminalMenu();
+          },
+        ),
+        AppActionMenuEntry(
+          icon: Icons.copy_rounded,
+          label: '发送 Ctrl+C',
+          onTap: () {
+            _handleCommand('ctrlc');
+            _closeTerminalMenu();
+          },
+        ),
+        AppActionMenuEntry(
+          icon: Icons.logout_rounded,
+          label: '发送 Ctrl+D',
+          onTap: () {
+            _handleCommand('ctrld');
+            _closeTerminalMenu();
+          },
+        ),
+      ];
+    } else if (_terminalMenuPanel == 'theme') {
+      width = 158;
+      entries = [
+        AppActionMenuEntry(
+          icon: Icons.arrow_back_rounded,
+          label: '返回',
+          onTap: () => _showTerminalMenuPanel('main'),
+        ),
+        AppActionMenuEntry(
+          icon: Icons.dark_mode_rounded,
+          label: '深色',
+          onTap: () => _selectTerminalTheme('dark'),
+        ),
+        AppActionMenuEntry(
+          icon: Icons.light_mode_rounded,
+          label: '浅色',
+          onTap: () => _selectTerminalTheme('light'),
+        ),
+        AppActionMenuEntry(
+          icon: Icons.terminal_rounded,
+          label: 'XShell',
+          onTap: () => _selectTerminalTheme('xshell'),
+        ),
+        AppActionMenuEntry(
+          icon: Icons.palette_outlined,
+          label: 'Dracula',
+          onTap: () => _selectTerminalTheme('dracula'),
+        ),
+        AppActionMenuEntry(
+          icon: Icons.palette_rounded,
+          label: 'Gruvbox',
+          onTap: () => _selectTerminalTheme('gruvbox'),
+        ),
+      ];
+    } else {
+      entries = [
+        AppActionMenuEntry(
+          icon: Icons.refresh_rounded,
+          label: '重新连接',
+          onTap: () {
+            _closeTerminalMenu(requestFocus: false);
+            _reconnect();
+          },
+        ),
+        AppActionMenuEntry(
+          icon: Icons.keyboard_command_key_rounded,
+          label: '发送命令',
+          onTap: () => _showTerminalMenuPanel('commands'),
+        ),
+        AppActionMenuEntry(
+          icon: Icons.cleaning_services_outlined,
+          label: '清屏',
+          onTap: () {
+            _clearTerminal();
+            _closeTerminalMenu();
+          },
+        ),
+        AppActionMenuEntry(
+          icon: Icons.format_size_rounded,
+          label: '字体大小',
+          onTap: () {
+            _closeTerminalMenu(requestFocus: false);
+            _showFontSlider();
+          },
+        ),
+        AppActionMenuEntry(
+          icon: Icons.palette_outlined,
+          label: '主题',
+          onTap: () => _showTerminalMenuPanel('theme'),
+        ),
+        AppActionMenuEntry(
+          icon: Icons.tune_rounded,
+          label: _showToolbar ? '收起快捷栏' : '展示快捷栏',
+          onTap: () {
+            _closeTerminalMenu(requestFocus: false);
+            _toggleToolbar();
+          },
+        ),
+        AppActionMenuEntry(
+          icon: Icons.splitscreen_rounded,
+          label: _isMultiWindowMode ? '关闭多会话' : '多会话',
+          onTap: () {
+            _closeTerminalMenu(requestFocus: false);
+            _isMultiWindowMode ? _disableMultiWindow() : _enableMultiWindow();
+          },
+        ),
+        AppActionMenuEntry(
+          icon: Icons.logout_rounded,
+          label: '断开连接并返回',
+          destructive: true,
+          onTap: () {
+            _closeTerminalMenu(requestFocus: false);
+            Navigator.of(context).pop();
+          },
+        ),
+      ];
+    }
+
+    return Positioned(
+      right: 10,
+      top: 8,
+      child: AppAnimatedActionMenu(
+        visible: _menuIsOpen,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 160),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          child: AppActionMenu(
+            key: ValueKey(_terminalMenuPanel),
+            width: width,
+            entries: entries,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     String displayTitle = _isMultiWindowMode
         ? "${widget.connection.name}-${_activeIndex + 1}"
         : widget.connection.name;
+    final Color appBarColor = _getAppBarColor();
 
     return PopScope(
       canPop: false,
@@ -789,16 +861,17 @@ class _TerminalPageState extends State<TerminalPage> {
         if (didPop) return;
 
         final now = DateTime.now();
-        final bool shouldExit = _lastBackPressedTime == null ||
+        final bool shouldExit =
+            _lastBackPressedTime == null ||
             now.difference(_lastBackPressedTime!) > const Duration(seconds: 2);
 
         if (shouldExit) {
           _lastBackPressedTime = now;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('再按一次退出'),
-              duration: const Duration(seconds: 2),
-            ),
+          AppToast.show(
+            context,
+            message: '再按一次退出',
+            icon: Icons.info_outline_rounded,
+            duration: const Duration(seconds: 2),
           );
         } else {
           if (mounted) {
@@ -810,8 +883,10 @@ class _TerminalPageState extends State<TerminalPage> {
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
           toolbarHeight: 40,
-          backgroundColor: _getAppBarColor(),
+          backgroundColor: appBarColor,
           foregroundColor: Colors.white,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
           titleSpacing: 0,
           automaticallyImplyLeading: false,
           leading: _ismobile
@@ -849,15 +924,10 @@ class _TerminalPageState extends State<TerminalPage> {
                       const SizedBox(width: 4),
                       Text(
                         _status,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.white70,
-                        ),
+                        style: TextStyle(fontSize: 10, color: Colors.white70),
                       ),
                       if (_needsTwoFactorAuth[_activeIndex])
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8.0),
-                        ),
+                        Padding(padding: const EdgeInsets.only(left: 8.0)),
                     ],
                   ),
                 ],
@@ -911,42 +981,35 @@ class _TerminalPageState extends State<TerminalPage> {
                   _terminalFocusNode.requestFocus();
                 },
               ),
-            PopupMenuButton<String>(
-              onSelected: (val) {
-                if (val == 'multi_window') {
-                  _isMultiWindowMode
-                      ? _disableMultiWindow()
-                      : _enableMultiWindow();
-                } else {
-                  _onMenuSelected(val);
-                }
-              },
-              itemBuilder: (context) => [
-                ..._buildMenuItems().where(
-                    (item) => (item as PopupMenuItem).value != 'disconnect'),
-                PopupMenuItem<String>(
-                  value: 'multi_window',
-                  child: Text(_isMultiWindowMode ? '关闭多会话' : '多会话（Beta）'),
-                ),
-                const PopupMenuDivider(),
-                const PopupMenuItem<String>(
-                    value: 'disconnect', child: Text('断开连接并返回')),
-              ],
+            IconButton(
+              icon: const Icon(Icons.more_vert_rounded),
+              tooltip: '菜单',
+              padding: const EdgeInsets.all(8),
+              onPressed: _showTerminalActionSheet,
             ),
           ],
         ),
         body: SafeArea(
-          child: TerminalView(
-            terminal,
-            key: ValueKey(_activeIndex),
-            focusNode: _terminalFocusNode,
-            autofocus: true,
-            textStyle:
-                TerminalStyle(fontSize: _fontSize, fontFamily: _defaultfonts),
-            theme: _currentTheme,
-            showToolbar: _showToolbar,
-            toolbarLayout: _toolbarLayout,
-            readOnly: _shouldBeReadOnly,
+          child: Stack(
+            children: [
+              RepaintBoundary(
+                child: TerminalView(
+                  terminal,
+                  key: ValueKey(_activeIndex),
+                  focusNode: _terminalFocusNode,
+                  autofocus: true,
+                  textStyle: TerminalStyle(
+                    fontSize: _fontSize,
+                    fontFamily: _defaultfonts,
+                  ),
+                  theme: _currentTheme,
+                  showToolbar: _showToolbar,
+                  toolbarLayout: _toolbarLayout,
+                  readOnly: _shouldBeReadOnly,
+                ),
+              ),
+              _buildTerminalFloatingMenu(),
+            ],
           ),
         ),
       ),

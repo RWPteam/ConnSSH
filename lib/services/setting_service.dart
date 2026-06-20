@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_settings_model.dart';
@@ -45,8 +46,8 @@ class SettingsService {
       }
 
       final settingsToSave = settings.copyWith(
-          isFirstRun:
-              actualFirstRunStatus == false ? false : settings.isFirstRun);
+        isFirstRun: actualFirstRunStatus == false ? false : settings.isFirstRun,
+      );
 
       final jsonString = json.encode(settingsToSave.toMap());
       await prefs.setString(_settingsKey, jsonString);
@@ -88,19 +89,40 @@ class SettingsService {
     }
   }
 
-  static Future<String?> getPlatformDefaultDownloadPath() async {
+  static Future<Directory> _getPlatformAppDirectory(String subFolder) async {
+    Directory rootDir;
+
     if (Platform.isAndroid) {
       final externalDir = await getExternalStorageDirectory();
       if (externalDir != null) {
-        final downloadDir = Directory('${externalDir.path}/Download');
-        if (!await downloadDir.exists()) {
-          await downloadDir.create(recursive: true);
-        }
-        return downloadDir.path;
+        rootDir = Directory(p.join(externalDir.path, 'ConnSSH'));
+      } else {
+        rootDir = await getApplicationDocumentsDirectory();
       }
+    } else {
+      rootDir = await getApplicationDocumentsDirectory();
     }
 
-    return null;
+    final targetDir = Directory(p.join(rootDir.path, subFolder));
+    if (!await targetDir.exists()) {
+      await targetDir.create(recursive: true);
+    }
+    return targetDir;
+  }
+
+  static Future<String> getPlatformDefaultDownloadPath() async {
+    final downloadDir = await _getPlatformAppDirectory('Files');
+    return downloadDir.path;
+  }
+
+  static Future<String> getPlatformDefaultBackupPath() async {
+    final backupDir = await _getPlatformAppDirectory('backup');
+    return backupDir.path;
+  }
+
+  static Future<String> getPlatformDefaultKeyPath() async {
+    final keyDir = await _getPlatformAppDirectory('key');
+    return keyDir.path;
   }
 
   void updateSettings(AppSettings copyWith) {}
