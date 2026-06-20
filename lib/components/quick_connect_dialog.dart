@@ -42,7 +42,10 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
   bool _isNameChanged = false;
   bool _needTwoFa = false; // 新增：是否需要2FA
 
-  void _showToast(String message, {IconData icon = Icons.info_outline_rounded}) {
+  void _showToast(
+    String message, {
+    IconData icon = Icons.info_outline_rounded,
+  }) {
     if (!mounted) return;
     AppToast.show(context, message: message, icon: icon);
   }
@@ -498,7 +501,7 @@ class _QuickConnectDialogState extends State<QuickConnectDialog> {
                             children: [
                               Expanded(
                                 child: DropdownButtonFormField<Credential>(
-                                  value: _selectedCredential,
+                                  initialValue: _selectedCredential,
                                   decoration: _dropdownDecoration('认证凭证'),
                                   items: _credentials.map((credential) {
                                     return DropdownMenuItem(

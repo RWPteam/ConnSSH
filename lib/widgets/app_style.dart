@@ -399,6 +399,7 @@ class AppGlassSurface extends StatelessWidget {
     this.padding,
     this.opacity,
     this.borderOpacity = 0.28,
+    this.enableBlur = false,
   });
 
   final Widget child;
@@ -407,12 +408,13 @@ class AppGlassSurface extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final double? opacity;
   final double borderOpacity;
+  final bool enableBlur;
 
   Widget _buildSurface(BuildContext context, {required bool allowBlur}) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final bool isDark = theme.brightness == Brightness.dark;
-    final bool blurEnabled = AppVisualEffects.blurEnabledOf(context) && allowBlur;
+    final bool blurEnabled = enableBlur && AppVisualEffects.blurEnabledOf(context) && allowBlur;
     final BorderRadius radius = borderRadius ?? AppRadius.largeRadius;
     final double backgroundOpacity = blurEnabled
         ? (opacity ?? (isDark ? 0.42 : 0.36))
@@ -455,7 +457,7 @@ class AppGlassSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!AppVisualEffects.blurEnabledOf(context)) {
+    if (!enableBlur || !AppVisualEffects.blurEnabledOf(context)) {
       return _buildSurface(context, allowBlur: false);
     }
 
@@ -479,61 +481,17 @@ class AppGlassSurface extends StatelessWidget {
 class AppFloatingAppBarBackground extends StatelessWidget {
   const AppFloatingAppBarBackground({super.key});
 
-  Widget _buildBackground(BuildContext context, {required bool allowBlur}) {
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final bool isDark = theme.brightness == Brightness.dark;
-    final bool blurEnabled = AppVisualEffects.blurEnabledOf(context);
 
-    if (!blurEnabled) {
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          color: isDark ? colorScheme.surface : Colors.white,
-        ),
-        child: const SizedBox.expand(),
-      );
-    }
-
-    if (!allowBlur) {
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          color: (isDark ? colorScheme.surface : Colors.white)
-              .withOpacity(isDark ? 0.30 : 0.24),
-        ),
-        child: const SizedBox.expand(),
-      );
-    }
-
-    return RepaintBoundary(
-      child: ClipRect(
-        clipBehavior: Clip.hardEdge,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: (isDark ? colorScheme.surface : Colors.white)
-                  .withOpacity(isDark ? 0.30 : 0.24),
-            ),
-            child: const SizedBox.expand(),
-          ),
-        ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: isDark ? colorScheme.surface : Colors.white,
       ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final listenables = _routeAnimationListenables(context);
-
-    if (listenables.isEmpty) {
-      return _buildBackground(context, allowBlur: true);
-    }
-
-    return AnimatedBuilder(
-      animation: Listenable.merge(listenables),
-      builder: (context, _) {
-        return _buildBackground(context, allowBlur: _routeAnimationsSettled(context));
-      },
+      child: const SizedBox.expand(),
     );
   }
 }
@@ -721,19 +679,9 @@ class AppBlurredColoredBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool blurEnabled = AppVisualEffects.blurEnabledOf(context);
-    if (!blurEnabled) {
-      return ColoredBox(color: color, child: const SizedBox.expand());
-    }
-
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-        child: ColoredBox(
-          color: color.withOpacity(opacity),
-          child: const SizedBox.expand(),
-        ),
-      ),
+    return ColoredBox(
+      color: color.withOpacity(opacity),
+      child: const SizedBox.expand(),
     );
   }
 }
@@ -767,6 +715,7 @@ class AppActionMenu extends StatelessWidget {
     return AppGlassSurface(
       blurSigma: 14,
       opacity: 0.46,
+      enableBlur: true,
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
         mainAxisSize: MainAxisSize.min,

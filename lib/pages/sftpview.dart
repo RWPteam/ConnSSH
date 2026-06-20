@@ -76,6 +76,8 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
   bool _isSudoPromptOpen = false;
   bool _sftpMenuIsOpen = false;
   bool _needsTwoFactorAuth = false;
+  bool _connectionClosed = false;
+  DateTime? _lastProgressUiUpdate;
   Completer<String?>? _twoFactorCompleter;
 
   String? _rememberedSudoPassword;
@@ -98,7 +100,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     _loadingAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
-    )..repeat();
+    );
 
     _loadingAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -108,6 +110,25 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     );
 
     _preConnection();
+  }
+
+  void _applyLoading(bool value) {
+    _isLoading = value;
+    // Loading 动画原来在页面创建后一直 repeat，即使目录已经加载完成、
+    // 没有网络数据刷新时也会持续触发帧调度。只在真正显示 loading 时运行。
+    if (value) {
+      if (!_loadingAnimationController.isAnimating) {
+        _loadingAnimationController.repeat();
+      }
+    } else {
+      if (_loadingAnimationController.isAnimating) {
+        _loadingAnimationController.stop();
+      }
+    }
+  }
+
+  Color _getFolderIconColor(BuildContext context) {
+    return Theme.of(context).colorScheme.primary;
   }
 
   Color _getIconColor(BuildContext context) {
@@ -134,12 +155,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     Duration? duration,
   }) {
     if (!mounted) return;
-    AppToast.show(
-      context,
-      message: message,
-      icon: icon,
-      duration: duration,
-    );
+    AppToast.show(context, message: message, icon: icon, duration: duration);
   }
 
   Future<void> _preConnection() async {
@@ -162,8 +178,9 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       setState(() {
         _isMultiSelectMode = false;
         _selectedFiles.clear();
-        _isLoading = true;
+        _applyLoading(true);
         _isConnecting = true;
+        _connectionClosed = false;
         _status = '连接中...';
       });
 
@@ -176,6 +193,13 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       );
 
       _sftpClient = await _sshClient!.sftp();
+      _sshClient!.done
+          .then((_) {
+            _markDisconnected(showDialog: false);
+          })
+          .catchError((_) {
+            _markDisconnected(showDialog: false);
+          });
 
       if (mounted) {
         setState(() {
@@ -202,7 +226,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
         setState(() {
           _isConnected = false;
           _isConnecting = false;
-          _isLoading = false;
+          _applyLoading(false);
           _status = '连接失败: $e';
         });
         // 取消通知
@@ -238,32 +262,68 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
   }
 
   Future<bool> _checkConnection() async {
-    if (!_isConnected || _sshClient == null || _sftpClient == null) {
-      if (mounted) {
-        setState(() {
-          _isConnected = false;
-          _isConnecting = false;
-          _status = '连接已断开';
-        });
-        _showErrorDialog('连接已断开', '请重新连接服务器');
-      }
+    // 原逻辑每次都会通过 SSH execute('pwd') 探活；进入目录、上传/下载分片、
+    // 批量删除等路径会非常频繁地调用它，导致 UI 等待网络往返并明显卡顿。
+    // 这里改为只检查本地连接状态；真正断线时由 client.done 和后续 SFTP 异常处理。
+    if (!_isConnected ||
+        _connectionClosed ||
+        _sshClient == null ||
+        _sftpClient == null) {
+      _markDisconnected(showDialog: true);
       return false;
+    }
+    return true;
+  }
+
+  void _markDisconnected({bool showDialog = false}) {
+    _connectionClosed = true;
+    if (!mounted) return;
+
+    final needsUiUpdate = _isConnected || _isConnecting || _status != '连接已断开';
+    if (needsUiUpdate) {
+      setState(() {
+        _isConnected = false;
+        _isConnecting = false;
+        _applyLoading(false);
+        _status = '连接已断开';
+      });
     }
 
-    try {
-      await _sshClient!.execute('pwd').timeout(const Duration(seconds: 5));
-      return true;
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isConnected = false;
-          _isConnecting = false;
-          _status = '连接已断开';
-        });
-        _showErrorDialog('连接已断开', '请重新连接服务器');
-      }
-      return false;
+    if (showDialog) {
+      _showErrorDialog('连接已断开', '请重新连接服务器');
     }
+  }
+
+  void _setUploadProgress(double value, {bool force = false}) {
+    if (!mounted) return;
+    final now = DateTime.now();
+    if (!force &&
+        _lastProgressUiUpdate != null &&
+        now.difference(_lastProgressUiUpdate!) <
+            const Duration(milliseconds: 80)) {
+      return;
+    }
+    _lastProgressUiUpdate = now;
+    final progress = value.clamp(0.0, 1.0).toDouble();
+    setState(() {
+      _uploadProgress = progress;
+    });
+  }
+
+  void _setDownloadProgress(double value, {bool force = false}) {
+    if (!mounted) return;
+    final now = DateTime.now();
+    if (!force &&
+        _lastProgressUiUpdate != null &&
+        now.difference(_lastProgressUiUpdate!) <
+            const Duration(milliseconds: 80)) {
+      return;
+    }
+    _lastProgressUiUpdate = now;
+    final progress = value.clamp(0.0, 1.0).toDouble();
+    setState(() {
+      _downloadProgress = progress;
+    });
   }
 
   Widget _buildSingleRowToolbar(
@@ -748,7 +808,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     try {
       if (!mounted) return;
       setState(() {
-        _isLoading = true;
+        _applyLoading(true);
         if (!_isMultiSelectMode) _selectedFiles.clear();
       });
 
@@ -774,13 +834,17 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
         setState(() {
           _fileList = filteredList;
           _currentPath = normalizedPath;
-          _isLoading = false;
+          _applyLoading(false);
         });
       }
     } catch (e) {
       if (!await _checkConnection()) return;
 
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _applyLoading(false);
+        });
+      }
       _showErrorDialog('读取目录失败', '$e');
     }
   }
@@ -910,7 +974,10 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       await _sftpClient.rename(oldPath, newPath);
 
       if (mounted) {
-        _showToast('重命名成功: $oldName → $newName', icon: Icons.check_circle_outline_rounded);
+        _showToast(
+          '重命名成功: $oldName → $newName',
+          icon: Icons.check_circle_outline_rounded,
+        );
         _clearSelectionAndExitMultiSelect();
         await _loadDirectory(_currentPath);
       }
@@ -1121,11 +1188,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       await remote.writeBytes(chunk, offset: offset);
       offset += chunk.length;
 
-      if (mounted) {
-        setState(() {
-          _uploadProgress = fileSize > 0 ? offset / fileSize : 0.0;
-        });
-      }
+      _setUploadProgress(fileSize > 0 ? offset / fileSize : 0.0);
     }
 
     await remote.close();
@@ -1312,7 +1375,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
         }
       }
     } else {
-      // 多个文件：让用户选择目录
+      // 多个文件
       try {
         final String? selectedDir = await FilePicker.getDirectoryPath(
           dialogTitle: '选择保存目录',
@@ -1653,11 +1716,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
         await localFile.writeFrom(chunk, 0, chunk.length);
         offset += chunk.length;
 
-        if (mounted) {
-          setState(() {
-            _downloadProgress = fileSize > 0 ? offset / fileSize : 0.0;
-          });
-        }
+        _setDownloadProgress(fileSize > 0 ? offset / fileSize : 0.0);
       }
 
       await localFile.flush();
@@ -1847,10 +1906,12 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
   }
 
   Widget _buildListView({Key? key}) {
-    return ListView.builder(
-      key: key,
-      itemCount: _fileList.length,
-      itemBuilder: _buildFileItem,
+    return RepaintBoundary(
+      child: ListView.builder(
+        key: key,
+        itemCount: _fileList.length,
+        itemBuilder: _buildFileItem,
+      ),
     );
   }
 
@@ -1858,77 +1919,83 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     final screenWidth = MediaQuery.of(context).size.width;
     int crossAxisCount = _getCrossAxisCount(screenWidth);
 
-    return GridView.builder(
-      key: key,
-      padding: const EdgeInsets.fromLTRB(4, 24, 4, 4),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        mainAxisSpacing: 4,
-        crossAxisSpacing: 4,
-        childAspectRatio: 0.95,
-      ),
-      itemCount: _fileList.length,
-      itemBuilder: (context, index) {
-        final item = _fileList[index];
-        final isDirectory = item.attr?.isDirectory == true;
-        final filename = item.filename.toString();
-        final isSelected = _selectedFiles.contains(filename);
+    return RepaintBoundary(
+      child: GridView.builder(
+        key: key,
+        padding: const EdgeInsets.fromLTRB(4, 24, 4, 4),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          mainAxisSpacing: 4,
+          crossAxisSpacing: 4,
+          childAspectRatio: 0.95,
+        ),
+        itemCount: _fileList.length,
+        itemBuilder: (context, index) {
+          final item = _fileList[index];
+          final isDirectory = item.attr?.isDirectory == true;
+          final filename = item.filename.toString();
+          final isSelected = _selectedFiles.contains(filename);
 
-        return GestureDetector(
-          onTap: () {
-            if (_isMultiSelectMode) {
+          return GestureDetector(
+            onTap: () {
+              if (_isMultiSelectMode) {
+                _toggleFileSelection(filename);
+              } else if (isDirectory) {
+                _loadDirectory(_joinPath(_currentPath, filename));
+              }
+            },
+            onLongPress: () {
+              if (!_isMultiSelectMode) _toggleMultiSelectMode();
               _toggleFileSelection(filename);
-            } else if (isDirectory) {
-              _loadDirectory(_joinPath(_currentPath, filename));
-            }
-          },
-          onLongPress: () {
-            if (!_isMultiSelectMode) _toggleMultiSelectMode();
-            _toggleFileSelection(filename);
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.blue.withOpacity(0.12) : null,
-              borderRadius: BorderRadius.circular(5),
-              border: isSelected
-                  ? Border.all(color: Colors.blueAccent, width: 1.3)
-                  : null,
-            ),
-            padding: const EdgeInsets.all(4),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Container(
-                        alignment: Alignment.center,
-                        child: Icon(
-                          isDirectory ? Icons.folder : Icons.insert_drive_file,
-                          size: 50,
-                          color: isDirectory ? Colors.blueAccent : Colors.grey,
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.blue.withOpacity(0.12) : null,
+                borderRadius: BorderRadius.circular(5),
+                border: isSelected
+                    ? Border.all(color: Colors.blueAccent, width: 1.3)
+                    : null,
+              ),
+              padding: const EdgeInsets.all(4),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          alignment: Alignment.center,
+                          child: Icon(
+                            isDirectory
+                                ? Icons.folder
+                                : Icons.insert_drive_file,
+                            size: 50,
+                            color: isDirectory
+                                ? _getFolderIconColor(context)
+                                : Colors.grey,
+                          ),
                         ),
                       ),
-                    ),
-                    Container(
-                      height: constraints.maxHeight * 0.3,
-                      alignment: Alignment.topCenter,
-                      child: Text(
-                        filename,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 14),
+                      Container(
+                        height: constraints.maxHeight * 0.3,
+                        alignment: Alignment.topCenter,
+                        child: Text(
+                          filename,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 14),
+                        ),
                       ),
-                    ),
-                  ],
-                );
-              },
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -1952,7 +2019,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     return ListTile(
       leading: Icon(
         isDirectory ? Icons.folder : Icons.insert_drive_file,
-        color: isDirectory ? Colors.blueAccent : Colors.grey,
+        color: isDirectory ? _getFolderIconColor(context) : Colors.grey,
       ),
       title: Text(filename),
       subtitle: Text(isDirectory ? '文件夹' : _formatFileSize(size)),
@@ -2239,10 +2306,10 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       if (_isPermissionDeniedError(e)) {
         return await _trySudoSaveFile(remotePath, data, filename);
       } else if (mounted) {
-          try {
-            Navigator.of(context, rootNavigator: true).pop();
-          } catch (_) {}
-          _showErrorDialog('保存文件失败', e.toString());
+        try {
+          Navigator.of(context, rootNavigator: true).pop();
+        } catch (_) {}
+        _showErrorDialog('保存文件失败', e.toString());
       }
       return false;
     }
@@ -2350,10 +2417,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     });
 
     if (mounted) {
-      _showToast(
-        '已复制 ${_selectedFiles.length} 个项目',
-        icon: Icons.copy_rounded,
-      );
+      _showToast('已复制 ${_selectedFiles.length} 个项目', icon: Icons.copy_rounded);
       _clearSelectionAndExitMultiSelect();
     }
   }
@@ -2394,7 +2458,10 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     });
 
     if (mounted) {
-      _showToast('已剪切 ${_selectedFiles.length} 个项目', icon: Icons.content_cut_rounded);
+      _showToast(
+        '已剪切 ${_selectedFiles.length} 个项目',
+        icon: Icons.content_cut_rounded,
+      );
       _clearSelectionAndExitMultiSelect();
     }
   }
@@ -2534,7 +2601,10 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
       } catch (_) {}
 
       if (!_cancelOperation && mounted) {
-        _showToast('粘贴完成: $successCount / $totalCount 个项目', icon: Icons.check_circle_outline_rounded);
+        _showToast(
+          '粘贴完成: $successCount / $totalCount 个项目',
+          icon: Icons.check_circle_outline_rounded,
+        );
 
         if (_clipboardIsCut) {
           setState(() {
@@ -2691,7 +2761,6 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     });
     debugPrint('已清除记住的sudo密码');
   }
-
 
   Future<void> _showMoreActionSheet() async {
     setState(() {
@@ -2966,11 +3035,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
         await remote.writeBytes(chunk, offset: offset);
         offset += chunk.length;
 
-        if (mounted) {
-          setState(() {
-            _uploadProgress = fileSize > 0 ? offset / fileSize : 0.0;
-          });
-        }
+        _setUploadProgress(fileSize > 0 ? offset / fileSize : 0.0);
       }
 
       await remote.close();
@@ -3050,7 +3115,10 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     final success = await _executeSudoCommand(command, password);
 
     if (success && mounted) {
-      _showToast('重命名成功 : $oldName → $newName', icon: Icons.check_circle_outline_rounded);
+      _showToast(
+        '重命名成功 : $oldName → $newName',
+        icon: Icons.check_circle_outline_rounded,
+      );
       _clearSelectionAndExitMultiSelect();
       await _loadDirectory(_currentPath);
     } else {
@@ -3094,7 +3162,6 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     }
   }
 
-  @override
   @override
   void dispose() {
     _loadingAnimationController.dispose();
@@ -3173,8 +3240,6 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     required Widget child,
     double opacity = 0.34,
   }) {
-    // SFTP 连接页地址栏和工具栏背后不是滚动内容，不再使用模糊，
-    // 避免连接页操作区因 BackdropFilter 产生额外重绘。
     return child;
   }
 
@@ -3351,7 +3416,10 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
                     onTap: _showPathInputDialog,
                     child: Container(
                       height: 40,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
                       child: Row(
                         children: [
                           Expanded(
@@ -3363,12 +3431,6 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.edit_location_alt_outlined,
-                            size: 18,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ],
                       ),
@@ -3401,9 +3463,13 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
                     duration: const Duration(milliseconds: 200),
                     switchInCurve: Curves.easeInOut,
                     switchOutCurve: Curves.easeInOut,
-                    transitionBuilder: (Widget child, Animation<double> animation) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        },
                     child: _buildBodyContent(),
                   ),
                 ),

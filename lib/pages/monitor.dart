@@ -7,6 +7,7 @@ import '../services/storage_service.dart';
 import '../services/ssh_service.dart';
 import '../components/quick_connect_dialog.dart';
 import '../components/twofa_dialog.dart';
+import '../widgets/app_style.dart';
 
 class ServerMetrics {
   final double cpuUsage;
@@ -627,17 +628,19 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
           (filteredConnections.isNotEmpty ? filteredConnections.first : null);
     }
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 12),
+            child: Text(
               '选择服务器连接',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 12),
+          ),
+          const SizedBox(height: 12),
             DropdownButtonFormField<ConnectionInfo>(
               value: _selectedConnection,
               decoration: InputDecoration(
@@ -784,7 +787,6 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -894,7 +896,7 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.largeRadius,
         border: Border.all(color: Colors.grey, width: 1),
         color: Colors.transparent,
       ),
@@ -1016,7 +1018,7 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.largeRadius,
         border: Border.all(color: Colors.grey, width: 1),
         color: Colors.transparent,
       ),
@@ -1138,7 +1140,7 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.largeRadius,
         border: Border.all(color: Colors.grey, width: 1),
         color: Colors.transparent,
       ),
@@ -1225,7 +1227,7 @@ class _MonitorServerPageState extends State<MonitorServerPage> {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.largeRadius,
         border: Border.all(color: Colors.grey, width: 1),
         color: Colors.transparent,
       ),

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:xterm/xterm.dart';
@@ -39,6 +38,11 @@ class _TerminalPageState extends State<TerminalPage> {
   final List<String> _statuses = List.filled(_maxSessions, '未连接');
   final List<StreamSubscription?> _stdoutSubs = List.filled(_maxSessions, null);
   final List<StreamSubscription?> _stderrSubs = List.filled(_maxSessions, null);
+  final List<StringBuffer> _terminalOutputBuffers = List.generate(
+    _maxSessions,
+    (_) => StringBuffer(),
+  );
+  final List<Timer?> _terminalFlushTimers = List.filled(_maxSessions, null);
 
   final List<Completer<String?>?> _twoFactorCompleters = List.filled(
     _maxSessions,
@@ -72,7 +76,6 @@ class _TerminalPageState extends State<TerminalPage> {
   bool _isThemeSelectorVisible = false;
   Timer? _hideThemeSelectorTimer;
   TerminalTheme _currentTheme = TerminalThemes.defaultTheme;
-  String _selectedThemeName = 'dark';
   String _termType = 'xterm-256color';
   String _defaultfonts = 'maple';
   List<int> _toolbarLayout = const [
@@ -159,7 +162,6 @@ class _TerminalPageState extends State<TerminalPage> {
 
       // 设置主题
       final themeName = settings.defaultTermTheme;
-      _selectedThemeName = themeName;
       switch (themeName) {
         case 'dark':
           _currentTheme = TerminalThemes.defaultTheme;
@@ -181,7 +183,6 @@ class _TerminalPageState extends State<TerminalPage> {
           break;
         default:
           _currentTheme = TerminalThemes.defaultTheme;
-          _selectedThemeName = 'dark';
       }
 
       // 设置终端类型
@@ -197,7 +198,6 @@ class _TerminalPageState extends State<TerminalPage> {
       debugPrint('加载设置失败: $e');
       // 使用默认值
       _currentTheme = TerminalThemes.defaultTheme;
-      _selectedThemeName = 'dark';
       _termType = 'xterm-256color';
       _fontSize = 14.0;
       _toolbarLayout = const [
@@ -266,24 +266,18 @@ class _TerminalPageState extends State<TerminalPage> {
       );
       _sessions[index] = session;
 
-      // 监听输出
+      // 监听输出。SSH 登录脚本或大段输出可能在短时间内产生大量小块数据，
+      // 逐块写入 xterm 会造成明显掉帧，因此先合并到每帧最多刷新一次。
       _stdoutSubs[index] = session.stdout.listen((data) {
-        if (!mounted) return;
-        try {
-          t.write(utf8.decode(data));
-        } catch (_) {}
+        _appendTerminalOutput(index, utf8.decode(data, allowMalformed: true));
       });
 
       _stderrSubs[index] = session.stderr.listen((data) {
-        if (!mounted) return;
-        try {
-          t.write(utf8.decode(data));
-        } catch (_) {
-          t.write('错误: <stderr 解码失败>');
-        }
+        _appendTerminalOutput(index, utf8.decode(data, allowMalformed: true));
       });
 
       session.done.then((_) {
+        _flushTerminalOutput(index);
         if (!mounted) return;
         setState(() {
           _isConnecteds[index] = false;
@@ -326,6 +320,39 @@ class _TerminalPageState extends State<TerminalPage> {
         _terminals[index].write('连接失败: $e\r\n');
       }
     }
+  }
+
+
+  void _appendTerminalOutput(int index, String text) {
+    if (!mounted || text.isEmpty) return;
+
+    final buffer = _terminalOutputBuffers[index];
+    buffer.write(text);
+
+    _terminalFlushTimers[index] ??= Timer(
+      const Duration(milliseconds: 16),
+      () => _flushTerminalOutput(index),
+    );
+  }
+
+  void _flushTerminalOutput(int index) {
+    _terminalFlushTimers[index]?.cancel();
+    _terminalFlushTimers[index] = null;
+
+    if (!mounted) {
+      _terminalOutputBuffers[index].clear();
+      return;
+    }
+
+    final buffer = _terminalOutputBuffers[index];
+    if (buffer.isEmpty) return;
+
+    final text = buffer.toString();
+    buffer.clear();
+
+    try {
+      _terminals[index].write(text);
+    } catch (_) {}
   }
 
   // 显示 2FA 验证码对话框
@@ -424,8 +451,11 @@ class _TerminalPageState extends State<TerminalPage> {
   void _sendTab() => _session?.write(Uint8List.fromList([9]));
 
   @override
-  @override
   void dispose() {
+    for (var i = 0; i < _maxSessions; i++) {
+      _terminalFlushTimers[i]?.cancel();
+      _terminalOutputBuffers[i].clear();
+    }
     for (var sub in _stdoutSubs) {
       sub?.cancel();
     }
@@ -462,52 +492,6 @@ class _TerminalPageState extends State<TerminalPage> {
     return Colors.red;
   }
 
-  List<AppActionSheetItem<String>> _buildMenuActionItems() {
-    return [
-      const AppActionSheetItem<String>(
-        value: 'reconnect',
-        label: '重新连接',
-        icon: Icons.refresh_rounded,
-      ),
-      const AppActionSheetItem<String>(
-        value: 'commands',
-        label: '发送命令',
-        icon: Icons.keyboard_command_key_rounded,
-      ),
-      const AppActionSheetItem<String>(
-        value: 'clear',
-        label: '清屏',
-        icon: Icons.cleaning_services_outlined,
-      ),
-      const AppActionSheetItem<String>(
-        value: 'fontsize',
-        label: '字体大小',
-        icon: Icons.format_size_rounded,
-      ),
-      const AppActionSheetItem<String>(
-        value: 'theme',
-        label: '主题',
-        icon: Icons.palette_outlined,
-      ),
-      AppActionSheetItem<String>(
-        value: 'toggle_toolbar',
-        label: _showToolbar ? '收起快捷栏' : '展示快捷栏',
-        icon: Icons.tune_rounded,
-      ),
-      AppActionSheetItem<String>(
-        value: 'multi_window',
-        label: _isMultiWindowMode ? '关闭多会话' : '多会话（Beta）',
-        icon: Icons.splitscreen_rounded,
-      ),
-      const AppActionSheetItem<String>(
-        value: 'disconnect',
-        label: '断开连接并返回',
-        icon: Icons.logout_rounded,
-        destructive: true,
-      ),
-    ];
-  }
-
   Future<void> _showTerminalActionSheet() async {
     setState(() {
       _menuIsOpen = !_menuIsOpen;
@@ -537,44 +521,11 @@ class _TerminalPageState extends State<TerminalPage> {
     });
   }
 
-  void _onMenuSelected(String value) {
-    switch (value) {
-      case 'fontsize':
-        _showFontSlider();
-        break;
-      case 'reconnect':
-        _reconnect();
-        break;
-      case 'commands':
-        _showCommandsSubMenu();
-        break;
-      case 'clear':
-        _clearTerminal();
-        break;
-      case 'theme':
-        _showThemeSelector();
-        break;
-      case 'toggle_toolbar':
-        _toggleToolbar();
-        break;
-      case 'multi_window':
-        _isMultiWindowMode ? _disableMultiWindow() : _enableMultiWindow();
-        break;
-      case 'disconnect':
-        Navigator.of(context).pop();
-        break;
-    }
-  }
-
   void _toggleToolbar() {
     setState(() {
       _showToolbar = !_showToolbar;
     });
     if (_isConnected) _terminalFocusNode.requestFocus();
-  }
-
-  Future<void> _showThemeSelector() async {
-    _showTerminalMenuPanel('theme');
   }
 
   void _selectTerminalTheme(String value) {
@@ -601,14 +552,8 @@ class _TerminalPageState extends State<TerminalPage> {
   void _switchTheme(TerminalTheme newTheme, String themeName) {
     setState(() {
       _currentTheme = newTheme;
-      _selectedThemeName = themeName;
     });
     if (_isConnected) _terminalFocusNode.requestFocus();
-  }
-
-  void _hideThemeSelector() {
-    _hideThemeSelectorTimer?.cancel();
-    _closeTerminalMenu();
   }
 
   void _reconnect() {
@@ -645,10 +590,6 @@ class _TerminalPageState extends State<TerminalPage> {
         _connectToHost(_activeIndex);
       }
     });
-  }
-
-  Future<void> _showCommandsSubMenu() async {
-    _showTerminalMenuPanel('commands');
   }
 
   void _handleCommand(String command) {
@@ -1068,19 +1009,21 @@ class _TerminalPageState extends State<TerminalPage> {
         body: SafeArea(
           child: Stack(
             children: [
-              TerminalView(
-                terminal,
-                key: ValueKey(_activeIndex),
-                focusNode: _terminalFocusNode,
-                autofocus: true,
-                textStyle: TerminalStyle(
-                  fontSize: _fontSize,
-                  fontFamily: _defaultfonts,
+              RepaintBoundary(
+                child: TerminalView(
+                  terminal,
+                  key: ValueKey(_activeIndex),
+                  focusNode: _terminalFocusNode,
+                  autofocus: true,
+                  textStyle: TerminalStyle(
+                    fontSize: _fontSize,
+                    fontFamily: _defaultfonts,
+                  ),
+                  theme: _currentTheme,
+                  showToolbar: _showToolbar,
+                  toolbarLayout: _toolbarLayout,
+                  readOnly: _shouldBeReadOnly,
                 ),
-                theme: _currentTheme,
-                showToolbar: _showToolbar,
-                toolbarLayout: _toolbarLayout,
-                readOnly: _shouldBeReadOnly,
               ),
               _buildTerminalFloatingMenu(),
             ],

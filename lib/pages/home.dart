@@ -355,7 +355,7 @@ class _MainPageState extends State<MainPage> {
 
     if (!showRecentConnections) {
       return Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -432,7 +432,7 @@ class _MainPageState extends State<MainPage> {
           Expanded(
             flex: 1,
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -459,7 +459,7 @@ class _MainPageState extends State<MainPage> {
           Expanded(
             flex: 1,
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -490,6 +490,7 @@ class _MainPageState extends State<MainPage> {
                           child: MediaQuery.removePadding(
                             context: context,
                             removeTop: true,
+                            removeBottom: true,
                             child: ListView.builder(
                               primary: false,
                               padding: EdgeInsets.zero,

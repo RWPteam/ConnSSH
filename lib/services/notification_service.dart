@@ -6,6 +6,8 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
 
   late FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin;
+  bool _initialized = false;
+  Future<void>? _initializing;
 
   NotificationService._internal() {
     _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
@@ -15,35 +17,46 @@ class NotificationService {
     return _instance;
   }
 
-  Future<void> initialize() async {
-    const AndroidInitializationSettings androidInitializationSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+  Future<void> initialize() {
+    if (_initialized) return Future.value();
+    return _initializing ??= _initializeInternal();
+  }
 
-    const InitializationSettings initializationSettings =
-        InitializationSettings(android: androidInitializationSettings);
+  Future<void> _initializeInternal() async {
+    try {
+      const AndroidInitializationSettings androidInitializationSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
+      const InitializationSettings initializationSettings =
+          InitializationSettings(android: androidInitializationSettings);
 
-    if (Platform.isAndroid) {
-      // 创建高优先级通知频道，用于前台服务
-      const AndroidNotificationChannel channel = AndroidNotificationChannel(
-        'connection_channel',
-        'ConnSSH 连接状态',
-        description: '显示当前活跃的 SSH/SFTP 连接状态',
-        importance: Importance.high,
-        playSound: false,
-        enableVibration: false,
-        showBadge: false,
-        enableLights: false,
-      );
+      await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
-      await _flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >()
-          ?.createNotificationChannel(channel);
+      if (Platform.isAndroid) {
+        // 创建高优先级通知频道，用于前台服务
+        const AndroidNotificationChannel channel = AndroidNotificationChannel(
+          'connection_channel',
+          'ConnSSH 连接状态',
+          description: '显示当前活跃的 SSH/SFTP 连接状态',
+          importance: Importance.high,
+          playSound: false,
+          enableVibration: false,
+          showBadge: false,
+          enableLights: false,
+        );
 
-      print('通知频道创建成功');
+        await _flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >()
+            ?.createNotificationChannel(channel);
+
+        print('通知频道创建成功');
+      }
+
+      _initialized = true;
+    } finally {
+      _initializing = null;
     }
   }
 

@@ -156,6 +156,7 @@ class _AppToastEntryState extends State<_AppToastEntry>
                   blurSigma: 12,
                   opacity: theme.brightness == Brightness.dark ? 0.62 : 0.78,
                   borderOpacity: 0.38,
+                  enableBlur: true,
                   child: Material(
                     type: MaterialType.transparency,
                     child: Padding(

@@ -56,12 +56,11 @@ class _HelpPageState extends State<HelpPage> {
     HelpItem(
       title: '关于 & 反馈',
       content: '''
-ConnSSH 版本 2.2.0
+ConnSSH 版本 3.0.0
 
-修复了以下问题：
-* SFTP下载完文件会退回主页
-新增功能：
-* 终端页面支持复制了，长按文字选中后会直接复制到剪贴板
+本次更新内容：
+* 视觉内容焕新
+* sftp支持手动输入地址
 
 如有问题或建议，请前往本项目GitHub仓库提交issue
 若您访问不便，可发送邮件至：
@@ -157,16 +156,14 @@ samuioto@outlook.com
                       children: [
                         Text(
                           'ConnSSH',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           '一个便捷的SSH和SFTP连接管理工具',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -223,8 +220,8 @@ samuioto@outlook.com
                   Text(
                     '${_currentPage + 1} / ${helpItems.length}',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   AppIconActionButton(
@@ -286,7 +283,8 @@ class HelpCard extends StatelessWidget {
                         child: Container(
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            color: colorScheme.surfaceContainerHighest.withOpacity(0.24),
+                            color: colorScheme.surfaceContainerHighest
+                                .withOpacity(0.24),
                             borderRadius: AppRadius.mediumRadius,
                           ),
                           child: ClipRRect(
@@ -295,14 +293,16 @@ class HelpCard extends StatelessWidget {
                                 ? Image.network(
                                     helpItem.imagePath!,
                                     fit: BoxFit.contain,
-                                    errorBuilder: (context, error, stackTrace) =>
-                                        _buildImageErrorWidget(context),
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            _buildImageErrorWidget(context),
                                   )
                                 : Image.asset(
                                     helpItem.imagePath!,
                                     fit: BoxFit.contain,
-                                    errorBuilder: (context, error, stackTrace) =>
-                                        _buildImageErrorWidget(context),
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            _buildImageErrorWidget(context),
                                   ),
                           ),
                         ),
@@ -326,9 +326,9 @@ class HelpCard extends StatelessWidget {
       children: [
         Text(
           helpItem.title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
         Text(
@@ -350,10 +350,7 @@ class HelpCard extends StatelessWidget {
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 8),
-          Text(
-            '图片加载失败',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          Text('图片加载失败', style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );

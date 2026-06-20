@@ -398,40 +398,46 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
       }
     }
 
+    final listChildren = <Widget>[
+      ..._archiveGroups.map((group) {
+        final groupConnections = groupedConnections[group.name] ?? [];
+        return _buildGroupTile(group, groupConnections);
+      }),
+      if (ungroupedConnections.isNotEmpty) ...[
+        _buildUngroupedHeaderTile(ungroupedConnections.length),
+        if (_isUngroupedExpanded) // 根据展开状态显示连接列表
+          ...ungroupedConnections.map(
+            (connection) => _buildConnectionTile(connection, withMargin: true),
+          ),
+      ],
+      if (_connections.isEmpty && _archiveGroups.isEmpty)
+        SizedBox(
+          height: MediaQuery.sizeOf(context).height * 0.55,
+          child: _buildEmptyState(),
+        ),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('管理连接'),
         actions: [
           IconButton(
-            onPressed: _createArchiveGroup,
             icon: const Icon(Icons.create_new_folder_outlined),
             tooltip: '创建分组',
+            onPressed: _createArchiveGroup,
           ),
           IconButton(
-            onPressed: _showNewConnectionDialog,
             icon: const Icon(Icons.add),
             tooltip: '新建连接',
+            onPressed: _showNewConnectionDialog,
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: _connections.isEmpty && _archiveGroups.isEmpty
-          ? _buildEmptyState()
-          : ListView(
-              children: [
-                ..._archiveGroups.map((group) {
-                  final groupConnections = groupedConnections[group.name] ?? [];
-                  return _buildGroupTile(group, groupConnections);
-                }).toList(),
-                if (ungroupedConnections.isNotEmpty) ...[
-                  _buildUngroupedHeaderTile(ungroupedConnections.length),
-                  if (_isUngroupedExpanded) // 根据展开状态显示连接列表
-                    ...ungroupedConnections
-                        .map((connection) =>
-                            _buildConnectionTile(connection, withMargin: true))
-                        .toList(),
-                ],
-              ],
-            ),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        children: listChildren,
+      ),
     );
   }
 
@@ -439,12 +445,18 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
+            width: double.infinity,
             height: 56,
             decoration: BoxDecoration(
               color: Colors.transparent,
               borderRadius: AppRadius.largeRadius,
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                width: 1,
+              ),
             ),
             child: InkWell(
               onTap: () {
@@ -509,14 +521,20 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           GestureDetector(
             onTap: () => _toggleGroupExpanded(group),
             child: Container(
+              width: double.infinity,
               height: 56,
               decoration: BoxDecoration(
                 color: Colors.transparent,
                 borderRadius: AppRadius.largeRadius,
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  width: 1,
+                ),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -563,19 +581,23 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        GestureDetector(
-                          onTap: () => _editArchiveGroup(group),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            child: const Icon(Icons.edit, size: 20),
+                        SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: IconButton(
+                            onPressed: () => _editArchiveGroup(group),
+                            icon: const Icon(Icons.edit, size: 20),
+                            tooltip: '编辑分组',
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () => _deleteArchiveGroup(group),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            child: const Icon(Icons.delete, size: 20),
+                        const SizedBox(width: 4),
+                        SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: IconButton(
+                            onPressed: () => _deleteArchiveGroup(group),
+                            icon: const Icon(Icons.delete, size: 20),
+                            tooltip: '删除分组',
                           ),
                         ),
                       ],
@@ -659,7 +681,7 @@ class _ManageConnectionsPageState extends State<ManageConnectionsPage> {
         color: Colors.transparent,
         borderRadius: AppRadius.largeRadius,
         border: Border.all(
-          color: Colors.grey,
+          color: Theme.of(context).colorScheme.outlineVariant,
           width: 1,
         ),
       ),
