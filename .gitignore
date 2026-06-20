@@ -13,6 +13,7 @@
 *.pem
 *.jks
 migrate_working_dir/
+.atomcode/
 
 # self
 todo
