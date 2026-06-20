@@ -19,11 +19,11 @@ A lightweight & cross-platform SSH/SFTP client built with Flutter.
 ### 下载
 | 平台 | 下载 | 备注 |
 |------|------|------|
-| Android | [apk](https://github.com/RWPteam/ConnSSH/releases/download/2.2.0/ConnSSH_2.2.0_arm64.apk) | arm64 |
-| Debian | [deb](https://github.com/RWPteam/ConnSSH/releases/download/2.2.0/ConnSSH_2.2.0_amd64.deb) | AMD64 |
-| iOS | [ipa](https://github.com/RWPteam/ConnSSH/releases/download/2.0.0/ConnSSH_2.0.0.ipa) | arm64 |
-| Windows | [installer](https://github.com/RWPteam/ConnSSH/releases/download/1.4.2/ConnSSH.1.4.2.Installer.exe) | - |
-| OHOS | [AppGallery](https://appgallery.huawei.com/app/detail?id=com.samuioto.connecter&channelId=SHARE&source=appshare) | [app](https://github.com/RWPteam/ConnSSH/releases/download/1.4.2/ConnSSH_1.4.2.app.zip) |
+| Android | [apk](https://github.com/RWPteam/ConnSSH/releases/download/3.0.0/ConnSSH_3.0.0_arm64.apk) | arm64 |
+| Debian | [deb](https://github.com/RWPteam/ConnSSH/releases/download/2.2.0/ConnSSH_3.0.0_amd64.deb) | （停止维护） |
+| iOS | [ipa](https://github.com/RWPteam/ConnSSH/releases/download/2.0.0/ConnSSH_2.0.0.ipa) | （停止维护） |
+| Windows | [installer](https://github.com/RWPteam/ConnSSH/releases/download/1.4.2/ConnSSH.1.4.2.Installer.exe) | （停止维护）  |
+| OHOS | [AppGallery](https://appgallery.huawei.com/app/detail?id=com.samuioto.connecter&channelId=SHARE&source=appshare) | [app](https://github.com/RWPteam/ConnSSH/releases/download/3.0.0/ConnSSH_3.0.0.app.zip) |
 
 ### 构建&打包
 ```bash
