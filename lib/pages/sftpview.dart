@@ -75,6 +75,7 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
   bool _isProgressDialogOpen = false;
   bool _isSudoPromptOpen = false;
   bool _sftpMenuIsOpen = false;
+  bool _isHandlingBackGesture = false;
   bool _needsTwoFactorAuth = false;
   bool _connectionClosed = false;
   DateTime? _lastProgressUiUpdate;
@@ -86,9 +87,6 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
 
   static const int _largeFileThreshold = 1024 * 1024;
 
-  bool get _ismobile =>
-      defaultTargetPlatform == TargetPlatform.android ||
-      defaultTargetPlatform == TargetPlatform.iOS;
 
   @override
   void initState() {
@@ -2768,6 +2766,94 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
     });
   }
 
+Future<void> _handleBackNavigationAttempt() async {
+  final now = DateTime.now();
+
+  final bool isInBlockingState = _isLoading || !_isConnected;
+
+  if (!isInBlockingState && _currentPath != '/') {
+    _goToParentDirectory();
+    return;
+  }
+
+  final bool shouldExit =
+      _lastBackPressedTime == null ||
+      now.difference(_lastBackPressedTime!) > const Duration(seconds: 2);
+
+  if (shouldExit) {
+    _lastBackPressedTime = now;
+
+    _showToast(
+      '再按一次退出',
+      duration: const Duration(seconds: 2),
+    );
+  } else {
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+}
+
+  Widget _buildIOSBackGestureWrapper({
+    required Widget child,
+  }) {
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      return child;
+    }
+
+    double dragStartX = 0;
+    double dragDistance = 0;
+
+    return Stack(
+      children: [
+        child,
+
+        // iOS 左侧边缘返回触发区
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 32,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragStart: (details) {
+              dragStartX = details.globalPosition.dx;
+              dragDistance = 0;
+            },
+            onHorizontalDragUpdate: (details) {
+              if (dragStartX > 32) return;
+
+              final delta = details.primaryDelta ?? 0;
+              if (delta > 0) {
+                dragDistance += delta;
+              }
+            },
+            onHorizontalDragEnd: (details) async {
+              if (_isHandlingBackGesture) return;
+
+              final velocity = details.primaryVelocity ?? 0;
+
+              final shouldTriggerBack =
+                  dragStartX <= 32 && (dragDistance > 70 || velocity > 450);
+
+              if (!shouldTriggerBack) return;
+
+              _isHandlingBackGesture = true;
+
+              try {
+                await _handleBackNavigationAttempt();
+              } finally {
+                if (mounted) {
+                  _isHandlingBackGesture = false;
+                }
+              }
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   void _closeSftpMenu() {
     if (!mounted) return;
     setState(() => _sftpMenuIsOpen = false);
@@ -3294,52 +3380,24 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
   late AnimationController _loadingAnimationController;
   late Animation<double> _loadingAnimation;
 
-  @override
-  Widget build(BuildContext context) {
-    final hasSelection = _selectedFiles.isNotEmpty;
-    final singleSelection = _selectedFiles.length == 1;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isWideScreen = screenWidth >= 800;
-    final iconColor = _getIconColor(context);
-    final disabledIconColor = _getDisabledIconColor(context);
-    final displayTitle = 'SFTP-${widget.connection.name}';
-    final Color appBarColor = _getAppBarColor();
+@override
+Widget build(BuildContext context) {
+  final hasSelection = _selectedFiles.isNotEmpty;
+  final singleSelection = _selectedFiles.length == 1;
+  final screenWidth = MediaQuery.of(context).size.width;
+  final isWideScreen = screenWidth >= 800;
+  final iconColor = _getIconColor(context);
+  final disabledIconColor = _getDisabledIconColor(context);
+  final displayTitle = 'SFTP-${widget.connection.name}';
+  final Color appBarColor = _getAppBarColor();
 
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) async {
-        if (didPop) return;
-
-        final now = DateTime.now();
-
-        final bool isInBlockingState = _isLoading || !_isConnected;
-
-        if (!isInBlockingState && _currentPath != '/') {
-          _goToParentDirectory();
-          return;
-        }
-
-        final bool shouldExit =
-            _lastBackPressedTime == null ||
-            now.difference(_lastBackPressedTime!) > const Duration(seconds: 2);
-
-        if (shouldExit) {
-          _lastBackPressedTime = now;
-
-          String hintText;
-          if (isInBlockingState && _currentPath != '/') {
-            hintText = '再按一次退出';
-          } else {
-            hintText = '再按一次退出';
-          }
-
-          _showToast(hintText, duration: const Duration(seconds: 2));
-        } else {
-          if (mounted) {
-            Navigator.of(context).pop();
-          }
-        }
-      },
+  return PopScope(
+    canPop: false,
+    onPopInvoked: (didPop) async {
+      if (didPop) return;
+      await _handleBackNavigationAttempt();
+    },
+    child: _buildIOSBackGestureWrapper(
       child: Scaffold(
         appBar: AppBar(
           toolbarHeight: 40,
@@ -3349,17 +3407,14 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
           surfaceTintColor: Colors.transparent,
           titleSpacing: 0,
           automaticallyImplyLeading: false,
-          leading: _ismobile
-              ? null
-              : IconButton(
-                  icon: const Icon(Icons.arrow_back, size: 20),
-                  padding: const EdgeInsets.all(8),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-          title: Container(
+
+          // 不保留 AppBar 返回按钮。
+          leading: null,
+
+          title: SizedBox(
             width: double.infinity,
             child: Padding(
-              padding: EdgeInsets.only(left: _ismobile ? 18.0 : 0),
+              padding: const EdgeInsets.only(left: 18.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -3465,11 +3520,11 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
                     switchOutCurve: Curves.easeInOut,
                     transitionBuilder:
                         (Widget child, Animation<double> animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          );
-                        },
+                      return FadeTransition(
+                        opacity: animation,
+                        child: child,
+                      );
+                    },
                     child: _buildBodyContent(),
                   ),
                 ),
@@ -3479,9 +3534,9 @@ class _SftpPageState extends State<SftpPage> with TickerProviderStateMixin {
           ],
         ),
       ),
-    );
-  }
-
+    ),
+  );
+} 
   Widget _buildIconButton(
     IconData icon,
     String tooltip,

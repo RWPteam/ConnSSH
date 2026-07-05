@@ -101,6 +101,7 @@ class _TerminalPageState extends State<TerminalPage> {
   final NotificationService _notificationService = NotificationService();
 
   DateTime? _lastBackPressedTime;
+  bool _isHandlingBackGesture = false;
 
   bool get _shouldBeReadOnly {
     return !_isConnected ||
@@ -321,7 +322,6 @@ class _TerminalPageState extends State<TerminalPage> {
       }
     }
   }
-
 
   void _appendTerminalOutput(int index, String text) {
     if (!mounted || text.isEmpty) return;
@@ -865,6 +865,83 @@ class _TerminalPageState extends State<TerminalPage> {
     );
   }
 
+  Future<void> _handleBackNavigationAttempt() async {
+    final now = DateTime.now();
+
+    final bool shouldExit =
+        _lastBackPressedTime == null ||
+        now.difference(_lastBackPressedTime!) > const Duration(seconds: 2);
+
+    if (shouldExit) {
+      _lastBackPressedTime = now;
+      AppToast.show(
+        context,
+        message: '再按一次退出',
+        icon: Icons.info_outline_rounded,
+        duration: const Duration(seconds: 2),
+      );
+    } else {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    }
+  }
+
+  Widget _buildIOSBackGestureWrapper({required Widget child}) {
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      return child;
+    }
+
+    double dragStartX = 0;
+    double dragDistance = 0;
+
+    return Stack(
+      children: [
+        child,
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 32,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragStart: (details) {
+              dragStartX = details.globalPosition.dx;
+              dragDistance = 0;
+            },
+            onHorizontalDragUpdate: (details) {
+              if (dragStartX > 32) return;
+
+              final delta = details.primaryDelta ?? 0;
+              if (delta > 0) {
+                dragDistance += delta;
+              }
+            },
+            onHorizontalDragEnd: (details) async {
+              if (_isHandlingBackGesture) return;
+
+              final velocity = details.primaryVelocity ?? 0;
+              final shouldTriggerBack =
+                  dragStartX <= 32 && (dragDistance > 70 || velocity > 450);
+
+              if (!shouldTriggerBack) return;
+
+              _isHandlingBackGesture = true;
+
+              try {
+                await _handleBackNavigationAttempt();
+              } finally {
+                if (mounted) {
+                  _isHandlingBackGesture = false;
+                }
+              }
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     String displayTitle = _isMultiWindowMode
@@ -876,157 +953,141 @@ class _TerminalPageState extends State<TerminalPage> {
       canPop: false,
       onPopInvoked: (didPop) async {
         if (didPop) return;
-
-        final now = DateTime.now();
-        final bool shouldExit =
-            _lastBackPressedTime == null ||
-            now.difference(_lastBackPressedTime!) > const Duration(seconds: 2);
-
-        if (shouldExit) {
-          _lastBackPressedTime = now;
-          AppToast.show(
-            context,
-            message: '再按一次退出',
-            icon: Icons.info_outline_rounded,
-            duration: const Duration(seconds: 2),
-          );
-        } else {
-          if (mounted) {
-            Navigator.of(context).pop();
-          }
-        }
+        await _handleBackNavigationAttempt();
       },
-      child: Scaffold(
-        resizeToAvoidBottomInset: true,
-        appBar: AppBar(
-          toolbarHeight: 40,
-          backgroundColor: appBarColor,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          surfaceTintColor: Colors.transparent,
-          titleSpacing: 0,
-          automaticallyImplyLeading: false,
-          leading: _ismobile
-              ? null
-              : IconButton(
-                  icon: const Icon(Icons.arrow_back, size: 20),
-                  padding: const EdgeInsets.all(8),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-          title: Container(
-            width: double.infinity,
-            child: Padding(
-              padding: EdgeInsets.only(left: _ismobile ? 18.0 : 0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    displayTitle,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+      child: _buildIOSBackGestureWrapper(
+        child: Scaffold(
+          resizeToAvoidBottomInset: true,
+          appBar: AppBar(
+            toolbarHeight: 40,
+            backgroundColor: appBarColor,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+            titleSpacing: 0,
+            automaticallyImplyLeading: false,
+            leading: _ismobile
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.arrow_back, size: 20),
+                    padding: const EdgeInsets.all(8),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+            title: Container(
+              width: double.infinity,
+              child: Padding(
+                padding: EdgeInsets.only(left: _ismobile ? 18.0 : 0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayTitle,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Icon(
-                        _isConnected ? Icons.circle : Icons.circle_outlined,
-                        color: Colors.white,
-                        size: 8,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _status,
-                        style: TextStyle(fontSize: 10, color: Colors.white70),
-                      ),
-                      if (_needsTwoFactorAuth[_activeIndex])
-                        Padding(padding: const EdgeInsets.only(left: 8.0)),
-                    ],
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(
+                          _isConnected ? Icons.circle : Icons.circle_outlined,
+                          color: Colors.white,
+                          size: 8,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _status,
+                          style: TextStyle(fontSize: 10, color: Colors.white70),
+                        ),
+                        if (_needsTwoFactorAuth[_activeIndex])
+                          Padding(padding: const EdgeInsets.only(left: 8.0)),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          actions: [
-            if (_isMultiWindowMode)
-              IconButton(
-                icon: Container(
-                  width: 40,
-                  height: 40,
-                  alignment: Alignment.center,
-                  child: Stack(
+            actions: [
+              if (_isMultiWindowMode)
+                IconButton(
+                  icon: Container(
+                    width: 40,
+                    height: 40,
                     alignment: Alignment.center,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            margin: const EdgeInsets.symmetric(horizontal: 1),
-                            decoration: BoxDecoration(
-                              color: _activeIndex == 0
-                                  ? Colors.white
-                                  : Colors.white54,
-                              shape: BoxShape.circle,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              margin: const EdgeInsets.symmetric(horizontal: 1),
+                              decoration: BoxDecoration(
+                                color: _activeIndex == 0
+                                    ? Colors.white
+                                    : Colors.white54,
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
-                          Container(
-                            width: 6,
-                            height: 6,
-                            margin: const EdgeInsets.symmetric(horizontal: 1),
-                            decoration: BoxDecoration(
-                              color: _activeIndex == 1
-                                  ? Colors.white
-                                  : Colors.white54,
-                              shape: BoxShape.circle,
+                            Container(
+                              width: 6,
+                              height: 6,
+                              margin: const EdgeInsets.symmetric(horizontal: 1),
+                              decoration: BoxDecoration(
+                                color: _activeIndex == 1
+                                    ? Colors.white
+                                    : Colors.white54,
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
+                  iconSize: 24,
+                  padding: const EdgeInsets.all(8),
+                  onPressed: () {
+                    setState(() => _activeIndex = _activeIndex == 0 ? 1 : 0);
+                    _terminalFocusNode.requestFocus();
+                  },
                 ),
-                iconSize: 24,
+              IconButton(
+                icon: const Icon(Icons.more_vert_rounded),
+                tooltip: '菜单',
                 padding: const EdgeInsets.all(8),
-                onPressed: () {
-                  setState(() => _activeIndex = _activeIndex == 0 ? 1 : 0);
-                  _terminalFocusNode.requestFocus();
-                },
+                onPressed: _showTerminalActionSheet,
               ),
-            IconButton(
-              icon: const Icon(Icons.more_vert_rounded),
-              tooltip: '菜单',
-              padding: const EdgeInsets.all(8),
-              onPressed: _showTerminalActionSheet,
-            ),
-          ],
-        ),
-        body: SafeArea(
-          child: Stack(
-            children: [
-              RepaintBoundary(
-                child: TerminalView(
-                  terminal,
-                  key: ValueKey(_activeIndex),
-                  focusNode: _terminalFocusNode,
-                  autofocus: true,
-                  textStyle: TerminalStyle(
-                    fontSize: _fontSize,
-                    fontFamily: _defaultfonts,
-                  ),
-                  theme: _currentTheme,
-                  showToolbar: _showToolbar,
-                  toolbarLayout: _toolbarLayout,
-                  readOnly: _shouldBeReadOnly,
-                ),
-              ),
-              _buildTerminalFloatingMenu(),
             ],
+          ),
+          body: SafeArea(
+            child: Stack(
+              children: [
+                RepaintBoundary(
+                  child: TerminalView(
+                    terminal,
+                    key: ValueKey(_activeIndex),
+                    focusNode: _terminalFocusNode,
+                    autofocus: true,
+                    textStyle: TerminalStyle(
+                      fontSize: _fontSize,
+                      fontFamily: _defaultfonts,
+                    ),
+                    theme: _currentTheme,
+                    showToolbar: _showToolbar,
+                    toolbarLayout: _toolbarLayout,
+                    readOnly: _shouldBeReadOnly,
+                  ),
+                ),
+                _buildTerminalFloatingMenu(),
+              ],
+            ),
           ),
         ),
       ),

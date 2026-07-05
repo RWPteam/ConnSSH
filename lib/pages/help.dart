@@ -28,12 +28,6 @@ class _HelpPageState extends State<HelpPage> {
       imagePath: 'assets/mana_cer.png',
     ),
     HelpItem(
-      title: 'Telnet功能（Beta）',
-      content:
-          '在快速连接中点击telnet按钮即可使用，支持连接常见的服务器，支持用户名密码的自动输入。由于telnet标准不一致情况较多，如遇到无法使用等问题请及时反馈',
-      imagePath: 'assets/telnet.png',
-    ),
-    HelpItem(
       title: 'SSH功能',
       content: '在设置页面可以修改默认终端类型、默认主题、默认字体大小等，您也可以在页面的菜单中修改主题、字体大小。',
       imagePath: 'assets/ssh.png',
@@ -47,11 +41,6 @@ class _HelpPageState extends State<HelpPage> {
       title: 'SFTP功能',
       content: 'SFTP连接后可通过顶部工具栏进行操作，支持侧滑返回上级，可通过切换视图按钮切换列表/图标视图',
       imagePath: 'assets/sftp.png',
-    ),
-    HelpItem(
-      title: '文本编辑',
-      content: '可以直接编辑服务器上的文件，支持常见文本格式和编码，支持代码高亮',
-      imagePath: 'assets/textedit.png',
     ),
     HelpItem(
       title: '关于 & 反馈',

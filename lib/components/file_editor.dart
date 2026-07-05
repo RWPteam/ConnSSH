@@ -2,10 +2,12 @@
 
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:code_text_field/code_text_field.dart';
 import 'package:flutter/scheduler.dart';
+
 import 'package:highlight/languages/dart.dart';
 import 'package:highlight/languages/javascript.dart';
 import 'package:highlight/languages/python.dart';
@@ -25,6 +27,7 @@ import 'package:highlight/languages/kotlin.dart';
 import 'package:highlight/languages/swift.dart';
 import 'package:highlight/languages/makefile.dart';
 import 'package:highlight/languages/plaintext.dart';
+
 import 'package:flutter_highlight/themes/monokai-sublime.dart';
 import 'package:flutter_highlight/themes/github.dart';
 
@@ -49,6 +52,10 @@ class FileEditorPage extends StatefulWidget {
 class _FileEditorPageState extends State<FileEditorPage> {
   late CodeController _codeController;
   late FocusNode _focusNode;
+
+  bool _controllerReady = false;
+  bool _isHandlingBackGesture = false;
+
   double _fontSize = 14.0;
   bool _isModified = false;
   bool _isSaving = false;
@@ -58,12 +65,15 @@ class _FileEditorPageState extends State<FileEditorPage> {
 
   final TextEditingController _findController = TextEditingController();
   final TextEditingController _replaceController = TextEditingController();
+
   List<TextRange> _matches = [];
 
   final List<String> _history = [];
   int _historyIndex = -1;
   bool _isIgnoringListener = false;
   Timer? _historyTimer;
+
+  final GlobalKey _codeFieldKey = GlobalKey(debugLabel: 'CodeField');
 
   final Map<String, dynamic> _languages = {
     '纯文本': plaintext,
@@ -89,19 +99,40 @@ class _FileEditorPageState extends State<FileEditorPage> {
 
   late String _currentLangKey;
 
-  final GlobalKey _codeFieldKey = GlobalKey(debugLabel: 'CodeField');
+  TextStyle get _editorTextStyle {
+    return TextStyle(
+      fontFamily: 'monospace',
+      fontSize: _fontSize,
+      height: 1.35,
+    );
+  }
+
+  TextStyle _lineNumberTextStyle(bool isDark) {
+    return TextStyle(
+      fontFamily: 'monospace',
+      fontSize: _fontSize,
+      height: 1.35,
+      color: isDark ? Colors.grey[600] : Colors.blueGrey[300],
+    );
+  }
+
   @override
   void initState() {
     super.initState();
+
     _focusNode = FocusNode();
     _currentLangKey = _detectLanguage(widget.filename);
 
-    if (widget.initialContent.length > 100 * 1024 && _currentLangKey != '纯文本') {
+    if (widget.initialContent.length > 100 * 1024 &&
+        _currentLangKey != '纯文本') {
       _currentLangKey = '纯文本';
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('文件较大，已关闭代码高亮')));
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('文件较大，已关闭代码高亮')),
+        );
       });
     }
 
@@ -110,36 +141,43 @@ class _FileEditorPageState extends State<FileEditorPage> {
 
   void _initCodeControllerAsync() {
     SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
       _codeController = CodeController(
         text: widget.initialContent,
         language: _languages[_currentLangKey],
       );
+
+      _controllerReady = true;
+
       _history.add(widget.initialContent);
       _historyIndex = 0;
+
       _codeController.addListener(_handleTextChange);
-      setState(() => _isLoading = false);
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     });
   }
 
   String _detectLanguage(String filename) {
-    String ext = filename.split('.').last.toLowerCase();
+    final ext = filename.split('.').last.toLowerCase();
+
     switch (ext) {
       case 'dart':
         return 'Dart';
       case 'py':
         return 'Python';
       case 'js':
-        return 'Javascript';
       case 'ts':
         return 'Javascript';
       case 'json':
         return 'JSON';
       case 'html':
-        return 'HTML/XML';
       case 'xml':
         return 'HTML/XML';
       case 'yaml':
-        return 'YAML';
       case 'yml':
         return 'YAML';
       case 'sh':
@@ -159,9 +197,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
       case 'swift':
         return 'Swift';
       case 'cpp':
-        return 'C++';
       case 'cc':
-        return 'C++';
       case 'h':
         return 'C++';
       case 'css':
@@ -175,13 +211,17 @@ class _FileEditorPageState extends State<FileEditorPage> {
 
   void _handleTextChange() {
     if (_isIgnoringListener) return;
+
     if (!_isModified && _codeController.text != widget.initialContent) {
       setState(() => _isModified = true);
     }
+
     _historyTimer?.cancel();
     _historyTimer = Timer(const Duration(milliseconds: 500), () {
+      if (!_controllerReady) return;
       _saveToHistory(_codeController.text);
     });
+
     _matches.clear();
   }
 
@@ -189,9 +229,14 @@ class _FileEditorPageState extends State<FileEditorPage> {
     if (_historyIndex < _history.length - 1) {
       _history.removeRange(_historyIndex + 1, _history.length);
     }
+
     if (_history.isEmpty || _history.last != text) {
       _history.add(text);
-      if (_history.length > 50) _history.removeAt(0);
+
+      if (_history.length > 50) {
+        _history.removeAt(0);
+      }
+
       _historyIndex = _history.length - 1;
     }
   }
@@ -200,12 +245,16 @@ class _FileEditorPageState extends State<FileEditorPage> {
     if (_historyIndex > 0) {
       setState(() {
         _isIgnoringListener = true;
+
         _historyIndex--;
+
         final newText = _history[_historyIndex];
+
         _codeController.value = TextEditingValue(
           text: newText,
           selection: TextSelection.collapsed(offset: newText.length),
         );
+
         _isModified = newText != widget.initialContent;
         _isIgnoringListener = false;
       });
@@ -214,24 +263,26 @@ class _FileEditorPageState extends State<FileEditorPage> {
 
   void _findAllMatches() {
     final findText = _findController.text;
+
     if (findText.isEmpty) {
       _matches.clear();
       return;
     }
+
     final text = _codeController.text;
     final regex = RegExp(RegExp.escape(findText));
     final matches = regex.allMatches(text);
+
     _matches = matches
         .map((m) => TextRange(start: m.start, end: m.end))
         .toList();
-    if (_matches.isNotEmpty) {
-    } else {}
   }
 
   void _goToMatch(int index) {
     if (index < 0 || index >= _matches.length) return;
+
     final match = _matches[index];
-    print('currentState = ${_codeFieldKey.currentState}');
+
     _codeController.selection = TextSelection(
       baseOffset: match.start,
       extentOffset: match.end,
@@ -239,15 +290,22 @@ class _FileEditorPageState extends State<FileEditorPage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final state = _codeFieldKey.currentState;
+
       if (state != null) {
-        (state as dynamic).ensureOffsetVisible(match.start);
+        try {
+          (state as dynamic).ensureOffsetVisible(match.start);
+        } catch (_) {
+          // 部分 code_text_field 版本没有 ensureOffsetVisible，忽略即可。
+        }
       }
     });
   }
 
   void _findNext() {
     if (_findController.text.isEmpty) return;
+
     _findAllMatches();
+
     if (_matches.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -257,20 +315,26 @@ class _FileEditorPageState extends State<FileEditorPage> {
       );
       return;
     }
+
     final cursor = _codeController.selection.baseOffset;
+
     int newIndex = 0;
+
     for (int i = 0; i < _matches.length; i++) {
       if (_matches[i].start > cursor) {
         newIndex = i;
         break;
       }
     }
+
     _goToMatch(newIndex);
   }
 
   void _findPrevious() {
     if (_findController.text.isEmpty) return;
+
     _findAllMatches();
+
     if (_matches.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -280,68 +344,100 @@ class _FileEditorPageState extends State<FileEditorPage> {
       );
       return;
     }
+
     final cursor = _codeController.selection.baseOffset;
+
     int newIndex = _matches.length - 1;
+
     for (int i = _matches.length - 1; i >= 0; i--) {
       if (_matches[i].start < cursor) {
         newIndex = i;
         break;
       }
     }
+
     _goToMatch(newIndex);
   }
 
   void _replaceSingle() {
     final findText = _findController.text;
     final replaceText = _replaceController.text;
+
     if (findText.isEmpty) return;
+
     _findAllMatches();
+
     if (_matches.isEmpty) return;
 
     final cursor = _codeController.selection.baseOffset;
+
     int targetIndex = -1;
+
     for (int i = 0; i < _matches.length; i++) {
       if (_matches[i].start >= cursor) {
         targetIndex = i;
         break;
       }
     }
-    if (targetIndex == -1 && _matches.isNotEmpty) targetIndex = 0;
+
+    if (targetIndex == -1 && _matches.isNotEmpty) {
+      targetIndex = 0;
+    }
 
     final match = _matches[targetIndex];
     final text = _codeController.text;
+
     final newText =
         text.substring(0, match.start) +
         replaceText +
         text.substring(match.end);
+
     _codeController.text = newText;
+
     final newCursor = match.start + replaceText.length;
+
     _codeController.selection = TextSelection.collapsed(offset: newCursor);
+
     _markModified();
     _findAllMatches();
-    if (_matches.isNotEmpty) _goToMatch(0);
+
+    if (_matches.isNotEmpty) {
+      _goToMatch(0);
+    }
   }
 
   void _replaceAll() {
     final findText = _findController.text;
     final replaceText = _replaceController.text;
+
     if (findText.isEmpty) return;
+
     final newText = _codeController.text.replaceAll(findText, replaceText);
+
     _codeController.text = newText;
+
     _markModified();
     _findAllMatches();
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('全部替换完成'), duration: Duration(seconds: 1)),
+      const SnackBar(
+        content: Text('全部替换完成'),
+        duration: Duration(seconds: 1),
+      ),
     );
   }
 
   void _markModified() {
-    if (!_isModified) setState(() => _isModified = true);
+    if (!_isModified) {
+      setState(() => _isModified = true);
+    }
   }
 
   Future<void> _handleExit() async {
     if (!_isModified || await _confirmExit()) {
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
     }
   }
 
@@ -349,6 +445,55 @@ class _FileEditorPageState extends State<FileEditorPage> {
     return Theme.of(context).brightness == Brightness.dark
         ? const Color(0xFF1E1E1E)
         : Theme.of(context).primaryColor;
+  }
+
+  Widget _buildIOSBackGestureWrapper({
+    required Widget child,
+  }) {
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      return child;
+    }
+
+    double dragStartX = 0;
+    double dragDistance = 0;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onHorizontalDragStart: (details) {
+        dragStartX = details.globalPosition.dx;
+        dragDistance = 0;
+      },
+      onHorizontalDragUpdate: (details) {
+        if (dragStartX > 24) return;
+
+        final delta = details.primaryDelta ?? 0;
+
+        if (delta > 0) {
+          dragDistance += delta;
+        }
+      },
+      onHorizontalDragEnd: (details) async {
+        if (_isHandlingBackGesture) return;
+
+        final velocity = details.primaryVelocity ?? 0;
+
+        final shouldTriggerBack =
+            dragStartX <= 24 && (dragDistance > 80 || velocity > 500);
+
+        if (!shouldTriggerBack) return;
+
+        _isHandlingBackGesture = true;
+
+        try {
+          await _handleExit();
+        } finally {
+          if (mounted) {
+            _isHandlingBackGesture = false;
+          }
+        }
+      },
+      child: child,
+    );
   }
 
   @override
@@ -361,126 +506,109 @@ class _FileEditorPageState extends State<FileEditorPage> {
         if (didPop) return;
         await _handleExit();
       },
-      child: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        appBar: AppBar(
-          toolbarHeight: 45,
-          backgroundColor: _getAppBarColor(),
-          foregroundColor: Colors.white,
-          titleSpacing: 0,
-          automaticallyImplyLeading: false,
-          leading:
-              defaultTargetPlatform == TargetPlatform.android ||
-                  defaultTargetPlatform == TargetPlatform.iOS
-              ? null
-              : IconButton(
-                  icon: const Icon(Icons.arrow_back, size: 20),
-                  onPressed: _handleExit,
-                ),
-          title: Padding(
-            padding: EdgeInsets.only(
-              left:
-                  defaultTargetPlatform == TargetPlatform.android ||
-                      defaultTargetPlatform == TargetPlatform.iOS
-                  ? 18.0
-                  : 0,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.filename,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Row(
-                  children: [
-                    Icon(
-                      _isModified ? Icons.circle : Icons.circle_outlined,
-                      color: _isModified ? Colors.greenAccent : Colors.white70,
-                      size: 8,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        widget.remotePath,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.white70,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            IconButton(
-              icon: Icon(_isSaving ? Icons.sync : Icons.save, size: 20),
-              onPressed: _isSaving ? null : _saveFile,
-              tooltip: '保存文件',
-            ),
-            const SizedBox(width: 8),
-          ],
-        ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
+      child: _buildIOSBackGestureWrapper(
+        child: Scaffold(
+          backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          appBar: AppBar(
+            toolbarHeight: 45,
+            backgroundColor: _getAppBarColor(),
+            foregroundColor: Colors.white,
+            titleSpacing: 0,
+            automaticallyImplyLeading: false,
+            leading: null,
+            title: Padding(
+              padding: const EdgeInsets.only(left: 18),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildShortcutBar(isDark),
-                  if (_showSearch) ...[
-                    _buildSearchRow(isDark),
-                    if (_showReplaceRow) _buildReplaceRow(isDark),
-                  ],
-                  Expanded(
-                    child: CodeTheme(
-                      data: CodeThemeData(
-                        styles: isDark ? monokaiSublimeTheme : githubTheme,
+                  Text(
+                    widget.filename,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Row(
+                    children: [
+                      Icon(
+                        _isModified ? Icons.circle : Icons.circle_outlined,
+                        color:
+                            _isModified ? Colors.greenAccent : Colors.white70,
+                        size: 8,
                       ),
-                      child: Container(
-                        color: isDark
-                            ? const Color(0xFF1E1E1E)
-                            : const Color(0xFFFCFCFC),
-                        child: CodeField(
-                          controller: _codeController,
-                          focusNode: _focusNode,
-                          fieldKey: _codeFieldKey,
-                          keyboardType: TextInputType.multiline,
-                          textStyle: TextStyle(
-                            fontFamily: 'hmossans',
-                            fontSize: _fontSize,
-                            height: 1.5,
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          widget.remotePath,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.white70,
                           ),
-                          lineNumberStyle: LineNumberStyle(
-                            width: 54,
-                            margin: 10,
-                            textStyle: TextStyle(
-                              color: isDark
-                                  ? Colors.grey[600]
-                                  : Colors.blueGrey[300],
-                              fontSize: 12,
-                            ),
-                            background: isDark
-                                ? const Color(0xFF252525)
-                                : const Color(0xFFF5F5F5),
-                          ),
-                          cursorColor: Colors.blueAccent,
-                          expands: true,
-                          maxLines: null,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(_isSaving ? Icons.sync : Icons.save, size: 20),
+                onPressed: _isSaving ? null : _saveFile,
+                tooltip: '保存文件',
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+          body: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Column(
+                  children: [
+                    _buildShortcutBar(isDark),
+                    if (_showSearch) ...[
+                      _buildSearchRow(isDark),
+                      if (_showReplaceRow) _buildReplaceRow(isDark),
+                    ],
+                    Expanded(
+                      child: CodeTheme(
+                        data: CodeThemeData(
+                          styles: isDark ? monokaiSublimeTheme : githubTheme,
+                        ),
+                        child: Container(
+                          color: isDark
+                              ? const Color(0xFF1E1E1E)
+                              : const Color(0xFFFCFCFC),
+                          child: CodeField(
+                            controller: _codeController,
+                            focusNode: _focusNode,
+                            fieldKey: _codeFieldKey,
+                            keyboardType: TextInputType.multiline,
+                            textStyle: _editorTextStyle,
+                            lineNumberStyle: LineNumberStyle(
+                              width: 96,
+                              margin: 2,
+                              textStyle: _lineNumberTextStyle(isDark),
+                              background: isDark
+                                  ? const Color(0xFF252525)
+                                  : const Color(0xFFF5F5F5),
+                            ),
+                            cursorColor: Colors.blueAccent,
+                            expands: true,
+                            maxLines: null,
+                            wrap: false,
+                            horizontalScroll: true,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -501,30 +629,35 @@ class _FileEditorPageState extends State<FileEditorPage> {
         children: [
           _toolBtn(
             Icons.search,
-            "查找",
+            '查找',
             () => setState(() => _showSearch = !_showSearch),
             isDark,
           ),
-          _toolBtn(Icons.undo, "撤销", _undo, isDark),
+          _toolBtn(Icons.undo, '撤销', _undo, isDark),
           _toolBtn(
             Icons.text_increase,
-            "",
+            '',
             () => setState(() => _fontSize++),
             isDark,
           ),
           _toolBtn(
             Icons.text_decrease,
-            "",
-            () => setState(() => _fontSize--),
+            '',
+            () {
+              if (_fontSize <= 8) return;
+              setState(() => _fontSize--);
+            },
             isDark,
           ),
           const VerticalDivider(width: 1, indent: 10, endIndent: 10),
           PopupMenuButton<String>(
-            tooltip: "切换语言",
-            onSelected: (key) => setState(() {
-              _currentLangKey = key;
-              _codeController.language = _languages[key];
-            }),
+            tooltip: '切换语言',
+            onSelected: (key) {
+              setState(() {
+                _currentLangKey = key;
+                _codeController.language = _languages[key];
+              });
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
@@ -532,7 +665,9 @@ class _FileEditorPageState extends State<FileEditorPage> {
                   Icon(
                     Icons.code,
                     size: 16,
-                    color: _currentLangKey == '纯文本' ? Colors.grey : Colors.blue,
+                    color: _currentLangKey == '纯文本'
+                        ? Colors.grey
+                        : Colors.blue,
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -553,14 +688,19 @@ class _FileEditorPageState extends State<FileEditorPage> {
                 ],
               ),
             ),
-            itemBuilder: (context) => _languages.keys
-                .map(
-                  (e) => PopupMenuItem(
-                    value: e,
-                    child: Text(e, style: const TextStyle(fontSize: 13)),
-                  ),
-                )
-                .toList(),
+            itemBuilder: (context) {
+              return _languages.keys
+                  .map(
+                    (e) => PopupMenuItem(
+                      value: e,
+                      child: Text(
+                        e,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  )
+                  .toList();
+            },
           ),
         ],
       ),
@@ -606,7 +746,10 @@ class _FileEditorPageState extends State<FileEditorPage> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF333333) : Colors.white,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+          ),
         ],
       ),
       child: Row(
@@ -615,7 +758,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
             child: TextField(
               controller: _findController,
               decoration: const InputDecoration(
-                hintText: "查找内容",
+                hintText: '查找内容',
                 isDense: true,
                 contentPadding: EdgeInsets.all(10),
                 border: OutlineInputBorder(),
@@ -630,13 +773,14 @@ class _FileEditorPageState extends State<FileEditorPage> {
             ),
           ),
           const SizedBox(width: 8),
-          // 替换按钮（切换替换行）
           IconButton(
             icon: Icon(
               Icons.find_replace,
               color: isDark ? Colors.white : Colors.black,
             ),
-            onPressed: () => setState(() => _showReplaceRow = !_showReplaceRow),
+            onPressed: () {
+              setState(() => _showReplaceRow = !_showReplaceRow);
+            },
             tooltip: '替换',
           ),
           IconButton(
@@ -666,7 +810,9 @@ class _FileEditorPageState extends State<FileEditorPage> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF3A3A3A) : Colors.grey[50],
         border: Border(
-          top: BorderSide(color: isDark ? Colors.black54 : Colors.grey[300]!),
+          top: BorderSide(
+            color: isDark ? Colors.black54 : Colors.grey[300]!,
+          ),
         ),
       ),
       child: Row(
@@ -675,7 +821,7 @@ class _FileEditorPageState extends State<FileEditorPage> {
             child: TextField(
               controller: _replaceController,
               decoration: const InputDecoration(
-                hintText: "替换为",
+                hintText: '替换为',
                 isDense: true,
                 contentPadding: EdgeInsets.all(10),
                 border: OutlineInputBorder(),
@@ -718,10 +864,12 @@ class _FileEditorPageState extends State<FileEditorPage> {
 
   Future<void> _saveFile() async {
     if (_isSaving) return;
+
     setState(() => _isSaving = true);
 
     try {
       final contentBytes = utf8.encode(_codeController.text);
+
       final success = await widget.saveCallback(
         widget.remotePath,
         Uint8List.fromList(contentBytes),
@@ -739,12 +887,16 @@ class _FileEditorPageState extends State<FileEditorPage> {
         setState(() => _isSaving = false);
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("保存失败: $e"), backgroundColor: Colors.red),
-        );
-      }
+      if (!mounted) return;
+
+      setState(() => _isSaving = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('保存失败: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -752,23 +904,27 @@ class _FileEditorPageState extends State<FileEditorPage> {
     return await showDialog<bool>(
           context: context,
           barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: const Text('未保存的更改'),
-            content: const Text('当前文件有未保存的更改，确定要退出吗？\n\n退出后将丢失所有修改。'),
-            actions: [
-              OutlinedButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('继续编辑'),
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('未保存的更改'),
+              content: const Text(
+                '当前文件有未保存的更改，确定要退出吗？\n\n退出后将丢失所有修改。',
               ),
-              OutlinedButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  '放弃保存并退出',
-                  style: TextStyle(color: Colors.red),
+              actions: [
+                OutlinedButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('继续编辑'),
                 ),
-              ),
-            ],
-          ),
+                OutlinedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text(
+                    '放弃保存并退出',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
+            );
+          },
         ) ??
         false;
   }
@@ -776,10 +932,16 @@ class _FileEditorPageState extends State<FileEditorPage> {
   @override
   void dispose() {
     _historyTimer?.cancel();
-    _codeController.dispose();
+
+    if (_controllerReady) {
+      _codeController.removeListener(_handleTextChange);
+      _codeController.dispose();
+    }
+
     _findController.dispose();
     _replaceController.dispose();
     _focusNode.dispose();
+
     super.dispose();
   }
 }
